@@ -1,0 +1,105 @@
+#! /usr/bin/env lua
+prog = {
+  name = "nancy",
+  banner = "nancy 0.11 (15 Apr 2006) by Reuben Thomas (rrt@sc3d.org)\n" ..
+    "(c) 2002-2006 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org/)\n" ..
+    "Distributed under the GNU General Public License",
+  purpose = "The lazy person's web site maker",
+  notes = "Usage: nancy ROOT PATH FILE\n" ..
+    "Prints the web page on stdout and inclusion graph on stderr\n" ..
+    "  ROOT is the root directory for the file tree\n" ..
+    "  PATH is the inheritance path to use\n" ..
+    "  FILE is the file to process"
+}
+
+
+require "std"
+string.find = rex.find
+
+
+-- Process a macro call; if the macro is undefined, replace it, uppercased
+function doMacro (macro, arg, caller, indent)
+  Macros = {
+    include = function (file)
+                local text, note
+                local curdir = Path
+                local name
+                repeat
+                  name = curdir .. "/" .. file
+                  if io.exists (name) then
+                    text = io.open (name):read ("*a")
+                  end
+                  curdir = io.dirname (curdir)
+                  note = curdir
+                until text ~= nil or curdir == "" or curdir == "."
+                if not text then
+                  if io.exists (file) then
+                    text = io.open (file):read ("*a")
+                  end
+                  if not text then
+                    die ("Can't find file `" .. file .. "'")
+                  end
+                  note = ""
+                end
+                text = rex.gsub (text, "^", indent, nil, rex.MULTILINE)
+                return text, " " .. note
+              end,
+  }
+
+  if Macros[macro] then
+    local args = string.split ("(?<!\\\\),", arg or "")
+    local callees = {}
+    local text, note = Macros[macro] (unpack (args))
+    note = note or ""
+    local reps
+    repeat
+      text, reps = rex.gsub (text, "([ \\t]*)\\$([[:lower:]]+)(?:{((?:(?!(?<!\\\\)[{}]).)*)(?<!\\\\)})",
+                                function (indent, macro, arg)
+                                  return doMacro (macro, arg, callees, indent)
+                                end)
+    until reps == 0
+    table.insert (caller, {"$" .. macro .. "\{" .. arg .. "}" .. note, callees})
+    return text
+  else
+    macro = string.upper (string.sub (macro, 1, 1)) .. string.sub (macro, 2)
+    return "$" .. macro .. "{" .. arg .. "}"
+  end
+end
+
+
+-- Command-line options
+options = {
+--   Option {{"test", "t"},
+--     "test option"},
+}
+
+-- Main routine
+getopt.processArgs ()
+if table.getn (arg) == 0 then
+  getopt.dieWithUsage ()
+end
+
+-- Get parameters
+root = arg[1] or die "No root given"
+Path = arg[2] or die "No path given"
+Path = root .. "/" .. Path
+local file = arg[3] or die "No file given"
+
+-- Process file
+if os.execute ("test -d '" .. root .. "'") ~= 0 then
+  die ("Root `" .. root .. "' not found")
+end
+local forest = {}
+io.stdout:write (doMacro ("include", file, forest, ""))
+io.stdout:flush ()
+io.stderr:write (Path .. "\n")
+io.stderr:write (prettytostring (forest))
+
+
+-- Changelog
+
+-- 15apr06  0.11 Assume rex.flags() has been called, and use flags
+--               directly in rex.
+-- 29mar06  0.1  First Lua version
+--    2002-      Perl version (Wiklet, smumth, do_includes, nancy)
+--    2006
