@@ -17,13 +17,29 @@ require "std"
 string.find = rex.find
 
 
+-- Command-line options
+options = {
+--   Option {{"test", "t"},
+--     "test option"},
+}
+
+-- Get parameters
+getopt.processArgs ()
+if table.getn (arg) == 0 then
+  getopt.dieWithUsage ()
+end
+local root = arg[1] or die "No root given"
+local path = arg[2] or die "No path given"
+path = root .. "/" .. path
+local file = arg[3] or die "No file given"
+
+
 -- Process macro calls in some text; if the macro is undefined, replace it, uppercased
 function expand (macro, arg, caller, indent)
   Macros = {
     include = function (file)
-                local text, note
-                local curdir = Path
-                local name
+                local curdir = path
+                local text, note, name
                 repeat
                   name = curdir .. "/" .. file
                   if io.exists (name) then
@@ -78,24 +94,6 @@ function doMacro (macro, arg, caller, indent)
 end
 
 
--- Command-line options
-options = {
---   Option {{"test", "t"},
---     "test option"},
-}
-
--- Main routine
-getopt.processArgs ()
-if table.getn (arg) == 0 then
-  getopt.dieWithUsage ()
-end
-
--- Get parameters
-root = arg[1] or die "No root given"
-Path = arg[2] or die "No path given"
-Path = root .. "/" .. Path
-local file = arg[3] or die "No file given"
-
 -- Process file
 if os.execute ("test -d '" .. root .. "'") ~= 0 then
   die ("Root `" .. root .. "' not found")
@@ -103,5 +101,5 @@ end
 local forest = {}
 io.stdout:write (doMacro ("include", file, forest, ""))
 io.stdout:flush ()
-io.stderr:write (Path .. "\n")
+io.stderr:write (path .. "\n")
 io.stderr:write (prettytostring (forest))
