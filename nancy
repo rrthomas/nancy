@@ -1,8 +1,8 @@
 #! /usr/bin/env lua
 prog = {
   name = "nancy",
-  banner = "nancy 0.11 (15 Apr 2006) by Reuben Thomas (rrt@sc3d.org)\n" ..
-    "(c) 2002-2006 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org/)\n" ..
+  banner = "nancy 0.11 (15 Apr 2006)\n" ..
+    "(c) 2002-2006 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
     "Distributed under the GNU General Public License",
   purpose = "The lazy person's web site maker",
   notes = "Usage: nancy ROOT PATH FILE\n" ..
@@ -17,8 +17,8 @@ require "std"
 string.find = rex.find
 
 
--- Process a macro call; if the macro is undefined, replace it, uppercased
-function doMacro (macro, arg, caller, indent)
+-- Process macro calls in some text; if the macro is undefined, replace it, uppercased
+function expand (macro, arg, caller, indent)
   Macros = {
     include = function (file)
                 local text, note
@@ -55,7 +55,7 @@ function doMacro (macro, arg, caller, indent)
     repeat
       text, reps = rex.gsub (text, "([ \\t]*)\\$([[:lower:]]+)(?:{((?:(?!(?<!\\\\)[{}]).)*)(?<!\\\\)})",
                                 function (indent, macro, arg)
-                                  return doMacro (macro, arg, callees, indent)
+                                  return expand (macro, arg, callees, indent)
                                 end)
     until reps == 0
     table.insert (caller, {"$" .. macro .. "\{" .. arg .. "}" .. note, callees})
@@ -64,6 +64,17 @@ function doMacro (macro, arg, caller, indent)
     macro = string.upper (string.sub (macro, 1, 1)) .. string.sub (macro, 2)
     return "$" .. macro .. "{" .. arg .. "}"
   end
+end
+
+-- Process macro calls in some text
+function doMacro (macro, arg, caller, indent)
+  local text = expand (macro, arg, caller, indent)
+  -- Convert $Macro --> $macro
+  text = rex.gsub (text, "(?!<\\\\)\\$([[:upper:]])",
+                   function (macro)
+                     return string.lower (macro)
+                   end)
+  return text
 end
 
 
@@ -94,12 +105,3 @@ io.stdout:write (doMacro ("include", file, forest, ""))
 io.stdout:flush ()
 io.stderr:write (Path .. "\n")
 io.stderr:write (prettytostring (forest))
-
-
--- Changelog
-
--- 15apr06  0.11 Assume rex.flags() has been called, and use flags
---               directly in rex.
--- 29mar06  0.1  First Lua version
---    2002-      Perl version (Wiklet, smumth, do_includes, nancy)
---    2006
