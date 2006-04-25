@@ -1,7 +1,7 @@
 #! /usr/bin/env lua
 prog = {
   name = "nancy",
-  banner = "nancy 0.11 (15 Apr 2006)\n" ..
+  banner = "nancy $Revision$ ($Date$)\n" ..
     "(c) 2002-2006 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
     "Distributed under the GNU General Public License",
   purpose = "The lazy person's web site maker",
@@ -35,16 +35,14 @@ local file = arg[3] or die "No file given"
 
 
 -- Process macro calls in some text; if the macro is undefined, replace it, uppercased
-function expand (macro, arg, caller, indent)
+function expand (macro, arg, caller)
   Macros = {
     include = function (file)
                 local curdir = path
                 repeat
                   local name = curdir .. "/" .. file
                   if io.exists (name) then
-                    local text = io.open (name):read ("*a")
-                    text = rex.gsub (text, "^", indent, nil, rex.MULTILINE)
-                    return text, " " .. curdir
+                    return io.open (name):read ("*a"), " " .. curdir
                   end
                   if curdir == "." then
                     die ("Can't find file `" .. file .. "'")
@@ -61,9 +59,9 @@ function expand (macro, arg, caller, indent)
     note = note or ""
     local reps
     repeat
-      text, reps = rex.gsub (text, "([ \\t]*)\\$([[:lower:]]+)(?:{((?:(?!(?<!\\\\)[{}]).)*)(?<!\\\\)})",
-                                function (indent, macro, arg)
-                                  return expand (macro, arg, callees, indent)
+      text, reps = rex.gsub (text, "\\$([[:lower:]]+)(?:{((?:(?!(?<!\\\\)[{}]).)*)(?<!\\\\)})",
+                                function (macro, arg)
+                                  return expand (macro, arg, callees)
                                 end)
     until reps == 0
     table.insert (caller, {"$" .. macro .. "\{" .. arg .. "}" .. note, callees})
@@ -75,9 +73,9 @@ function expand (macro, arg, caller, indent)
 end
 
 -- Process macro calls in some text
-function doMacro (macro, arg, caller, indent)
-  local text = expand (macro, arg, caller, indent)
-  -- Convert $Macro --> $macro
+function doMacro (macro, arg, caller)
+  local text = expand (macro, arg, caller)
+  -- Convert unknown macros "$Macro" back to "$macro"
   text = rex.gsub (text, "(?!<\\\\)\\$([[:upper:]])",
                    function (macro)
                      return string.lower (macro)
@@ -91,7 +89,7 @@ if os.execute ("test -d '" .. root .. "'") ~= 0 then
   die ("Root `" .. root .. "' not found")
 end
 local forest = {}
-io.stdout:write (doMacro ("include", file, forest, ""))
+io.stdout:write (doMacro ("include", file, forest))
 io.stdout:flush ()
 io.stderr:write (path .. "\n")
 io.stderr:write (prettytostring (forest))
