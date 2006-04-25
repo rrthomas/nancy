@@ -39,26 +39,18 @@ function expand (macro, arg, caller, indent)
   Macros = {
     include = function (file)
                 local curdir = path
-                local text, note, name
                 repeat
-                  name = curdir .. "/" .. file
+                  local name = curdir .. "/" .. file
                   if io.exists (name) then
-                    text = io.open (name):read ("*a")
+                    local text = io.open (name):read ("*a")
+                    text = rex.gsub (text, "^", indent, nil, rex.MULTILINE)
+                    return text, " " .. curdir
                   end
-                  curdir = io.dirname (curdir)
-                  note = curdir
-                until text ~= nil or curdir == "" or curdir == "."
-                if not text then
-                  if io.exists (file) then
-                    text = io.open (file):read ("*a")
-                  end
-                  if not text then
+                  if curdir == "." then
                     die ("Can't find file `" .. file .. "'")
                   end
-                  note = ""
-                end
-                text = rex.gsub (text, "^", indent, nil, rex.MULTILINE)
-                return text, " " .. note
+                  curdir = io.dirname (curdir)
+                until nil
               end,
   }
 
