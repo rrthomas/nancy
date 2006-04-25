@@ -5,47 +5,56 @@ prog = {
     "(c) 2002-2006 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
     "Distributed under the GNU General Public License",
   purpose = "The lazy person's web site maker",
-  notes = "Usage: nancy ROOT PATH FILE\n" ..
-    "Prints the web page on stdout and inclusion graph on stderr\n" ..
-    "  ROOT is the root directory for the file tree\n" ..
-    "  PATH is the inheritance path to use\n" ..
-    "  FILE is the file to process"
+  notes = "Usage: nancy ROOT TEMPLATE PAGE\n" ..
+    "  ROOT is the root directory of the file tree\n" ..
+    "  TEMPLATE is the template to use\n" ..
+    "  PAGE is the path to the page to process"
 }
 
 
 require "std"
-string.find = rex.find
 
 
 -- Command-line options
 options = {
---   Option {{"test", "t"},
---     "test option"},
+   Option {{"debug", "d"}, "print inclusion graph on stderr"},
 }
 
--- Get parameters
+-- Get arguments
 getopt.processArgs ()
 if table.getn (arg) == 0 then
   getopt.dieWithUsage ()
 end
-local root = arg[1] or die "No root given"
-local path = arg[2] or die "No path given"
-path = root .. "/" .. path
-local file = arg[3] or die "No file given"
 
+local root = arg[1] or die "No root given"
+table.remove (arg, 1)
+if posix.stat (root, "type") ~= "directory" then
+  die ("Root `" .. root .. "' not found or not a directory")
+end
+
+local template = arg[1] or die "No template given"
+table.remove (arg, 1)
+
+local page = arg[1] or die "No page given"
+page = root .. "/" .. page
+table.remove (arg, 1)
+
+if #arg > 0 then
+  die "Too many arguments given"
+end
 
 -- Process macro calls in some text; if the macro is undefined, replace it, uppercased
 function expand (macro, arg, caller)
   Macros = {
-    include = function (file)
-                local curdir = path
+    include = function (template)
+                local curdir = page
                 repeat
-                  local name = curdir .. "/" .. file
+                  local name = curdir .. "/" .. template
                   if io.exists (name) then
                     return io.open (name):read ("*a"), " " .. curdir
                   end
                   if curdir == "." then
-                    die ("Can't find file `" .. file .. "'")
+                    die ("Can't find template `" .. template .. "'")
                   end
                   curdir = io.dirname (curdir)
                 until nil
@@ -85,11 +94,11 @@ end
 
 
 -- Process file
-if os.execute ("test -d '" .. root .. "'") ~= 0 then
-  die ("Root `" .. root .. "' not found")
-end
 local forest = {}
-io.stdout:write (doMacro ("include", file, forest))
+io.stdout:write (doMacro ("include", template, forest))
 io.stdout:flush ()
-io.stderr:write (path .. "\n")
-io.stderr:write (prettytostring (forest))
+
+if getopt.opt.debug then
+  io.stderr:write (page .. "\n")
+  io.stderr:write (prettytostring (forest))
+end
