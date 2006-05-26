@@ -1,0 +1,69 @@
+\documentclass[english]{scrartcl}
+\usepackage{babel,a4,newlfont,copyrght}
+\usepackage[utf8]{inputenc}
+
+% Alter some default parameters for general typesetting
+\frenchspacing
+
+% New commands
+\renewcommand{\copyrightyear}{2006}
+
+\begin{document}
+
+\title{Functional specification for Nancy, a simple web site builder}\date{\relax}\author{Reuben Thomas}\maketitle
+
+\section*{Introduction}
+
+Nancy is a simple web site builder that glues together HTML fragments to make pages, and allows fragments to be specialised for particular pages.
+
+\section*{Environment}
+
+Nancy is a command-line tool, typically used in a POSIX-like environment. In particular, it takes arguments on the command line and writes its output to standard output.
+
+\section*{Invocation}
+
+Nancy takes three arguments:
+
+\begin{verbatim}nancy DIRECTORY ROOT-FRAGMENT SEARCH-PATH
+\end{verbatim}
+
+where \texttt{DIRECTORY} is the directory in which nancy operates, \texttt{ROOT-FRAGMENT} is the HTML fragment to expand, and \texttt{SEARCH-PATH} is the path, relative to \texttt{DIRECTORY}, which is searched for fragments. The resultant HTML page is printed to standard output, so nancy is typically invoked as
+
+\begin{verbatim}nancy DIRECTORY ROOT-FRAGMENT SEARCH-PATH > PAGE
+\end{verbatim}
+
+in order to write the HTML output into the file \texttt{PAGE}.
+
+\section*{Operation}
+
+Nancy produces the finished page according to the following algorithm:
+
+\begin{enumerate}
+\item Change to the given \texttt{DIRECTORY}.
+\item Set the initial text to \texttt{\$include\{ROOT-FRAGMENT\}}.
+\item Repeatedly scan the text for an include command and replace it by the file it specifies, until no more include commands are found.\item Write out the resultant text.
+\end{enumerate}
+
+An include command consists of the string \texttt{\$include} followed by a file argument in curly braces, e.g. \texttt{\$include\{foo/bar.html\}}.
+
+Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (Other than that, it does not actually matter in which order commands are processed.)
+
+To find the file \texttt{FILE\_PATH} specified by an include command, nancy proceeds thus:
+
+\begin{enumerate}
+\item Look in \texttt{DIRECTORY/SEARCH\_PATH/FILE\_PATH}.\item If the file is not found, remove the final directory from \texttt{SEARCH\_PATH} and try again, until \texttt{SEARCH\_PATH} is empty.\item Finally, try looking in \texttt{DIRECTORY/FILE\_PATH}.
+\end{enumerate}
+
+So, for example, if \texttt{DIRECTORY} is \texttt{/dir}, \texttt{SEARCH\_PATH} is \texttt{foo/bar/baz} and nancy is trying to find \texttt{file.html}, it will try the following directories, in order:
+
+\begin{enumerate}
+\item \texttt{/dir/foo/bar/baz/file.html}\item \texttt{/dir/foo/bar/file.html}\item \texttt{/dir/foo/file.html}\item \texttt{/dir/file.html}
+\end{enumerate}
+
+This finishes the specification. There follows an example to clarify the way that nancy is intended to be used.
+
+\section*{Example}
+
+\emph{To be written.}
+
+\end{document}
