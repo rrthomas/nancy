@@ -5,10 +5,10 @@ prog = {
     "(c) 2002-2006 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
     "Distributed under the GNU General Public License",
   purpose = "The lazy person's web site maker",
-  notes = "Usage: nancy ROOT TEMPLATE PAGE\n" ..
-    "  ROOT is the root directory of the file tree\n" ..
-    "  TEMPLATE is the template to use\n" ..
-    "  PAGE is the path to the page to process"
+  notes = "Usage: nancy DIRECTORY ROOT-FRAGMENT SEARCH-PATH\n" ..
+    "  DIRECTORY is the directory under which the fragments are kept\n" ..
+    "  ROOT-FRAGMENT is the root fragment to use\n" ..
+    "  SEARCH-PATH is the search path to use"
 }
 
 
@@ -26,79 +26,70 @@ if table.getn (arg) == 0 then
   getopt.dieWithUsage ()
 end
 
-local root = arg[1] or die "No root given"
+local directory = arg[1] or die "No directory given"
 table.remove (arg, 1)
-if posix.stat (root, "type") ~= "directory" then
-  die ("Root `" .. root .. "' not found or not a directory")
+if posix.stat (directory, "type") ~= "directory" then
+  die ("Directory `" .. directory .. "' not found or not a directory")
 end
 
-local template = arg[1] or die "No template given"
+local fragment = arg[1] or die "No fragment given"
 table.remove (arg, 1)
 
-local page = arg[1] or die "No page given"
-page = root .. "/" .. page
+local searchPath = arg[1] or die "No search path given"
+searchPath = directory .. "/" .. searchPath
 table.remove (arg, 1)
 
 if #arg > 0 then
   die "Too many arguments given"
 end
 
--- Process macro calls in some text; if the macro is undefined, replace it, uppercased
-function expand (macro, arg, caller)
-  Macros = {
-    include = function (template)
-                local curdir = page
-                repeat
-                  local name = curdir .. "/" .. template
-                  if io.exists (name) then
-                    return io.open (name):read ("*a"), " " .. curdir
-                  end
-                  if curdir == "." then
-                    die ("Can't find template `" .. template .. "'")
-                  end
-                  curdir = io.dirname (curdir)
-                until nil
-              end,
-  }
+-- Macros
+Macros = {
+  include = function (fragment)
+              local curdir = searchPath
+              repeat
+                local name = curdir .. "/" .. fragment
+                if io.exists (name) then
+                  return io.open (name):read ("*a"), " " .. curdir
+                end
+                if curdir == "." then
+                  die ("Can't find fragment `" .. fragment .. "'")
+                end
+                curdir = io.dirname (curdir)
+              until nil
+            end,
+}
 
+-- Call a macro, returning its result
+function doMacro (macro, arg)
   if Macros[macro] then
-    local args = string.split ("(?<!\\\\),", arg or "")
-    local callees = {}
-    local text, note = Macros[macro] (unpack (args))
-    note = note or ""
-    local reps
-    repeat
-      text, reps = rex.gsub (text, "\\$([[:lower:]]+)(?:{((?:(?!(?<!\\\\)[{}]).)*)(?<!\\\\)})",
-                                function (macro, arg)
-                                  return expand (macro, arg, callees)
-                                end)
-    until reps == 0
-    table.insert (caller, {"$" .. macro .. "\{" .. arg .. "}" .. note, callees})
-    return text
+    local text, note = Macros[macro] (arg)
+    return expand (text)
   else
-    macro = string.upper (string.sub (macro, 1, 1)) .. string.sub (macro, 2)
     return "$" .. macro .. "{" .. arg .. "}"
   end
 end
 
--- Process macro calls in some text
-function doMacro (macro, arg, caller)
-  local text = expand (macro, arg, caller)
-  -- Convert unknown macros "$Macro" back to "$macro"
-  text = rex.gsub (text, "(?!<\\\\)\\$([[:upper:]])",
-                   function (macro)
-                     return string.lower (macro)
+-- Expand macros in some text
+function expand (text)
+  local caller = {}
+  text = rex.gsub (text, "\\$([[:lower:]]+)(?:{((?:(?![{}]).)*)})",
+                   function (macro, arg)
+                     local ret, callees = doMacro (macro, arg)
+                     table.insert (caller, {"$" .. macro .. "{" .. arg ..
+                                     "}" .. (note or ""),
+                                     callees})
+                     return ret
                    end)
-  return text
+  return text, caller
 end
 
-
 -- Process file
-local forest = {}
-io.stdout:write (doMacro ("include", template, forest))
+local text, callees = doMacro ("include", fragment)
+io.stdout:write (text)
 io.stdout:flush ()
 
 if getopt.opt.debug then
-  io.stderr:write (page .. "\n")
-  io.stderr:write (prettytostring (forest))
+  io.stderr:write (searchPath .. "\n")
+  io.stderr:write (prettytostring (callees))
 end
