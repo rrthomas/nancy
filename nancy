@@ -17,7 +17,7 @@ require "std"
 
 -- Command-line options
 options = {
-   Option {{"debug", "d"}, "print macro calls on stderr"},
+  Option {{"list-fragments", "l"}, "list fragments included (on stderr)"},
 }
 
 -- Get arguments
@@ -84,7 +84,7 @@ local text, callees = doMacro ("include", fragment)
 io.stdout:write (text)
 io.stdout:flush ()
 
-if getopt.opt.debug then
+if getopt.opt["list-fragments"] then
   io.stderr:write (searchPath .. "\n")
   io.stderr:write (prettytostring (callees))
 end
