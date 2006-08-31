@@ -4,7 +4,7 @@ prog = {
   banner = "nancy $Revision$ ($Date$)\n" ..
     "(c) 2002-2006 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
     "Distributed under the GNU General Public License",
-  purpose = "The lazy person's web site maker",
+  purpose = "The lazy web site maker",
   notes = "Usage: nancy DIRECTORY ROOT-FRAGMENT SEARCH-PATH\n" ..
     "  DIRECTORY is the directory under which the fragments are kept\n" ..
     "  ROOT-FRAGMENT is the root fragment to use\n" ..
@@ -17,7 +17,7 @@ require "std"
 
 -- Command-line options
 options = {
-   Option {{"debug", "d"}, "print inclusion graph on stderr"},
+   Option {{"debug", "d"}, "print macro calls on stderr"},
 }
 
 -- Get arguments
@@ -26,22 +26,17 @@ if table.getn (arg) == 0 then
   getopt.dieWithUsage ()
 end
 
-local directory = arg[1] or die "No directory given"
-table.remove (arg, 1)
+if #arg ~= 3 then
+  die "Wrong number of arguments given"
+end
+
+local directory = arg[1]
 if posix.stat (directory, "type") ~= "directory" then
   die ("Directory `" .. directory .. "' not found or not a directory")
 end
 
-local fragment = arg[1] or die "No fragment given"
-table.remove (arg, 1)
-
-local searchPath = arg[1] or die "No search path given"
-searchPath = directory .. "/" .. searchPath
-table.remove (arg, 1)
-
-if #arg > 0 then
-  die "Too many arguments given"
-end
+local fragment = arg[2]
+local searchPath = directory .. "/" .. arg[3]
 
 -- Macros
 Macros = {
