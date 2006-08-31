@@ -22,69 +22,43 @@ options = {
 
 -- Get arguments
 getopt.processArgs ()
-if table.getn (arg) == 0 then
+if table.getn (arg) ~= 3 then
   getopt.dieWithUsage ()
-end
-
-if #arg ~= 3 then
-  die "Wrong number of arguments given"
 end
 
 local directory = arg[1]
 if posix.stat (directory, "type") ~= "directory" then
   die ("Directory `" .. directory .. "' not found or not a directory")
 end
-
 local fragment = arg[2]
 local searchPath = directory .. "/" .. arg[3]
 
--- Macros
-Macros = {
-  include = function (fragment)
-              local curdir = searchPath
-              repeat
-                local name = curdir .. "/" .. fragment
-                if io.exists (name) then
-                  return io.open (name):read ("*a"), " " .. curdir
-                end
-                if curdir == "." then
-                  die ("Can't find fragment `" .. fragment .. "'")
-                end
-                curdir = io.dirname (curdir)
-              until nil
-            end,
-}
-
--- Call a macro, returning its result
-function doMacro (macro, arg)
-  if Macros[macro] then
-    local text, note = Macros[macro] (arg)
-    return expand (text)
-  else
-    return "$" .. macro .. "{" .. arg .. "}"
-  end
+-- Find an include file
+function include (fragment)
+  local curdir = searchPath
+  repeat
+    local name = curdir .. "/" .. fragment
+    if io.exists (name) then
+      if getopt.opt["list-fragments"] then
+        io.stderr:write (name .. "\n")
+      end
+      return io.open (name):read ("*a"), " " .. curdir
+    end
+    if curdir == "." then
+      die ("Can't find fragment `" .. fragment .. "'")
+    end
+    curdir = io.dirname (curdir)
+  until nil
 end
 
--- Expand macros in some text
+-- Expand includes in some text
 function expand (text)
-  local caller = {}
-  text = rex.gsub (text, "\\$([[:lower:]]+)(?:{((?:(?![{}]).)*)})",
-                   function (macro, arg)
-                     local ret, callees = doMacro (macro, arg)
-                     table.insert (caller, {"$" .. macro .. "{" .. arg ..
-                                     "}" .. (note or ""),
-                                     callees})
-                     return ret
-                   end)
-  return text, caller
+  return (rex.gsub (text, "\\$include(?:{((?:(?![{}]).)*)})",
+                    function (filename)
+                      local text = include (filename)
+                      return expand (text)
+                    end))
 end
 
 -- Process file
-local text, callees = doMacro ("include", fragment)
-io.stdout:write (text)
-io.stdout:flush ()
-
-if getopt.opt["list-fragments"] then
-  io.stderr:write (searchPath .. "\n")
-  io.stderr:write (prettytostring (callees))
-end
+io.stdout:write (expand (include (fragment)))
