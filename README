@@ -1,0 +1,17 @@
+                                Nancy
+                                -----
+                                   
+Nancy is a simple web site builder. It has just one construct:
+context-dependent file inclusion. With this single feature you can
+build pretty much any web site whose logical structure mirrors its URL
+layout, and which does not rely on dynamically computed content, out
+of fragments (of HTML, CSS, text, and whatever else you like) plus
+other files (images, audio &c.).
+
+Nancy is available from http://rrt.sc3d.org/Software/Nancy/. It is
+free software, licensed under the GNU GPL.
+
+See "Nancy user's guide.pdf" for instructions.
+
+Any questions, comments, or bug reports should be sent to
+rrt@sc3d.org.
