@@ -34,6 +34,7 @@ local fragment = arg[2]
 local searchPath = directory .. "/" .. arg[3]
 
 -- Find an include file
+-- FIXME: Extract Python's os.walk
 function include (fragment)
   local curdir = searchPath
   repeat
@@ -55,8 +56,7 @@ end
 function expand (text)
   return (rex.gsub (text, "\\$include(?:{((?:(?![{}]).)*)})",
                     function (filename)
-                      local text = include (filename)
-                      return expand (text)
+                      return expand (include (filename))
                     end))
 end
 
