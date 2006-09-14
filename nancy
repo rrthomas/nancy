@@ -43,7 +43,7 @@ function include (fragment)
       if getopt.opt["list-fragments"] then
         io.stderr:write (name .. "\n")
       end
-      return io.open (name):read ("*a"), " " .. curdir
+      return io.open (name):read ("*a")
     end
     if curdir == "." then
       die ("Can't find fragment `" .. fragment .. "'")
