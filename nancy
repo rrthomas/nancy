@@ -33,7 +33,7 @@ end
 local fragment = arg[2]
 local searchPath = directory .. "/" .. arg[3]
 
--- Find an include file
+-- Find an included file
 -- FIXME: Make an iterator over the path?
 function include (fragment)
   local curdir = searchPath
@@ -54,7 +54,7 @@ end
 
 -- Expand includes in some text
 function expand (text)
-  return (rex.gsub (text, "\\$include(?:{((?:(?![{}]).)*)})",
+  return (rex.gsub (text, "\\$include{((?:(?![{}]).)*)}",
                     function (filename)
                       return expand (include (filename))
                     end))
