@@ -54,7 +54,7 @@ end
 
 -- Expand includes in some text
 function expand (text)
-  return (rex.gsub (text, "\\$include{((?:(?![{}]).)*)}",
+  return (rex.gsub (text, "\\$include{([^{}]*)}",
                     function (filename)
                       return expand (include (filename))
                     end))
