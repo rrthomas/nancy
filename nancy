@@ -22,7 +22,7 @@ options = {
 
 -- Get arguments
 getopt.processArgs ()
-if table.getn (arg) ~= 3 then
+if #arg ~= 3 then
   getopt.dieWithUsage ()
 end
 
