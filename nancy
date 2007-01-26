@@ -39,7 +39,7 @@ function include (fragment)
   local curdir = searchPath
   repeat
     local name = curdir .. "/" .. fragment
-    if io.exists (name) then
+    if posix.stat (name) then
       if getopt.opt["list-fragments"] then
         io.stderr:write (name .. "\n")
       end
