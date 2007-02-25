@@ -8,12 +8,12 @@
 \frenchspacing
 
 % New commands
-\renewcommand{\copyrightyear}{2006}
+\renewcommand{\copyrightyear}{2002-2007}
 
 \begin{document}
 
 \title{Nancy, the lazy web site builder\\User's guide}
-\date{6th September 2006}
+\date{25th February 2007}
 \author{Reuben Thomas}
 \maketitle
 
@@ -34,60 +34,40 @@ writes its output to standard output.
 Nancy takes three arguments:
 
 \begin{verbatim}
-nancy DIRECTORY ROOT-FRAGMENT SEARCH-PATH
+nancy SOURCE DESTINATION TEMPLATE [BRANCH]
 \end{verbatim}
 
-\noindent where \verb|DIRECTORY| is the directory in which nancy
-operates, \verb|ROOT-FRAGMENT| is the HTML fragment to expand, and
-\verb|SEARCH-PATH| is the path, relative to \verb|DIRECTORY|,
-which is searched for fragments. The resultant HTML page is printed to
-standard output, so nancy is typically invoked as
+\noindent where \verb|SOURCE| is the directory that contains the source tree, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of \verb|SOURCE| to process (if it is omitted, the entire source tree is processed).
 
-\begin{verbatim}
-nancy DIRECTORY ROOT-FRAGMENT SEARCH-PATH > PAGE
-\end{verbatim}
-
-\noindent in order to write the HTML output into the file \verb|PAGE|.
-
-If you supply the optional flag \verb|-list-fragments|, or \verb|-l|,
-the fragments used will be listed on standard error.
+If you supply the optional flag \verb|-list-fragments|, or \verb|-l|, the fragments used will be listed on standard error.
 
 \section{Operation}
 \label{operation}
 
-Nancy produces the finished page according to the following algorithm:
+Nancy produces the finished pages according to the following algorithm:
 
 \begin{enumerate}
-\item Change to the given \verb|DIRECTORY|.
-\item Set the initial text to \verb|$include{ROOT-FRAGMENT}|.
-\item Repeatedly scan the text for an include command and replace it
-  by the file it specifies, until no more include commands are
-  found.\item Write out the resultant text.
+\item For each leaf directory of the source tree, start from that directory.
+\item Set the initial text to \verb|$include{TEMPLATE}|.
+\item Repeatedly scan the text for an include command and replace it by the file it specifies, until no more include commands are found.
+\item Write out the resultant HTML to a file: for each directory \verb|SOURCE/LEAF_PATH| the output file is \verb|DESTINATION/LEAF_PATH.html|.
 \end{enumerate}
 
-An include command consists of the string \verb|$include| followed by
-a file argument in curly braces, e.g. \verb|$include{foo/bar.html}|.
+The reason that only leaf directories correspond to pages is that this ensures that every page can have fragments special to it without affecting any other page. By convention, every non-leaf directory has an \verb|index| sub-directory, so that there are no ``missing'' URLs in the resulting site. Nancy warns if an \verb|index| directory is absent.
 
-Only one guarantee is made about the order in which commands are
-processed: if one command is nested inside another, the inner command
-will be processed first. (Other than that, it does not actually matter
-in which order commands are processed.)
+An include command consists of the string \verb|$include| followed by a file argument in curly braces, e.g. \verb|$include{foo/bar.html}|.
 
-To find the file \verb|FILE_PATH| specified by an include command,
-nancy proceeds thus:
+Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (Other than that, it does not actually matter in which order commands are processed.)
+
+To find the file \verb|FILE_PATH| specified by an include command, nancy proceeds thus:
 
 \begin{enumerate}
-\item Look in \verb|DIRECTORY/SEARCH_PATH/FILE_PATH|.
-\item If the file is not found, remove the final directory from
-  \verb|SEARCH_PATH| and try again, until \verb|SEARCH_PATH| is
-  empty.
+\item Look in \verb|DIRECTORY/LEAF_PATH/FILE_PATH|.
+\item If the file is not found, remove the final directory from \verb|LEAF_PATH| and try again, until \verb|LEAF_PATH| is empty.
 \item Finally, try looking in \verb|DIRECTORY/FILE_PATH|.
 \end{enumerate}
 
-So, for example, if \verb|DIRECTORY| is \verb|/dir|,
-\verb|SEARCH_PATH| is \verb|foo/bar/baz| and nancy is trying to
-find \verb|file.html|, it will try the following directories, in
-order:
+So, for example, if \verb|DIRECTORY| is \verb|/dir|, \verb|LEAF_PATH| is \verb|foo/bar/baz| and nancy is trying to find \verb|file.html|, it will try the following directories, in order:
 
 \begin{enumerate}
 \item \verb|/dir/foo/bar/baz/file.html|
@@ -98,15 +78,11 @@ order:
 
 \section{Example}
 
-Suppose a web site with the following page design, from top to bottom:
-logo, navigation menu, breadcrumb trail, page body.
+Suppose a web site with the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
 
-Most of the elements are the same on each page, but the breadcrumb
-trail has to show the canonical path to each page, and the logo is
-bigger on the home page.
+Most of the elements are the same on each page, but the breadcrumb trail has to show the canonical path to each page, and the logo is bigger on the home page.
 
-Suppose further that the web site has the following structure, where
-each line corresponds to a page:
+Suppose further that the web site has the following structure, where each line corresponds to a page:
 
 \begin{itemize}
 \item Home page
@@ -139,9 +115,7 @@ The basic page template looks something like this:
 </html>
 \end{verbatim}
 
-Making the menu an include file is not strictly necessary, but, as in
-programming, makes the HTML fragments easier to read. The pages will
-be laid out as follows:
+Making the menu an include file is not strictly necessary, but, as in programming, makes the HTML fragments easier to read. The pages will be laid out as follows:
 
 \begin{itemize}
 \item \verb|/|
@@ -162,9 +136,7 @@ be laid out as follows:
   \end{itemize}
 \end{itemize}
 
-The corresponding source files will be laid out as follows. This may
-look a little confusing at first, but note the similarity to the HTML
-pages, and hold on for the explanation!
+The corresponding source files will be laid out as follows. This may look a little confusing at first, but note the similarity to the HTML pages, and hold on for the explanation!
 
 \begin{itemize}
 \item \verb|source/|
@@ -180,8 +152,11 @@ pages, and hold on for the explanation!
     \end{itemize}
   \item \verb|people/|
     \begin{itemize}
-    \item \verb|main.html|
     \item \verb|breadcrumb.html|
+    \item \verb|index/|
+      \begin{itemize}
+      \item \verb|main.html|
+      \end{itemize}
     \item \verb|jo_bloggs/|
       \begin{itemize}
       \item \verb|main.html|
@@ -193,8 +168,11 @@ pages, and hold on for the explanation!
     \end{itemize}
   \item \verb|places/|
     \begin{itemize}
-    \item \verb|main.html|
     \item \verb|breadcrumb.html|
+    \item \verb|index/|
+      \begin{itemize}
+      \item \verb|main.html|
+      \end{itemize}
     \item \verb|vladivostok/|
       \begin{itemize}
       \item \verb|main.html|
@@ -207,36 +185,17 @@ pages, and hold on for the explanation!
   \end{itemize}
 \end{itemize}
 
-We could have used a different file suffix for page fragments, but
-using \verb|.html| is not too confusing, and means that editors and
-other tools that might depend on the file suffix to treat the file
-properly don't need special attention.
+We could have used a different file suffix for page fragments, but using \verb|.html| is not too confusing, and means that editors and other tools that might depend on the file suffix to treat the file properly don't need special attention.
 
-Note that there is only one menu fragment (the main menu is the same
-for every page), while each section has its own breadcrumb trail
-(\verb|breadcrumb.html|), and each page has its own content
-(\verb|main.html|). Also, note that each page in the site has its
-own directory (including the site index, which doesn't actually need
-one, for consistency), so that each page can have fragments special to
-it.
+Note that there is only one menu fragment (the main menu is the same for every page), while each section has its own breadcrumb trail (\verb|breadcrumb.html|), and each page has its own content (\verb|main.html|).
 
-Now consider the invocation of nancy required to build the page whose
-URL is \verb|http://www.example.org/places/vladivostok.html|:
+To build the site, nancy is invoked as:
 
 \begin{verbatim}
-nancy source template.html places/vladivostok \
-        > dest/places/vladivostok.html
+nancy source template.html dest
 \end{verbatim}
 
-(The backslash at the end of the first line indicates that the command
-is really a single line, and has only been split for presentation
-purposes.)
-
-According to the rules given in section~\ref{operation}, this means
-that nancy will look first for includes in
-\verb|source/places/vladivostok|, then in \verb|source/places|,
-and finally in \verb|source|. Hence, the actual list of files used
-to assemble the page is:
+Now consider how nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, nancy will look first for includes in \verb|source/places/vladivostok|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
 
 \begin{itemize}
 \item \verb|source/template.html|
@@ -246,11 +205,8 @@ to assemble the page is:
 \item \verb|source/places/vladivostok/main.html|
 \end{itemize}
 
-For the site's index page, the file \verb|index/logo.html| will be
-used for the logo fragment, which can refer to the larger graphic
-desired.
+For the site's index page, the file \verb|index/logo.html| will be used for the logo fragment, which can refer to the larger graphic desired.
 
-This scheme, though simple, is surprisingly flexible; this simple
-example has covered all the standard techniques for nancy's use.
+This scheme, though simple, is surprisingly flexible; this simple example has covered all the standard techniques for nancy's use.
 
 \end{document}
