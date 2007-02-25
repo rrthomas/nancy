@@ -1,5 +1,7 @@
                                 Nancy
                                 -----
+
+              (c) 2002-2007 Reuben Thomas <rrt@sc3d.org>
                                    
 Nancy is a simple web site builder. It has just one construct:
 context-dependent file inclusion. With this single feature you can
@@ -13,5 +15,5 @@ free software, licensed under the GNU GPL.
 
 See "Nancy user's guide.pdf" for instructions.
 
-Any questions, comments, or bug reports should be sent to
-rrt@sc3d.org.
+Any questions, comments, or bug reports should be sent to Reuben
+Thomas (see above for address).
