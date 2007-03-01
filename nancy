@@ -34,7 +34,6 @@ local fragment = arg[2]
 local searchPath = directory .. "/" .. arg[3]
 
 -- Find an included file
--- FIXME: Make an iterator over the path?
 function include (fragment)
   local curdir = searchPath
   repeat
