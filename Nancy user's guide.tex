@@ -1,37 +1,31 @@
 % Nancy User's Guide
 
 \documentclass[english]{scrartcl}
-\usepackage{babel,a4,newlfont,copyrght}
+\usepackage{babel,a4,newlfont,fancyvrb,copyrght}
 \usepackage[utf8]{inputenc}
 
 % Alter some default parameters for general typesetting
 \frenchspacing
 
 % New commands
-\renewcommand{\copyrightyear}{2002-2007}
+\renewcommand{\copyrightyear}{2002--2007}
 
 \begin{document}
 
 \title{Nancy, the lazy web site builder\\User's guide}
-\date{25th February 2007}
+\date{1st March 2007}
 \author{Reuben Thomas}
 \maketitle
 
 \section{Introduction}
 
-Nancy is a simple web site builder that glues together HTML and other
-fragments to make pages, and allows fragments to be specialised for
-particular pages.
+Nancy is a simple web site builder that glues together HTML and other fragments to make pages, and allows fragments to be specialised for particular pages. Fragments can be held in files or generated programmatically.
 
-\section{Environment}
-
-Nancy is a command-line tool, typically used in a POSIX-like
-environment. In particular, it takes arguments on the command line and
-writes its output to standard output.
+Nancy is a command-line tool, typically used interactively from a POSIX-like shell.
 
 \section{Invocation}
 
-Nancy takes three arguments:
+Nancy takes three (or optionally four) arguments:
 
 \begin{verbatim}
 nancy SOURCE DESTINATION TEMPLATE [BRANCH]
@@ -39,7 +33,7 @@ nancy SOURCE DESTINATION TEMPLATE [BRANCH]
 
 \noindent where \verb|SOURCE| is the directory that contains the source tree, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of \verb|SOURCE| to process (if it is omitted, the entire source tree is processed).
 
-If you supply the optional flag \verb|-list-fragments|, or \verb|-l|, the fragments used will be listed on standard error.
+If you supply the optional flag \verb|-list-files|, or \verb|-l|, the files read by nancy will be listed on standard error.
 
 \section{Operation}
 \label{operation}
@@ -49,17 +43,32 @@ Nancy produces the finished pages according to the following algorithm:
 \begin{enumerate}
 \item For each leaf directory of the source tree, start from that directory.
 \item Set the initial text to \verb|$include{TEMPLATE}|.
-\item Repeatedly scan the text for an include command and replace it by the file it specifies, until no more include commands are found.
-\item Write out the resultant HTML to a file: for each directory \verb|SOURCE/LEAF_PATH| the output file is \verb|DESTINATION/LEAF_PATH.html|.
+\item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
+\item Write out the resultant text to a file: for each directory \verb|SOURCE/LEAF_PATH| the output file is \verb|DESTINATION/LEAF_PATH.html|.
 \end{enumerate}
 
-The reason that only leaf directories correspond to pages is that this ensures that every page can have fragments special to it without affecting any other page. By convention, every non-leaf directory has an \verb|index| sub-directory, so that there are no ``missing'' URLs in the resulting site. Nancy warns if an \verb|index| directory is absent.
+The reason that only leaf directories correspond to pages is to ensure that every page can be specialised without affecting any other page. By convention, every non-leaf directory has an \verb|index| sub-directory, so that there are no ``missing'' URLs in the resulting site. Nancy warns if an \verb|index| directory is absent.
 
-An include command consists of the string \verb|$include| followed by a file argument in curly braces, e.g. \verb|$include{foo/bar.html}|.
+A command takes the form
 
-Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (Other than that, it does not actually matter in which order commands are processed.)
+\begin{verbatim}
+$COMMAND{ARGUMENT, ...}
+\end{verbatim}
 
-To find the file \verb|FILE_PATH| specified by an include command, nancy proceeds thus:
+Nancy recognises three commands:
+
+\begin{description}
+\SaveVerb{include}|$include{FILE}|
+\item[\UseVerb{include}]Replace the command with the contents of the given file.
+\SaveVerb{root}|$root{}|
+\item[\UseVerb{root}]Replace the command with the relative URL from the page currently being constructed to the root of the site. This command facilitates relative linking for any intra-site link.
+\SaveVerb{run}|$run{PROGRAM[, ARGUMENT, ...]}|
+\item[\UseVerb{run}]Replace the command with the output of the given program. The command is run with the full path of the current fragment as the first argument, with any further arguments given in the command after that.
+\end{description}
+
+Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (Other than that, the order can only matter for |\verb|$run| commands; if you use them, you have to deal with this potential pitfall.)
+
+To find the file \verb|FILE_PATH| specified by an \verb|$include| or \verb|$run| command, nancy proceeds thus:
 
 \begin{enumerate}
 \item Look in \verb|DIRECTORY/LEAF_PATH/FILE_PATH|.
@@ -77,6 +86,7 @@ So, for example, if \verb|DIRECTORY| is \verb|/dir|, \verb|LEAF_PATH| is \verb|f
 \end{enumerate}
 
 \section{Example}
+% FIXME: add use of $root
 
 Suppose a web site with the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
 
@@ -115,7 +125,7 @@ The basic page template looks something like this:
 </html>
 \end{verbatim}
 
-Making the menu an include file is not strictly necessary, but, as in programming, makes the HTML fragments easier to read. The pages will be laid out as follows:
+Making the menu an included file is not strictly necessary, but, as in programming, makes the HTML fragments easier to read. The pages will be laid out as follows:
 
 \begin{itemize}
 \item \verb|/|
@@ -195,7 +205,7 @@ To build the site, nancy is invoked as:
 nancy source template.html dest
 \end{verbatim}
 
-Now consider how nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, nancy will look first for includes in \verb|source/places/vladivostok|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
+Now consider how nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, nancy will look first for files in \verb|source/places/vladivostok|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
 
 \begin{itemize}
 \item \verb|source/template.html|
