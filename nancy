@@ -2,62 +2,199 @@
 prog = {
   name = "nancy",
   banner = "nancy $Revision$ ($Date$)\n" ..
-    "(c) 2002-2006 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
+    "(c) 2002-2007 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
     "Distributed under the GNU General Public License",
   purpose = "The lazy web site maker",
-  notes = "Usage: nancy DIRECTORY ROOT-FRAGMENT SEARCH-PATH\n" ..
-    "  DIRECTORY is the directory under which the fragments are kept\n" ..
-    "  ROOT-FRAGMENT is the root fragment to use\n" ..
-    "  SEARCH-PATH is the search path to use"
+  notes = "Usage: nancy SOURCE DESTINATION TEMPLATE [BRANCH]\n" ..
+    "  SOURCE is the source directory tree\n" ..
+    "  DESTINATION is the directory to which the output is written\n" ..
+    "  TEMPLATE is the name of the template fragment\n" ..
+    "  BRANCH is the sub-directory of SOURCE to process (the default\n" ..
+    "    is to process the entire source tree)"
 }
 
 
 require "std"
 
 
+-- FIXME: Work out if pathSplit/Concat are worth putting in stdlib
+-- FIXME: Rewrite in cook
+
+-- @func pathSplit: split a path into components
+-- Multiple separators are compressed into one; the current directory
+-- becomes an empty list, while the root directory becomes {"/"}.
+-- Trailing separators are ignored.
+--   @param path: path
+-- @returns
+--   @param: path1, ..., pathn: path components
+function pathSplit (path)
+  -- Compress multiple separators
+  path = string.gsub (path, "//+", "/")
+  -- Suppress trailing /
+  path = string.gsub (path, "/$", "")
+  -- Current dir is empty list
+  if path == "." then
+    path = ""
+  elseif path == "/" then
+    return {"/"}
+  end
+  return string.split ("/", path)
+  -- string.split does the right thing when path is "/"
+end
+
+-- @func pathConcat: concatenate path components into a path
+-- Empty components are ignored; an empty list is taken to be the
+-- current directory
+--   @param: path1, ..., pathn: path components
+-- @returns
+--   @param path: path
+function pathConcat (...)
+  local arg = {...}
+  -- Empty list is current dir
+  local path = string.join ("/", arg)
+  -- Compress multiple separators
+  path = string.gsub (path, "//+", "/")
+  if path == "/" then
+    return "/"
+  end
+  -- Suppress trailing /
+  path = string.gsub (path, "/$", "")
+  -- Suppress leading /
+  path = string.gsub (path, "^/", "")
+  -- A non-empty path with only empty components is the current directory
+  if path == "" then
+    return "."
+  end
+  return path
+end
+
 -- Command-line options
 options = {
-  Option {{"list-fragments", "l"}, "list fragments included (on stderr)"},
+  Option {{"list-files", "l"}, "list files read (on stderr)"},
 }
+
+suffix = ".html" -- suffix to make source directory into destination file
 
 -- Get arguments
 getopt.processArgs ()
-if #arg ~= 3 then
+if #arg < 3 or #arg > 4 then
   getopt.dieWithUsage ()
 end
 
-local directory = arg[1]
-if posix.stat (directory, "type") ~= "directory" then
-  die ("Directory `" .. directory .. "' not found or not a directory")
+local sourceRoot = arg[1]
+if posix.stat (sourceRoot, "type") ~= "directory" then
+  die ("`" .. sourceRoot .. "' not found or not a directory")
 end
-local fragment = arg[2]
-local searchPath = directory .. "/" .. arg[3]
+local destRoot = arg[2]
+if posix.stat (destRoot) and posix.stat (destRoot, "type") ~= "directory" then
+  die ("`" .. destRoot .. "' is not a directory")
+end
+local fragment = arg[3]
+local sourceTree = sourceRoot
+if arg[4] then
+  sourceTree = pathConcat (sourceRoot, arg[4])
+end
 
--- Find an included file
-function include (fragment)
-  local curdir = searchPath
+-- Search the current path for a file, dying if it's not found
+function findFile (path, file)
   repeat
-    local name = curdir .. "/" .. fragment
+    local name = pathConcat (path, fragment)
     if posix.stat (name) then
-      if getopt.opt["list-fragments"] then
-        io.stderr:write (name .. "\n")
-      end
-      return io.open (name):read ("*a")
+        if getopt.opt["list-files"] then
+          io.stderr:write (" " .. name)
+        end
+      return name
     end
-    if curdir == "." then
-      die ("Can't find fragment `" .. fragment .. "'")
+    if path == "." then
+      die ("Cannot find fragment `" .. fragment .. "'")
     end
-    curdir = io.dirname (curdir)
+    path = io.dirname (path)
   until nil
 end
 
 -- Expand includes in some text
-function expand (text)
-  return (rex.gsub (text, "\\$include{([^{}]*)}",
-                    function (filename)
-                      return expand (include (filename))
-                    end))
+function expand (text, searchPath)
+  macros = {
+    root =
+      function ()
+        return pathConcat (list.rep ({".."}, #pathSplit (searchPath)))
+      end,
+    include =
+      function (fragment)
+        local name = findFile (searchPath, fragment)
+        return io.open (name):read ("*a")
+      end,
+    run =
+      function (program, ...)
+        local name = findFile (searchPath, fragment)
+        return io.shell (name .. string.join (" ", {...}))
+      end,
+  }
+  local function doMacros (text)
+    local function doMacro (macro, arg)
+      local arg = string.split ("(?<!\\),", arg or "")
+      if macros[macro] then
+        return macros[macro] (unpack (arg))
+      end
+      macro = string.caps (macro)
+      local ret = "$" .. macro;
+      if arg then
+        ret = ret .. "{$arg}"
+      end
+      return ret
+    end
+    local reps
+    repeat
+      text, reps = rex.gsub (text, "\\$([[:lower:]]+){((?:(?!(?<!\\\\)[{}])).*)(?<!\\\\)}", doMacro)
+    until reps == 0
+    return text
+  end
+  text = doMacros(text)
+  -- Convert $Macro back to $macro
+  return rex.gsub (text, "(?!<\\\\)\\$([[:upper:]])",
+                   function (s)
+                     return string.tolower (s)
+                   end)
 end
 
--- Process file
-io.stdout:write (expand (include (fragment)))
+-- Get source directories and destination files
+-- Use -printf instead of -print to remove sourceTree prefix from results
+local found = io.shell ("find \"" .. sourceTree ..
+                        "\" -name '.*' -prune -o -type d -printf \"%P\\0\" 2>/dev/null")
+-- The slice removes the final list element generated by the final NUL
+sources = list.slice (string.split ("\0", found), 1, -2)
+sourceSet = set.new (sources)
+
+-- Sort the sources for the "is leaf" check
+table.sort (sources)
+
+-- Process source directories
+for i, dir in ipairs (sources) do
+  local dest = pathConcat (destRoot, dir)
+  -- Only leaf directories have pages; the sources are sorted
+  -- alphabetically, so a directory is not a leaf if and only if it is
+  -- either the last directory, or it is not a prefix of the next one
+  if i == #sources or string.sub (sources[i + 1], 1, #dir) ~= dir then
+    -- Process one file
+    if getopt.opt["list-files"] then
+      io.stderr:write (fragment .. ":")
+    end
+    h = io.open (dest .. suffix, "w")
+    if h then
+      h:write (expand ("$include{" .. fragment .. "}", pathConcat (sourceTree, dir)))
+    else
+      die ("Could not write to `" .. dest .. "'")
+    end
+    if getopt.opt["list-files"] then
+      io.stderr:write ("\n")
+    end
+  else -- non-leaf directory
+    -- Make directory
+    posix.mkdir (dest)
+
+    -- Check we have an index subdirectory
+    if not sourceSet[pathConcat (dir, "index")] then
+      warn ("`" .. pathConcat (sourceTree, dir) .. "' has no `index' subdirectory")
+    end
+  end
+end
