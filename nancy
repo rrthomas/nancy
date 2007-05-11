@@ -19,7 +19,6 @@ require "std"
 
 
 -- FIXME: Work out if pathSplit/Concat are worth putting in stdlib
--- FIXME: Rewrite in cook
 
 -- @func pathSplit: split a path into components
 -- Multiple separators are compressed into one; the current directory
