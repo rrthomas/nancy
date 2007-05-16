@@ -188,7 +188,7 @@ end
 sources = {}
 find (sourceTree,
       function (path, object)
-        if posix.stat (path .. "/" .. object, "type") == "directory" and
+        if posix.stat (pathConcat (path, object), "type") == "directory" and
           io.basename (object) ~= ".svn" then
           table.insert (sources, object)
           return true
