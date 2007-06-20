@@ -116,22 +116,27 @@ function findFile (path, fragment)
   until nil
 end
 
+
 -- Expand includes in some text
-function expand (text, searchPath)
+function expand (text, root, page)
   macros = {
+    -- FIXME: Document and allow this
+--     page =
+--       function ()
+--         return page
+--       end,
     root =
       function ()
-        return pathConcat (list.rep ({".."}, #pathSplit (searchPath)))
+        return pathConcat (list.rep ({".."}, #pathSplit (pathConcat (root, page))))
       end,
     include =
       function (fragment)
-        local name = findFile (searchPath, fragment)
+        local name = findFile (pathConcat (root, page), fragment)
         return io.open (name):read ("*a")
       end,
     run =
       function (program, ...)
-        local name = findFile (searchPath, fragment)
-        return io.shell (name .. string.join (" ", {...}))
+        return io.shell (program .. " " .. page .. string.join (" ", {...}))
       end,
   }
   local function doMacros (text)
@@ -205,14 +210,15 @@ for i, dir in ipairs (sources) do
   -- Only leaf directories have pages; the sources are sorted
   -- alphabetically, so a directory is not a leaf if and only if it is
   -- either the last directory, or it is not a prefix of the next one
-  if i == #sources or string.sub (sources[i + 1], 1, #dir) ~= dir then
+  if i == #sources or (dir ~= "" and string.sub (sources[i + 1], 1, #dir + 1) ~= dir .. "/") then
     -- Process one file
     if getopt.opt["list-files"] then
       io.stderr:write (dir .. ":\n")
     end
     h = io.open (dest .. suffix, "w")
     if h then
-      h:write (expand ("$include{" .. fragment .. "}", pathConcat (sourceTree, dir)))
+      Page = dir
+      h:write (expand ("$include{" .. fragment .. "}", sourceTree, dir))
     else
       die ("Could not write to `" .. dest .. "'")
     end
