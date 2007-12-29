@@ -159,10 +159,10 @@ function expand (text, root, page)
   end
   text = doMacros(text)
   -- Convert $Macro back to $macro
-  return rex.gsub (text, "(?!<\\\\)\\$([[:upper:]])(?:{)",
-                   function (s)
-                     return string.lower (s)
-                   end)
+  return (rex.gsub (text, "(?!<\\\\)\\$([[:upper:]])(?:{)",
+                    function (s)
+                      return string.lower (s)
+                    end))
 end
 
 -- @func find: Scan a file system object and process its elements
