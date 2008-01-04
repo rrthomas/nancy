@@ -189,7 +189,8 @@ end
 -- Use -printf instead of -print to remove sourceTree prefix from
 -- results
 -- FIXME: Make exclusion easily extensible, and add patterns for
--- common VCSs and editor backup files &c.
+-- common VCSs (use find's --exclude-vcs patterns) and editor backup
+-- files &c.
 sources = {}
 find (sourceTree,
       function (path, object)
