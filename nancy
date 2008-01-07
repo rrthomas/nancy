@@ -127,7 +127,7 @@ function expand (text, root, page)
 --       end,
     root =
       function ()
-        return (pathConcat (unpack (list.rep (#pathSplit (pathConcat (root, page)), {".."}))))
+        return (pathConcat (unpack (list.rep (#pathSplit (page) - 1, {".."}))))
       end,
     include =
       function (fragment)
