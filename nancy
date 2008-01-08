@@ -2,7 +2,7 @@
 prog = {
   name = "nancy",
   banner = "nancy $Revision$ ($Date$)\n" ..
-    "(c) 2002-2007 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
+    "(c) 2002-2008 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)\n" ..
     "Distributed under the GNU General Public License",
   purpose = "The lazy web site maker",
   usage = "SOURCE DESTINATION TEMPLATE [BRANCH]",
