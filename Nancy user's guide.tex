@@ -8,7 +8,7 @@
 \frenchspacing
 
 % New commands
-\renewcommand{\copyrightyear}{2002--2007}
+\renewcommand{\copyrightyear}{2002--2008}
 
 \begin{document}
 
@@ -61,7 +61,8 @@ Nancy recognises these commands:
 \SaveVerb{include}|$include{FILE}|
 \item[\UseVerb{include}]Replace the command with the contents of the given file.
 \SaveVerb{root}|$root{}|
-\item[\UseVerb{root}]Replace the command with the relative URL from the page currently being constructed to the root of the site. This command facilitates relative linking for any intra-site link.
+\SaveVerb{rellink}|<a href="root{}/path/to/page.html">|
+\item[\UseVerb{root}]Replace the command with the relative URL from the page currently being constructed to the root of the site. This means that every link in a site can written relative to the current page, either explicitly (which makes sense for pages related to the current page), or implicitly as \UseVerb{rellink}. Hence the site's base URL can be changed without needing to change any intra-site links.
 \SaveVerb{run}|$run{PROGRAM[, ARGUMENT, ...]}|
 \item[\UseVerb{run}]Replace the command with the output of the given program. The command is run with the full path of the current fragment as the first argument, with any further arguments given in the command after that.
 \end{description}
