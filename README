@@ -1,7 +1,7 @@
                                 Nancy
                                 -----
 
-              (c) 2002-2007 Reuben Thomas <rrt@sc3d.org>
+              (c) 2002-2008 Reuben Thomas <rrt@sc3d.org>
                                    
 Nancy is a simple web site builder. It has just one construct:
 context-dependent file inclusion. With this single feature you can
