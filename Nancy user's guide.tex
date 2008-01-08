@@ -62,7 +62,7 @@ Nancy recognises these commands:
 \item[\UseVerb{include}]Replace the command with the contents of the given file.
 \SaveVerb{root}|$root{}|
 \SaveVerb{rellink}|<a href="root{}/path/to/page.html">|
-\item[\UseVerb{root}]Replace the command with the relative URL from the page currently being constructed to the root of the site. This means that every link in a site can written relative to the current page, either explicitly (which makes sense for pages related to the current page), or implicitly as \UseVerb{rellink}. Hence the site's base URL can be changed without needing to change any intra-site links.
+\item[\UseVerb{root}]Replace the command with the relative URL to the root of the site from the page under construction. This means that every link in a site can be written relative to the current page, either explicitly (which makes sense for pages related to the current page), or implicitly as \UseVerb{rellink}. Hence the site's base URL can be changed without needing to change any intra-site links.
 \SaveVerb{run}|$run{PROGRAM[, ARGUMENT, ...]}|
 \item[\UseVerb{run}]Replace the command with the output of the given program. The command is run with the full path of the current fragment as the first argument, with any further arguments given in the command after that.
 \end{description}
@@ -89,7 +89,7 @@ So, for example, if \verb|DIRECTORY| is \verb|/dir|, \verb|LEAF_PATH| is \verb|f
 \section{Example}
 % FIXME: add use of $root
 
-Suppose a web site with the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
+Suppose a web site has the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
 
 Most of the elements are the same on each page, but the breadcrumb trail has to show the canonical path to each page, and the logo is bigger on the home page.
 
