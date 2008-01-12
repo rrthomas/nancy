@@ -117,14 +117,13 @@ function findFile (path, fragment)
 end
 
 
--- Expand includes in some text
+-- Expand commands in some text
 function expand (text, root, page)
   macros = {
-    -- FIXME: Document and allow this
---     page =
---       function ()
---         return page
---       end,
+    page =
+      function ()
+        return page
+      end,
     root =
       function ()
         return (pathConcat (unpack (list.rep (#pathSplit (page) - 1, {".."}))))
