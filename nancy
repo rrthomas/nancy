@@ -101,6 +101,7 @@ end
 
 -- Search the current path for a file, dying if it's not found
 function findFile (path, fragment)
+  local page = path
   repeat
     local name = pathConcat (path, fragment)
     if posix.stat (name) then
@@ -110,7 +111,7 @@ function findFile (path, fragment)
       return name
     end
     if path == "." then
-      die ("Cannot find fragment `" .. fragment .. "'")
+      die ("Cannot find fragment `" .. fragment .. "' while building `" .. page .. "'")
     end
     path = io.dirname (path)
   until nil
@@ -230,6 +231,7 @@ for i, dir in ipairs (sources) do
     posix.mkdir (dest)
 
     -- Check we have an index subdirectory
+    -- FIXME: Check index subdirectory is a leaf
     if not sourceSet[pathConcat (dir, "index")] then
       warn ("`" .. pathConcat (sourceTree, dir) .. "' has no `index' subdirectory")
     end
