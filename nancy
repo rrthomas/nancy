@@ -141,7 +141,10 @@ function expand (text, root, page)
   }
   local function doMacros (text)
     local function doMacro (macro, args)
-      local arg = string.split ("(?<!\\),", args or "")
+      local arg = {}
+      for i in rex.split (args or "", "(?<!\\\\),") do
+        table.insert (arg, i)
+      end
       if macros[macro] then
         return macros[macro] (unpack (arg))
       end
@@ -153,7 +156,7 @@ function expand (text, root, page)
     end
     local reps
     repeat
-      text, reps = rex.gsub (text, "\\$([[:lower:]]+){(.*?)(?<!\\\\)}", doMacro)
+      text, reps = rex.gsub (text, "\\$([[:lower:]]+){(((?:(?!(?<!\\\\)[{}])).)*?)(?<!\\\\)}", doMacro)
     until reps == 0
     return text
   end
