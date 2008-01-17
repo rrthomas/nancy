@@ -99,19 +99,21 @@ if arg[4] then
   sourceTree = pathConcat (sourceRoot, arg[4])
 end
 
--- Search the current path for a file, dying if it's not found
+-- Search the current path for a file; if found return its name,
+-- if not, return nil and print a warning.
 function findFile (path, fragment)
   local page = path
   repeat
     local name = pathConcat (path, fragment)
     if posix.stat (name) then
-        if getopt.opt["list-files"] then
-          io.stderr:write (" " .. name)
-        end
+      if getopt.opt["list-files"] then
+        io.stderr:write (" " .. name)
+      end
       return name
     end
     if path == "." then
-      die ("Cannot find fragment `" .. fragment .. "' while building `" .. page .. "'")
+      warn ("Cannot find fragment `" .. fragment .. "' while building `" .. page .. "'")
+      return
     end
     path = io.dirname (path)
   until nil
@@ -132,7 +134,14 @@ function expand (text, root, page)
     include =
       function (fragment)
         local name = findFile (pathConcat (root, page), fragment)
-        return io.open (name):read ("*a")
+        if name then
+          local h = io.open (name)
+          local contents = h:read ("*a")
+          h:close ()
+          return contents
+        else
+          return ""
+        end
       end,
     run =
       function (program, ...)
