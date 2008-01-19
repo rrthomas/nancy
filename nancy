@@ -17,61 +17,6 @@ prog = {
 
 require "std"
 
--- FIXME: Work out if pathSplit/Concat are worth putting in stdlib
--- FIXME: Put find as an iterator in stdlib
-
--- @func pathSplit: split a path into components
--- Multiple separators are compressed into one; the current directory
--- becomes an empty list, while the root directory becomes {"/"}.
--- Trailing separators are ignored.
---   @param path: path
--- @returns
---   @param: path1, ..., pathn: path components
-function pathSplit (path)
-  -- Compress multiple separators
-  path = string.gsub (path, "//+", "/")
-  -- Suppress trailing /
-  path = string.gsub (path, "/$", "")
-  -- Current dir is empty list
-  if path == "." then
-    path = ""
-  elseif path == "/" then
-    return {"/"}
-  end
-  return string.split ("/", path)
-  -- string.split does the right thing when path is "/"
-end
-
--- @func pathConcat: concatenate path components into a path
--- Empty components are ignored; an empty list is taken to be the
--- current directory
---   @param: path1, ..., pathn: path components
--- @returns
---   @param path: path
-function pathConcat (...)
-  local arg = {...}
-  local rooted = false
-  if #arg >= 1 then
-    rooted = string.sub (arg[1], 1, 1) == "/"
-  end
-  -- Empty list is current dir
-  local path = string.join ("/", arg)
-  -- Compress multiple separators
-  path = string.gsub (path, "//+", "/")
-  -- Suppress trailing /
-  path = string.gsub (path, "/$", "")
-  -- Suppress leading /
-  path = string.gsub (path, "^/", "")
-  -- A non-empty path with only empty components is the current directory
-  if path == "" then
-    return "."
-  end
-  if rooted then
-    path = "/" .. path
-  end
-  return path
-end
-
 -- Command-line options
 options = {
   Option {{"list-files", "l"}, "list files read (on stderr)"},
@@ -96,7 +41,7 @@ end
 local fragment = arg[3]
 local sourceTree = sourceRoot
 if arg[4] then
-  sourceTree = pathConcat (sourceRoot, arg[4])
+  sourceTree = io.pathConcat (sourceRoot, arg[4])
 end
 
 -- Search the current path for a file; if found return its name,
@@ -104,7 +49,7 @@ end
 function findFile (path, fragment)
   local page = path
   repeat
-    local name = pathConcat (path, fragment)
+    local name = io.pathConcat (path, fragment)
     if posix.stat (name) then
       if getopt.opt["list-files"] then
         io.stderr:write (" " .. name)
@@ -129,11 +74,11 @@ function expand (text, root, page)
       end,
     root =
       function ()
-        return (pathConcat (unpack (list.rep (#pathSplit (page) - 1, {".."}))))
+        return (io.pathConcat (unpack (list.rep (#io.pathSplit (page) - 1, {".."}))))
       end,
     include =
       function (fragment)
-        local name = findFile (pathConcat (root, page), fragment)
+        local name = findFile (io.pathConcat (root, page), fragment)
         if name then
           local h = io.open (name)
           local contents = h:read ("*a")
@@ -186,10 +131,10 @@ end
 --     @param flag: true to descend if object is a directory
 function find (root, pred)
   local function subfind (path)
-    for object in posix.files (pathConcat (root, path)) do
-      if object ~= "." and object ~= ".." and pred (root, pathConcat (path, object)) and
-        posix.stat (pathConcat (root, path, object), "type") == "directory" then
-        subfind (pathConcat (path, object))
+    for object in posix.files (io.pathConcat (root, path)) do
+      if object ~= "." and object ~= ".." and pred (root, io.pathConcat (path, object)) and
+        posix.stat (io.pathConcat (root, path, object), "type") == "directory" then
+        subfind (io.pathConcat (path, object))
       end
     end
   end
@@ -206,7 +151,7 @@ end
 sources = {}
 find (sourceTree,
       function (path, object)
-        if posix.stat (pathConcat (path, object), "type") == "directory" and
+        if posix.stat (io.pathConcat (path, object), "type") == "directory" and
           io.basename (object) ~= ".svn" then
           table.insert (sources, object)
           return true
@@ -219,8 +164,8 @@ table.sort (sources)
 
 -- Process source directories
 for i, dir in ipairs (sources) do
-  local dest = pathConcat (destRoot, dir)
-  -- Only leaf directories have pages; the sources are sorted
+  local dest = io.pathConcat (destRoot, dir)
+  -- Only leaf directories correspond to pages; the sources are sorted
   -- alphabetically, so a directory is not a leaf if and only if it is
   -- either the last directory, or it is not a prefix of the next one
   if i == #sources or (dir ~= "" and string.sub (sources[i + 1], 1, #dir + 1) ~= dir .. "/") then
@@ -239,13 +184,13 @@ for i, dir in ipairs (sources) do
       io.stderr:write ("\n")
     end
   else -- non-leaf directory
+    -- FIXME: If directory is called `index', complain
     -- Make directory
     posix.mkdir (dest)
 
     -- Check we have an index subdirectory
-    -- FIXME: Check index subdirectory is a leaf
-    if not sourceSet[pathConcat (dir, "index")] then
-      warn ("`" .. pathConcat (sourceTree, dir) .. "' has no `index' subdirectory")
+    if not sourceSet[io.pathConcat (dir, "index")] then
+      warn ("`" .. io.pathConcat (sourceTree, dir) .. "' has no `index' subdirectory")
     end
   end
 end
