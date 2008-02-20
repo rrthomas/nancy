@@ -90,7 +90,7 @@ function expand (text, root, page)
       end,
     run =
       function (program, ...)
-        return io.shell (program .. " " .. page .. " " .. string.join (" ", {...}))
+        return io.shell (program .. " " .. string.join (" ", {...}))
       end,
   }
   local function doMacros (text)
