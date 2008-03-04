@@ -1,2 +1,3 @@
 #! /bin/sh
-../nancy.lua src dest template.html
+../variants/nancy.pl -l src dest template.html
+#./nancy.lua -l src dest template.html
