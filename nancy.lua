@@ -31,11 +31,11 @@ if #arg < 3 or #arg > 4 then
 end
 
 local sourceRoot = arg[1]
-if posix.stat (sourceRoot, "type") ~= "directory" then
+if lfs.attributes (sourceRoot, "mode") ~= "directory" then
   die ("`" .. sourceRoot .. "' not found or not a directory")
 end
 local destRoot = arg[2]
-if posix.stat (destRoot) and posix.stat (destRoot, "type") ~= "directory" then
+if lfs.attributes (destRoot) and lfs.attributes (destRoot, "mode") ~= "directory" then
   die ("`" .. destRoot .. "' is not a directory")
 end
 local fragment = arg[3]
@@ -50,7 +50,7 @@ function findFile (path, fragment)
   local page = path
   repeat
     local name = io.pathConcat (path, fragment)
-    if posix.stat (name) then
+    if lfs.attributes (name) then
       if getopt.opt["list-files"] then
         io.stderr:write (" " .. name)
       end
@@ -89,8 +89,8 @@ function expand (text, root, page)
         end
       end,
     run =
-      function (program, ...)
-        return io.shell (program .. " " .. string.join (" ", {...}))
+      function (...)
+        return io.shell (string.join (" ", {...}))
       end,
   }
   local function doMacros (text)
@@ -103,9 +103,7 @@ function expand (text, root, page)
         return macros[macro] (unpack (arg))
       end
       local ret = "$" .. string.caps (macro)
-      if arg then
-        ret = ret .. "{$arg}"
-      end
+      ret = ret .. "{" .. args .. "}"
       return ret
     end
     local reps
@@ -116,7 +114,7 @@ function expand (text, root, page)
   end
   text = doMacros(text)
   -- Convert $Macro back to $macro
-  return (rex.gsub (text, "(?!<\\\\)\\$([[:upper:]])(?:{)",
+  return (rex.gsub (text, "(?!<\\\\)(?<=\\$)([[:upper:]])(?=[[:lower:]]*{)",
                     function (s)
                       return string.lower (s)
                     end))
@@ -131,9 +129,9 @@ end
 --     @param flag: true to descend if object is a directory
 function find (root, pred)
   local function subfind (path)
-    for object in posix.files (io.pathConcat (root, path)) do
+    for object in lfs.dir (io.pathConcat (root, path)) do
       if object ~= "." and object ~= ".." and pred (root, io.pathConcat (path, object)) and
-        posix.stat (io.pathConcat (root, path, object), "type") == "directory" then
+        lfs.attributes (io.pathConcat (root, path, object), "mode") == "directory" then
         subfind (io.pathConcat (path, object))
       end
     end
@@ -143,15 +141,13 @@ function find (root, pred)
 end
 
 -- Get source directories and destination files
--- Use -printf instead of -print to remove sourceTree prefix from
--- results
 -- FIXME: Make exclusion easily extensible, and add patterns for
 -- common VCSs (use find's --exclude-vcs patterns) and editor backup
 -- files &c.
 sources = {}
 find (sourceTree,
       function (path, object)
-        if posix.stat (io.pathConcat (path, object), "type") == "directory" and
+        if lfs.attributes (io.pathConcat (path, object), "mode") == "directory" and
           io.basename (object) ~= ".svn" then
           table.insert (sources, object)
           return true
@@ -168,15 +164,15 @@ for i, dir in ipairs (sources) do
   -- Only leaf directories correspond to pages; the sources are sorted
   -- alphabetically, so a directory is not a leaf if and only if it is
   -- either the last directory, or it is not a prefix of the next one
-  if i == #sources or (dir ~= "" and string.sub (sources[i + 1], 1, #dir + 1) ~= dir .. "/") then
+  if dir ~= "" and (i == #sources or string.sub (sources[i + 1], 1, #dir + 1) ~= dir .. "/") then
     -- Process one file
     if getopt.opt["list-files"] then
       io.stderr:write (dir .. ":\n")
     end
     h = io.open (dest .. suffix, "w")
     if h then
-      Page = dir
       h:write (expand ("$include{" .. fragment .. "}", sourceTree, dir))
+      h:close ()
     else
       die ("Could not write to `" .. dest .. "'")
     end
@@ -186,7 +182,7 @@ for i, dir in ipairs (sources) do
   else -- non-leaf directory
     -- FIXME: If directory is called `index', complain
     -- Make directory
-    posix.mkdir (dest)
+    lfs.mkdir (dest)
 
     -- Check we have an index subdirectory
     if not sourceSet[io.pathConcat (dir, "index")] then
