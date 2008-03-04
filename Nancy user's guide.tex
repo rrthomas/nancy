@@ -33,7 +33,7 @@ nancy SOURCE DESTINATION TEMPLATE [BRANCH]
 
 \noindent where \verb|SOURCE| is the directory that contains the source tree, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of \verb|SOURCE| to process (if it is omitted, the entire source tree is processed).
 
-If you supply the optional flag \verb|-list-files|, or \verb|-l|, the files read by nancy will be listed on standard error.
+If you supply the optional flag \verb|-list-files|, or \verb|-l|, the files read by Nancy will be listed on standard error.
 
 \section{Operation}
 \label{operation}
@@ -71,7 +71,7 @@ Nancy recognises these commands:
 
 Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for |\verb|$run| commands; if you nest them, you have to deal with this potential pitfall.)
 
-To find the file \verb|FILE_PATH| specified by an \verb|$include| or \verb|$run| command, nancy proceeds thus:
+To find the file \verb|FILE_PATH| specified by an \verb|$include| or \verb|$run| command, Nancy proceeds thus:
 
 \begin{enumerate}
 \item Look in \verb|DIRECTORY/LEAF_PATH/FILE_PATH|.
@@ -79,7 +79,7 @@ To find the file \verb|FILE_PATH| specified by an \verb|$include| or \verb|$run|
 \item Finally, try looking in \verb|DIRECTORY/FILE_PATH|.
 \end{enumerate}
 
-So, for example, if \verb|DIRECTORY| is \verb|/dir|, \verb|LEAF_PATH| is \verb|foo/bar/baz| and nancy is trying to find \verb|file.html|, it will try the following directories, in order:
+So, for example, if \verb|DIRECTORY| is \verb|/dir|, \verb|LEAF_PATH| is \verb|foo/bar/baz| and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
 
 \begin{enumerate}
 \item \verb|/dir/foo/bar/baz/file.html|
@@ -202,13 +202,13 @@ We could have used a different file suffix for page fragments, but using \verb|.
 
 Note that there is only one menu fragment (the main menu is the same for every page), while each section has its own breadcrumb trail (\verb|breadcrumb.html|), and each page has its own content (\verb|main.html|).
 
-To build the site, nancy is invoked as:
+To build the site, Nancy is invoked as:
 
 \begin{verbatim}
 nancy source template.html dest
 \end{verbatim}
 
-Now consider how nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, nancy will look first for files in \verb|source/places/vladivostok|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
+Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, Nancy will look first for files in \verb|source/places/vladivostok|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
 
 \begin{itemize}
 \item \verb|source/template.html|
@@ -220,6 +220,6 @@ Now consider how nancy builds the page whose URL is \verb|vladivostok.html|. Acc
 
 For the site's index page, the file \verb|index/logo.html| will be used for the logo fragment, which can refer to the larger graphic desired.
 
-This scheme, though simple, is surprisingly flexible; this simple example has covered all the standard techniques for nancy's use.
+This scheme, though simple, is surprisingly flexible; this simple example has covered all the standard techniques for Nancy's use.
 
 \end{document}
