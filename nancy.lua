@@ -31,11 +31,11 @@ if #arg < 3 or #arg > 4 then
 end
 
 local sourceRoot = arg[1]
-if posix.stat (sourceRoot, "type") ~= "directory" then
+if lfs.attributes (sourceRoot, "mode") ~= "directory" then
   die ("`" .. sourceRoot .. "' not found or not a directory")
 end
 local destRoot = arg[2]
-if posix.stat (destRoot) and posix.stat (destRoot, "type") ~= "directory" then
+if lfs.attributes (destRoot) and lfs.attributes (destRoot, "mode") ~= "directory" then
   die ("`" .. destRoot .. "' is not a directory")
 end
 local fragment = arg[3]
@@ -50,7 +50,7 @@ function findFile (path, fragment)
   local page = path
   repeat
     local name = io.pathConcat (path, fragment)
-    if posix.stat (name) then
+    if lfs.attributes (name) then
       if getopt.opt["list-files"] then
         io.stderr:write (" " .. name)
       end
@@ -131,9 +131,9 @@ end
 --     @param flag: true to descend if object is a directory
 function find (root, pred)
   local function subfind (path)
-    for object in posix.files (io.pathConcat (root, path)) do
+    for object in lfs.dir (io.pathConcat (root, path)) do
       if object ~= "." and object ~= ".." and pred (root, io.pathConcat (path, object)) and
-        posix.stat (io.pathConcat (root, path, object), "type") == "directory" then
+        lfs.attributes (io.pathConcat (root, path, object), "mode") == "directory" then
         subfind (io.pathConcat (path, object))
       end
     end
@@ -143,15 +143,13 @@ function find (root, pred)
 end
 
 -- Get source directories and destination files
--- Use -printf instead of -print to remove sourceTree prefix from
--- results
 -- FIXME: Make exclusion easily extensible, and add patterns for
 -- common VCSs (use find's --exclude-vcs patterns) and editor backup
 -- files &c.
 sources = {}
 find (sourceTree,
       function (path, object)
-        if posix.stat (io.pathConcat (path, object), "type") == "directory" and
+        if lfs.attributes (io.pathConcat (path, object), "mode") == "directory" and
           io.basename (object) ~= ".svn" then
           table.insert (sources, object)
           return true
@@ -186,7 +184,7 @@ for i, dir in ipairs (sources) do
   else -- non-leaf directory
     -- FIXME: If directory is called `index', complain
     -- Make directory
-    posix.mkdir (dest)
+    lfs.mkdir (dest)
 
     -- Check we have an index subdirectory
     if not sourceSet[io.pathConcat (dir, "index")] then
