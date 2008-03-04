@@ -13,7 +13,7 @@
 \begin{document}
 
 \title{Nancy, the lazy web site builder\\User's guide}
-\date{20th February 2008}
+\date{4th March 2008}
 \author{Reuben Thomas}
 \maketitle
 
@@ -69,7 +69,7 @@ Nancy recognises these commands:
 \item[\UseVerb{run}]Replace the command with the output of the given program. The command is run with any arguments given in the command.
 \end{description}
 
-Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (Other than that, the order can only matter for |\verb|$run| commands; if you use them, you have to deal with this potential pitfall.)
+Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for |\verb|$run| commands; if you nest them, you have to deal with this potential pitfall.)
 
 To find the file \verb|FILE_PATH| specified by an \verb|$include| or \verb|$run| command, nancy proceeds thus:
 
