@@ -1,8 +1,9 @@
 #! /usr/bin/perl -w
-# nancy
-# The lazy web site maker
-# (c) 2002-2008 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
-# Distributed under the GNU General Public License
+my $version = <<'END';
+nancy $Revision$ ($Date$)
+(c) 2002-2008 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)
+Distributed under the GNU General Public License
+END
 
 use strict;
 use warnings;
@@ -16,19 +17,22 @@ my $suffix = ".html"; # suffix to make source directory into destination file
 
 # FIXME: We assume that the OS can handle UNIX-style paths to make the
 # $page command work; we should use File::Spec and convert paths into
-# URLs.
+# URLs. Do this by splitting using the platform's splitdir, then
+# rejoining using the File::Spec::Unix joiner.
 
 # Get arguments
 my ($version_flag, $help_flag, $list_files_flag);
-dieWithUsage() unless GetOptions(
+my $opts = GetOptions(
   "version" => \$version_flag,
   "help" => \$help_flag,
   "list-files" => \$list_files_flag # FIXME: usage message "list files read (on stderr)"
- ) && $#ARGV >= 2 && $#ARGV <= 3;
+ );
+die $version if $version_flag;
+dieWithUsage() if !$opts || $#ARGV < 2 || $#ARGV > 3;
 
 sub dieWithUsage {
   my $prog = basename($0);
-  die <<END;
+  die <<'END';
 Usage: $prog SOURCE DESTINATION TEMPLATE [BRANCH]
 The lazy web site maker
 
