@@ -118,7 +118,10 @@ sub expand {
       return readFile($name) if $name;
     },
     run => sub {
-      return system @_;
+      open(PIPE, "-|") || exec @_;
+      my $text = do {local $/, <PIPE>};
+      close PIPE;
+      return $text;
     },
   );
   $text = doMacros($text, %macros);
