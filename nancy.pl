@@ -9,12 +9,14 @@ use warnings;
 
 use Scalar::Util;
 use File::Basename;
-use File::Spec::Functions qw(:ALL);
+use File::Spec::Unix;
 use Getopt::Long;
 
-use vars qw(%Macros);
-
 my $suffix = ".html"; # suffix to make source directory into destination file
+
+# FIXME: We assume that the OS can handle UNIX-style paths to make the
+# $page command work; we should use File::Spec and convert paths into
+# URLs.
 
 # Get arguments
 my ($version_flag, $help_flag, $list_files_flag);
@@ -50,7 +52,7 @@ die "`$destRoot' is not a directory"
   if -e $destRoot && !-d $destRoot;
 my $fragment = $ARGV[2];
 my $sourceTree = $sourceRoot;
-$sourceTree = catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
+$sourceTree = File::Spec::Unix->catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
 
 # Read the given file and return its contents
 # An undefined value is returned if the file can't be opened or read
@@ -68,7 +70,7 @@ sub findFile {
   my ($path, $fragment) = @_;
   my $page = $path;
   do {
-    my $name = catfile($path, $fragment);
+    my $name = File::Spec::Unix->catfile($path, $fragment);
     if (-e $name) {
       print STDERR " $name" if $list_files_flag;
       return $name;
@@ -108,13 +110,13 @@ sub expand {
       return $page;
     },
     root => sub {
-      my $reps = scalar(splitdir($page)) - 2;
-      return catfile(("..") x $reps) if $reps > 0;
+      my $reps = scalar(File::Spec::Unix->splitdir($page)) - 2;
+      return File::Spec::Unix->catfile(("..") x $reps) if $reps > 0;
       return ".";
     },
     include => sub {
       my ($fragment) = @_;
-      my $name = findFile(catfile($root, $page), $fragment);
+      my $name = findFile(File::Spec::Unix->catfile($root, $page), $fragment);
       return readFile($name) if $name;
     },
     run => sub {
@@ -139,11 +141,11 @@ sub expand {
 #     flag: true to descend if object is a directory
 sub subfind {
   my ($root, $path, $pred) = @_;
-  opendir DIR, catfile($root, $path) or die "Could not read directory `" . catfile($root, $path) . "'";
+  opendir DIR, File::Spec::Unix->catfile($root, $path) or die "Could not read directory `" . File::Spec::Unix->catfile($root, $path) . "'";
   for my $object (readdir DIR) {
-    subfind($root, catfile($path, $object), $pred)
-      if $object ne "." && $object ne ".." && &{$pred}($root, catfile($path, $object)) &&
-        -d catfile($root, $path, $object);
+    subfind($root, File::Spec::Unix->catfile($path, $object), $pred)
+      if $object ne File::Spec::Unix->curdir() && $object ne File::Spec::Unix->updir() && &{$pred}($root, File::Spec::Unix->catfile($path, $object)) &&
+        -d File::Spec::Unix->catfile($root, $path, $object);
   }
   closedir DIR;
 }
@@ -161,7 +163,7 @@ my @sources = ();
 find($sourceTree,
      sub {
        my ($path, $object) = @_;
-       if (-d catfile($path, $object) && basename($object) ne ".svn") {
+       if (-d File::Spec::Unix->catfile($path, $object) && basename($object) ne ".svn") {
          push @sources, $object;
          return 1;
        }
@@ -175,7 +177,7 @@ my %sourceSet = map { $_ => 1 } @sources;
 # Process source directories
 my $i = 0;
 foreach my $dir (@sources) {
-  my $dest = catfile($destRoot, $dir);
+  my $dest = File::Spec::Unix->catfile($destRoot, $dir);
   # Only leaf directories correspond to pages; the sources are sorted
   # alphabetically, so a directory is not a leaf if and only if it is
   # either the last directory, or it is not a prefix of the next one
@@ -191,8 +193,8 @@ foreach my $dir (@sources) {
     mkdir $dest;
 
     # Check we have an index subdirectory
-    warn ("`" . catfile($sourceTree, $dir) . "' has no `index' subdirectory")
-      unless $sourceSet{catfile($dir, "index")};
+    warn ("`" . File::Spec::Unix->catfile($sourceTree, $dir) . "' has no `index' subdirectory")
+      unless $sourceSet{File::Spec::Unix->catfile($dir, "index")};
   }
   $i++;
 }
