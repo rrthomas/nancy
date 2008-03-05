@@ -58,6 +58,7 @@ $sourceTree = File::Spec::Unix->catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
 # An undefined value is returned if the file can't be opened or read
 sub readFile {
   my ($file) = @_;
+  local *FILE;
   open FILE, "<", $file or return;
   my $text = do {local $/, <FILE>};
   close FILE;
@@ -120,7 +121,9 @@ sub expand {
       return readFile($name) if $name;
     },
     run => sub {
-      open(PIPE, "-|") || exec @_;
+      my $cmd = join " ", @_;
+      local *PIPE;
+      open(PIPE, "$cmd|");
       my $text = do {local $/, <PIPE>};
       close PIPE;
       return $text;
@@ -141,6 +144,7 @@ sub expand {
 #     flag: true to descend if object is a directory
 sub subfind {
   my ($root, $path, $pred) = @_;
+  local *DIR;
   opendir DIR, File::Spec::Unix->catfile($root, $path) or die "Could not read directory `" . File::Spec::Unix->catfile($root, $path) . "'";
   for my $object (readdir DIR) {
     subfind($root, File::Spec::Unix->catfile($path, $object), $pred)
