@@ -125,9 +125,9 @@ sub expand {
       return readFile($name) if $name;
     },
     run => sub {
-      my $cmd = join " ", @_;
+      my $cmd = '"' . (join '" "', @_) . '"';
       local *PIPE;
-      open(PIPE, "$cmd|");
+      open(PIPE, "-|", $cmd);
       my $text = do {local $/, <PIPE>};
       close PIPE;
       return $text;
