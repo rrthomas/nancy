@@ -25,7 +25,7 @@ my ($version_flag, $help_flag, $list_files_flag);
 my $opts = GetOptions(
   "version" => \$version_flag,
   "help" => \$help_flag,
-  "list-files" => \$list_files_flag # FIXME: usage message "list files read (on stderr)"
+  "list-files" => \$list_files_flag
  );
 die $version if $version_flag;
 dieWithUsage() if !$opts || $#ARGV < 2 || $#ARGV > 3;
