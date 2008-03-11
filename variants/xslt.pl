@@ -1,4 +1,7 @@
 # XSLT action
+use XML::LibXSLT;
+use XML::LibXML;
+
 xslt => sub {
   my ($sheetfile, $xmlfile, %params) = @_;
   my $parser = XML::LibXML->new();
