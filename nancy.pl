@@ -49,7 +49,7 @@ END
 }
 
 my $sourceRoot = $ARGV[0];
-die "`$sourceRoot' not found or not a directory"
+die "`$sourceRoot' not found or is not a directory"
   unless -d $sourceRoot;
 my $destRoot = $ARGV[1];
 die "`$destRoot' is not a directory"
@@ -123,6 +123,14 @@ sub expand {
       my ($fragment) = @_;
       my $name = findFile(File::Spec::Unix->catfile($root, $page), $fragment);
       return readFile($name) if $name;
+    },
+    run => sub {
+      my $cmd = '"' . (join '" "', @_) . '"';
+      local *PIPE;
+      open(PIPE, "-|", $cmd);
+      my $text = do {local $/, <PIPE>};
+      close PIPE;
+      return $text;
     },
     run => sub {
       my $cmd = '"' . (join '" "', @_) . '"';
