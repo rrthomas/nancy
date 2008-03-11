@@ -132,14 +132,6 @@ sub expand {
       close PIPE;
       return $text;
     },
-    run => sub {
-      my $cmd = '"' . (join '" "', @_) . '"';
-      local *PIPE;
-      open(PIPE, "-|", $cmd);
-      my $text = do {local $/, <PIPE>};
-      close PIPE;
-      return $text;
-    },
   );
   $text = doMacros($text, %macros);
   # Convert $Macro back to $macro
