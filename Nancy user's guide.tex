@@ -21,7 +21,7 @@
 
 Nancy is a simple web site builder that glues together HTML and other fragments to make pages, and allows fragments to be specialised for particular pages. Fragments can be held in files or generated programmatically.
 
-Nancy is a command-line tool, typically used interactively from a POSIX-like shell.
+Nancy is a command-line tool.
 
 \section{Invocation}
 
@@ -80,7 +80,7 @@ To find the file \verb|FILE_PATH| specified by an \verb|$include| or \verb|$run|
 \item Finally, try looking in \verb|DIRECTORY/FILE_PATH|.
 \end{enumerate}
 
-So, for example, if \verb|DIRECTORY| is \verb|/dir|, \verb|LEAF_PATH| is \verb|foo/bar/baz| and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
+For example, if \verb|DIRECTORY| is \verb|/dir|, \verb|LEAF_PATH| is \verb|foo/bar/baz| and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
 
 \begin{enumerate}
 \item \verb|/dir/foo/bar/baz/file.html|
@@ -90,7 +90,7 @@ So, for example, if \verb|DIRECTORY| is \verb|/dir|, \verb|LEAF_PATH| is \verb|f
 \end{enumerate}
 
 \section{Example}
-% FIXME: add use of $root
+% FIXME: add uses of $root{}, $page{} and $run{}
 
 Suppose a web site has the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
 
