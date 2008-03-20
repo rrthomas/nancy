@@ -179,6 +179,7 @@ foreach my $dir (@sources) {
     print STDERR "$dir:\n" if $list_files_flag;
     open OUT, ">$dest$suffix" or die "Could not write to `$dest'";
     print OUT expand("\$include{$fragment}", $sourceTree, $dir);
+    close OUT;
     print STDERR "\n" if $list_files_flag;
   } else { # non-leaf directory
     # FIXME: If directory is called `index', complain
