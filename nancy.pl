@@ -11,6 +11,7 @@ use warnings;
 use Scalar::Util;
 use File::Basename;
 use File::Spec::Unix;
+use File::Find;
 use Getopt::Long;
 
 my $suffix = ".html"; # suffix to make source directory into destination file
@@ -23,9 +24,9 @@ my $suffix = ".html"; # suffix to make source directory into destination file
 # Get arguments
 my ($version_flag, $help_flag, $list_files_flag);
 my $opts = GetOptions(
+  "list-files" => \$list_files_flag,
   "version" => \$version_flag,
   "help" => \$help_flag,
-  "list-files" => \$list_files_flag
  );
 die $version if $version_flag;
 dieWithUsage() if !$opts || $#ARGV < 2 || $#ARGV > 3;
@@ -36,9 +37,9 @@ sub dieWithUsage {
 Usage: $prog SOURCE DESTINATION TEMPLATE [BRANCH]
 The lazy web site maker
 
-  -list-files, -l  list files read (on stderr)
-  -version, -v     show program version
-  -help, -h, -?    show this help
+  --list-files, -l  list files read (on stderr)
+  --version, -v     show program version
+  --help, -h, -?    show this help
 
   SOURCE is the source directory tree
   DESTINATION is the directory to which the output is written
@@ -77,7 +78,7 @@ sub findFile {
   do {
     my $name = File::Spec::Unix->catfile($path, $fragment);
     if (-e $name) {
-      print STDERR " $name" if $list_files_flag;
+      print STDERR "  $name\n" if $list_files_flag;
       return $name;
     }
     if ($path eq ".") {
@@ -123,6 +124,7 @@ sub expand {
       my ($fragment) = @_;
       my $name = findFile(File::Spec::Unix->catfile($root, $page), $fragment);
       return readFile($name) if $name;
+      return "";
     },
     run => sub {
       my $cmd = '"' . (join '" "', @_) . '"';
@@ -139,44 +141,27 @@ sub expand {
   return $text;
 }
 
-# find: Scan a file system object and process its elements
-#   root: root path to scan
-#   pred: function to apply to each element
-#     root: as above
-#     object: relative path from root to object
-#   returns
-#     flag: true to descend if object is a directory
-sub subfind {
-  my ($root, $path, $pred) = @_;
-  local *DIR;
-  opendir DIR, File::Spec::Unix->catfile($root, $path) or die "Could not read directory `" . File::Spec::Unix->catfile($root, $path) . "'";
-  for my $object (readdir DIR) {
-    subfind($root, File::Spec::Unix->catfile($path, $object), $pred)
-      if $object ne File::Spec::Unix->curdir() && $object ne File::Spec::Unix->updir() && &{$pred}($root, File::Spec::Unix->catfile($path, $object)) &&
-        -d File::Spec::Unix->catfile($root, $path, $object);
-  }
-  closedir DIR;
-}
-sub find {
-  my ($root, $pred) = @_;
-  &{$pred}($root, "");
-  subfind($root, "", $pred);
-}
-
 # Get source directories and destination files
 # FIXME: Make exclusion easily extensible, and add patterns for
 # common VCSs (use find's --exclude-vcs patterns) and editor backup
 # files &c.
 my @sources = ();
-find($sourceTree,
-     sub {
-       my ($path, $object) = @_;
-       if (-d File::Spec::Unix->catfile($path, $object) && basename($object) ne ".svn") {
-         push @sources, $object;
-         return 1;
-       }
-       return undef;
-     });
+File::Find::find(
+  sub {
+    return if !-d $_;
+    if (/^\.svn$/) {
+      $File::Find::prune = 1;
+    } else {
+      my $object = $File::Find::name;
+      $object =~ s|^$sourceTree||;
+      $object =~ s|/$||;
+      push @sources, $object;
+    }
+  },
+  $sourceTree);
+# FIXME: Build %sourceSet as we go, and use the value to indicate if
+# the directory is leaf or not by making directories set the
+# "non-leaf" value of their parent
 my %sourceSet = map { $_ => 1 } @sources;
 
 # Sort the sources for the "is leaf" check
