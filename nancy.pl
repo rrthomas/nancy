@@ -16,8 +16,8 @@ use Getopt::Long;
 
 my $suffix = ".html"; # suffix to make source directory into destination file
 
-# FIXME: We assume that the OS can handle UNIX-style paths to make the
-# $page command work; we should use File::Spec and convert paths into
+# FIXME: To make $page{} work we assume that the OS can handle
+# UNIX-style paths; we should use File::Spec and convert paths into
 # URLs. Do this by splitting using the platform's splitdir, then
 # rejoining using the File::Spec::Unix joiner.
 
@@ -155,7 +155,7 @@ my %sources = ();
 foreach my $dir (@sourceRoot) {
   File::Find::find(
     sub {
-      return if !-d $_;
+      return if !-d;
       if (/^\.svn$/) {
         $File::Find::prune = 1;
       } else {
@@ -175,8 +175,7 @@ foreach my $dir (@sourceRoot) {
 foreach my $dir (sort keys %sources) {
   my $dest = File::Spec::Unix->catfile($destRoot, $dir);
   # Only leaf directories correspond to pages
-  # FIXME: Is $dir ne "" still needed?
-  if ($dir ne "" && $sources{$dir} eq "leaf") {
+  if ($sources{$dir} eq "leaf") {
     # Process one page
     print STDERR "$dir:\n" if $list_files_flag;
     my $out = expand("\$include{$template}", \@sourceRoot, $dir);
