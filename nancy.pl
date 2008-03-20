@@ -41,23 +41,29 @@ The lazy web site maker
   --version, -v     show program version
   --help, -h, -?    show this help
 
-  SOURCE is the source directory tree
+  SOURCE is a colon-separated list of source directory trees
   DESTINATION is the directory to which the output is written
   TEMPLATE is the name of the template fragment
-  BRANCH is the sub-directory of SOURCE to process (the default
-    is to process the entire source tree)
+  BRANCH is the sub-directory of each SOURCE tree to process
+    (defaults to the entire tree)
 END
 }
 
-my $sourceRoot = $ARGV[0];
-die "`$sourceRoot' not found or is not a directory"
-  unless -d $sourceRoot;
+die "No source tree given\n" unless $ARGV[0];
+my @sourceRoot = split /:/, $ARGV[0];
+foreach my $dir (@sourceRoot) {
+  die "`$dir' not found or is not a directory\n"
+    unless -d $dir;
+}
 my $destRoot = $ARGV[1];
-die "`$destRoot' is not a directory"
+die "`$destRoot' is not a directory\n"
   if -e $destRoot && !-d $destRoot;
-my $fragment = $ARGV[2];
-my $sourceTree = $sourceRoot;
-$sourceTree = File::Spec::Unix->catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
+my $template = $ARGV[2];
+if ($ARGV[3]) {
+  for (my $i = 0; $i <= $#sourceRoot; $i++) {
+    $sourceRoot[$i] = File::Spec::Unix->catfile($sourceRoot[$i], $ARGV[3]);
+  }
+}
 
 # Read the given file and return its contents
 # An undefined value is returned if the file can't be opened or read
@@ -70,23 +76,23 @@ sub readFile {
   return $text;
 }
 
-# Search the current path for a file; if found return its name,
-# if not, return nil and print a warning.
+# Search trees for a file starting at the given path; if found return
+# its name, if not, print a warning and return undef.
 sub findFile {
-  my ($path, $fragment) = @_;
-  my $page = $path;
-  do {
-    my $name = File::Spec::Unix->catfile($path, $fragment);
-    if (-e $name) {
-      print STDERR "  $name\n" if $list_files_flag;
-      return $name;
+  my ($trees, $path, $file) = @_;
+  foreach my $tree (@{$trees}) {
+    my $search_path = File::Spec::Unix->catfile($tree, $path);
+    while ($search_path =~ /^$tree/) { # Keep going until we go above $tree
+      my $name = File::Spec::Unix->catfile($search_path, $file);
+      if (-e $name) {
+        print STDERR "  $name\n" if $list_files_flag;
+        return $name;
+      }
+      $search_path = dirname($search_path);
     }
-    if ($path eq ".") {
-      warn "Cannot find fragment `$fragment' while building `$page'";
-      return;
-    }
-    $path = dirname($path);
-  } while (1);
+  }
+  warn "Cannot find `$file' while building `$path'\n";
+  return undef;
 }
 
 # Process a command; if the command is undefined, replace it, uppercased
@@ -110,7 +116,7 @@ sub doMacros {
 
 # Expand commands in some text
 sub expand {
-  my ($text, $root, $page) = @_;
+  my ($text, $trees, $page) = @_;
   my %macros = (
     page => sub {
       return $page;
@@ -122,7 +128,7 @@ sub expand {
     },
     include => sub {
       my ($fragment) = @_;
-      my $name = findFile(File::Spec::Unix->catfile($root, $page), $fragment);
+      my $name = findFile($trees, $page, $fragment);
       return readFile($name) if $name;
       return "";
     },
@@ -141,54 +147,55 @@ sub expand {
   return $text;
 }
 
-# Get source directories and destination files
+# Get source directories
 # FIXME: Make exclusion easily extensible, and add patterns for
 # common VCSs (use find's --exclude-vcs patterns) and editor backup
 # files &c.
-my @sources = ();
-File::Find::find(
-  sub {
-    return if !-d $_;
-    if (/^\.svn$/) {
-      $File::Find::prune = 1;
-    } else {
-      my $object = $File::Find::name;
-      $object =~ s|^$sourceTree||;
-      $object =~ s|/$||;
-      push @sources, $object;
-    }
-  },
-  $sourceTree);
-# FIXME: Build %sourceSet as we go, and use the value to indicate if
-# the directory is leaf or not by making directories set the
-# "non-leaf" value of their parent
-my %sourceSet = map { $_ => 1 } @sources;
+my %sources = ();
+foreach my $dir (@sourceRoot) {
+  File::Find::find(
+    sub {
+      return if !-d $_;
+      if (/^\.svn$/) {
+        $File::Find::prune = 1;
+      } else {
+        my $object = $File::Find::name;
+        $object =~ s|^$dir||;
+        # Flag directories as leaf/non-leaf, filtering out redundant names
+        $sources{$object} = "leaf" if $object ne "";
+        $sources{dirname($object)} = 1 if dirname($object) ne ".";
+      }
+    },
+    $dir);
+}
 
-# Sort the sources for the "is leaf" check
-@sources = sort @sources;
-
-# Process source directories
-my $i = 0;
-foreach my $dir (@sources) {
+# Process source directories; work in sorted order so we process
+# create directories in the destination tree before writing their
+# contents
+foreach my $dir (sort keys %sources) {
   my $dest = File::Spec::Unix->catfile($destRoot, $dir);
-  # Only leaf directories correspond to pages; the sources are sorted
-  # alphabetically, so a directory is not a leaf if and only if it is
-  # either the last directory, or it is not a prefix of the next one
-  if ($dir ne "" && ($i == $#sources || substr($sources[$i + 1], 0, length($dir) + 1) ne "$dir/")) {
-    # Process one file
+  # Only leaf directories correspond to pages
+  # FIXME: Is $dir ne "" still needed?
+  if ($dir ne "" && $sources{$dir} eq "leaf") {
+    # Process one page
     print STDERR "$dir:\n" if $list_files_flag;
-    open OUT, ">$dest$suffix" or die "Could not write to `$dest'";
-    print OUT expand("\$include{$fragment}", $sourceTree, $dir);
-    close OUT;
+    my $out = expand("\$include{$template}", \@sourceRoot, $dir);
+    if ($out ne "") {
+      open OUT, ">$dest$suffix" or die "Could not write to `$dest'\n";
+      print OUT $out;
+      close OUT;
+    } else {
+      print STDERR "  (no page written)\n" if $list_files_flag;
+    }
     print STDERR "\n" if $list_files_flag;
   } else { # non-leaf directory
-    # FIXME: If directory is called `index', complain
     # Make directory
     mkdir $dest;
-
+    # Warn if directory is called index, as this is confusing
+    warn "`$dir' looks like an index page, but isn't\n"
+      if basename($dir) eq "index";
     # Check we have an index subdirectory
-    warn ("`" . File::Spec::Unix->catfile($sourceTree, $dir) . "' has no `index' subdirectory")
-      unless $sourceSet{File::Spec::Unix->catfile($dir, "index")};
+    warn "`$dir' has no `index' subdirectory\n"
+      unless $sources{File::Spec::Unix->catfile($dir, "index")};
   }
-  $i++;
 }
