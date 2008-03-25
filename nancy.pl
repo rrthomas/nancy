@@ -161,7 +161,7 @@ foreach my $dir (@sourceRoot) {
         $File::Find::prune = 1;
       } else {
         my $object = $File::Find::name;
-        $object =~ s|^$dir||;
+        $object = substr($object, length($dir));
         # Flag directories as leaf/non-leaf, filtering out redundant names
         $sources{$object} = "leaf" if $object ne "";
         $sources{dirname($object)} = 1 if dirname($object) ne ".";
