@@ -73,8 +73,7 @@ program. The command is run with any arguments given in the command.
 
 Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for |\verb|$run| commands; if you nest them, you have to deal with this potential pitfall.)
 
-To find the file \verb|FILE_PATH| specified by an \verb|$include| or
-\verb|$run| command, Nancy proceeds thus:
+To find the file \verb|FILE_PATH| specified by an \verb|$include| command, Nancy proceeds thus:
 
 \begin{itemize}
 \item Consider the source trees in left-to-right order:
