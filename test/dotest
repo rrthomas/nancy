@@ -1,4 +1,6 @@
 #! /bin/sh
+# FIXME: add failure message
 rm -rf dest
-../nancy.pl src dest template.html
-#./nancy.lua -l src dest template.html
+../nancy.pl -l src dest template.html
+rm -rf dest2
+../nancy.pl -l src2:src dest2 template.html
