@@ -8,6 +8,7 @@ END
 use strict;
 use warnings;
 
+use Config;
 use Scalar::Util;
 use File::Basename;
 use File::Spec::Unix;
@@ -50,7 +51,7 @@ END
 }
 
 die "No source tree given\n" unless $ARGV[0];
-my @sourceRoot = split /:/, $ARGV[0];
+my @sourceRoot = split /$Config{path_sep}/, $ARGV[0];
 foreach my $dir (@sourceRoot) {
   die "`$dir' not found or is not a directory\n"
     unless -d $dir;
