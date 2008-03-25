@@ -32,17 +32,17 @@ my $opts = GetOptions(
 die $version if $version_flag;
 dieWithUsage() if !$opts || $#ARGV < 2 || $#ARGV > 3;
 
+my $prog = basename($0);
 sub dieWithUsage {
-  my $prog = basename($0);
   die <<'END';
-Usage: $prog SOURCE DESTINATION TEMPLATE [BRANCH]
+Usage: $prog SOURCES DESTINATION TEMPLATE [BRANCH]
 The lazy web site maker
 
   --list-files, -l  list files read (on stderr)
   --version, -v     show program version
   --help, -h, -?    show this help
 
-  SOURCE is a colon-separated list of source directory trees
+  SOURCES is a colon-separated list of source directory trees
   DESTINATION is the directory to which the output is written
   TEMPLATE is the name of the template fragment
   BRANCH is the sub-directory of each SOURCE tree to process
@@ -50,14 +50,24 @@ The lazy web site maker
 END
 }
 
-die "No source tree given\n" unless $ARGV[0];
+sub Die {
+  my ($message) = @_;
+  die "$prog: $message\n";
+}
+
+sub Warn {
+  my ($message) = @_;
+  warn "$prog: $message\n";
+}
+
+Die("No source tree given") unless $ARGV[0];
 my @sourceRoot = split /$Config{path_sep}/, $ARGV[0];
 foreach my $dir (@sourceRoot) {
-  die "`$dir' not found or is not a directory\n"
+  Die("`$dir' not found or is not a directory")
     unless -d $dir;
 }
 my $destRoot = $ARGV[1];
-die "`$destRoot' is not a directory\n"
+Die("`$destRoot' is not a directory")
   if -e $destRoot && !-d $destRoot;
 my $template = $ARGV[2];
 if ($ARGV[3]) {
@@ -92,7 +102,7 @@ sub findFile {
       $search_path = dirname($search_path);
     }
   }
-  warn "Cannot find `$file' while building `$path'\n";
+  Warn "Cannot find `$file' while building `$path'\n";
   return undef;
 }
 
@@ -148,12 +158,21 @@ sub expand {
   return $text;
 }
 
+sub emptyDir {
+  my ($dir) = @_;
+  opendir DIR, $dir;
+  my @contents = readdir DIR;
+  closedir DIR;
+  return $#contents <= 1;
+}
+
 # Get source directories
 # FIXME: Make exclusion easily extensible, and add patterns for
 # common VCSs (use find's --exclude-vcs patterns) and editor backup
 # files &c.
 my %sources = ();
-foreach my $dir (@sourceRoot) {
+my $non_leaves = 0;
+foreach my $dir (reverse @sourceRoot) {
   File::Find::find(
     sub {
       return if !-d;
@@ -163,12 +182,21 @@ foreach my $dir (@sourceRoot) {
         my $object = $File::Find::name;
         $object = substr($object, length($dir));
         # Flag directories as leaf/non-leaf, filtering out redundant names
-        $sources{$object} = "leaf" if $object ne "";
-        $sources{dirname($object)} = 1 if dirname($object) ne ".";
+        if (emptyDir($_)) { # Empty directories are removed
+          $sources{$object} = undef if $object ne "";
+          $sources{dirname($object)}-- if dirname($object) ne ".";
+        } else { # non-empty directories are added
+          $sources{$object} = 1 if $object ne "";
+          if (dirname($object) ne ".") {
+            $sources{dirname($object)}++;
+            $non_leaves++;
+          }
+        }
       }
     },
     $dir);
 }
+Die("No pages found in source trees") unless $non_leaves > 0;
 
 # Process source directories; work in sorted order so we process
 # create directories in the destination tree before writing their
@@ -176,26 +204,29 @@ foreach my $dir (@sourceRoot) {
 foreach my $dir (sort keys %sources) {
   my $dest = File::Spec::Unix->catfile($destRoot, $dir);
   # Only leaf directories correspond to pages
-  if ($sources{$dir} eq "leaf") {
-    # Process one page
-    print STDERR "$dir:\n" if $list_files_flag;
-    my $out = expand("\$include{$template}", \@sourceRoot, $dir);
-    if ($out ne "") {
-      open OUT, ">$dest$suffix" or die "Could not write to `$dest'\n";
-      print OUT $out;
-      close OUT;
-    } else {
-      print STDERR "  (no page written)\n" if $list_files_flag;
+  if (defined($sources{$dir}) && $sources{$dir} > 0 &&
+        ((defined($sources{dirname($dir)} && $sources{dirname($dir)} > 0) || $dir eq ""))) {
+    if ($sources{$dir} == 1) {
+      # Process one page
+      print STDERR "$dir:\n" if $list_files_flag;
+      my $out = expand("\$include{$template}", \@sourceRoot, $dir);
+      if ($out ne "") {
+        open OUT, ">$dest$suffix" or Die("Could not write to `$dest'");
+        print OUT $out;
+        close OUT;
+      } else {
+        print STDERR "  (no page written)\n" if $list_files_flag;
+      }
+      print STDERR "\n" if $list_files_flag;
+    } else { # non-leaf directory
+      # Make directory
+      mkdir $dest;
+      # Warn if directory is called index, as this is confusing
+      Warn("`$dir' looks like an index page, but has sub-directories")
+        if basename($dir) eq "index";
+      # Check we have an index subdirectory
+      Warn("`$dir' has no `index' subdirectory")
+        unless $sources{File::Spec::Unix->catfile($dir, "index")};
     }
-    print STDERR "\n" if $list_files_flag;
-  } else { # non-leaf directory
-    # Make directory
-    mkdir $dest;
-    # Warn if directory is called index, as this is confusing
-    warn "`$dir' looks like an index page, but isn't\n"
-      if basename($dir) eq "index";
-    # Check we have an index subdirectory
-    warn "`$dir' has no `index' subdirectory\n"
-      unless $sources{File::Spec::Unix->catfile($dir, "index")};
   }
 }
