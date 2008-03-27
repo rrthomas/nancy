@@ -237,7 +237,7 @@ foreach my $dir (sort keys %sources) {
       Warn("`$dir' looks like an index page, but has sub-directories")
         if basename($dir) eq "index";
       # Check we have an index subdirectory
-      Warn("`$dir' has no `index' subdirectory")
+      Warn("`$dir' has no (non-empty) `index' subdirectory")
         unless $sources{File::Spec::Unix->catfile($dir, "index")};
     }
   }
