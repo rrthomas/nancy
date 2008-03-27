@@ -12,6 +12,7 @@ use Config;
 use Scalar::Util;
 use File::Basename;
 use File::Spec::Unix;
+use File::Spec;
 use File::Find;
 use Getopt::Long;
 
@@ -91,16 +92,18 @@ sub readFile {
 # its name, if not, print a warning and return undef.
 sub findFile {
   my ($trees, $path, $file) = @_;
-  foreach my $tree (@{$trees}) {
-    my $search_path = File::Spec::Unix->catfile($tree, $path);
-    while ($search_path =~ /^$tree/) { # Keep going until we go above $tree
-      my $name = File::Spec::Unix->catfile($search_path, $file);
+  my $search_path = $path;
+  while (1) {
+    foreach my $tree (@{$trees}) {
+      my $name = File::Spec::Unix->catfile($tree, $search_path, $file);
+      last if -z $name;
       if (-e $name) {
         print STDERR "  $name\n" if $list_files_flag;
         return $name;
       }
-      $search_path = dirname($search_path);
     }
+    last if $search_path eq "." || $search_path eq "/"; # Keep going until we go above $path
+    $search_path = dirname($search_path);
   }
   Warn "Cannot find `$file' while building `$path'\n";
   return undef;
@@ -143,6 +146,12 @@ sub expand {
       return readFile($name) if $name;
       return "";
     },
+    find => sub {
+      my ($fragment) = @_;
+      my $name = findFile($trees, $page, $fragment);
+      return $name if $name;
+      return "no-such-file";
+    },
     run => sub {
       my $cmd = '"' . (join '" "', @_) . '"';
       local *PIPE;
@@ -161,14 +170,18 @@ sub expand {
 sub emptyDir {
   my ($dir) = @_;
   opendir DIR, $dir;
-  my @contents = readdir DIR;
+  my @contents = ();
+  foreach my $name (readdir DIR) {
+    push @contents, $name if $name ne ".svn";
+  };
   closedir DIR;
-  return $#contents <= 1;
+  @contents = File::Spec->no_upwards(@contents);
+  return $#contents == -1;
 }
 
 # Get source directories
 # FIXME: Make exclusion easily extensible, and add patterns for
-# common VCSs (use find's --exclude-vcs patterns) and editor backup
+# common VCSs (use tar's --exclude-vcs patterns) and editor backup
 # files &c.
 my %sources = ();
 my $non_leaves = 0;
@@ -179,16 +192,15 @@ foreach my $dir (reverse @sourceRoot) {
       if (/^\.svn$/) {
         $File::Find::prune = 1;
       } else {
-        my $object = $File::Find::name;
-        $object = substr($object, length($dir));
+        my $obj = $File::Find::name;
+        $obj = substr($obj, length($dir));
         # Flag directories as leaf/non-leaf, filtering out redundant names
         if (emptyDir($_)) { # Empty directories are removed
-          $sources{$object} = undef if $object ne "";
-          $sources{dirname($object)}-- if dirname($object) ne ".";
+          delete $sources{$obj} if $obj ne "";
         } else { # non-empty directories are added
-          $sources{$object} = 1 if $object ne "";
-          if (dirname($object) ne ".") {
-            $sources{dirname($object)}++;
+          $sources{$obj} = 1 if $obj ne "" && !defined($sources{$obj});
+          if (dirname($obj) ne ".") {
+            $sources{dirname($obj)} = 2;
             $non_leaves++;
           }
         }
@@ -211,7 +223,7 @@ foreach my $dir (sort keys %sources) {
       print STDERR "$dir:\n" if $list_files_flag;
       my $out = expand("\$include{$template}", \@sourceRoot, $dir);
       if ($out ne "") {
-        open OUT, ">$dest$suffix" or Die("Could not write to `$dest'");
+        open OUT, ">$dest$suffix" or Warn("Could not write to `$dest'");
         print OUT $out;
         close OUT;
       } else {
