@@ -58,10 +58,11 @@ $COMMAND{ARGUMENT, ...}
 
 Nancy recognises these commands:
 
-% FIXME: Document $find
 \begin{description}
 \SaveVerb{include}|$include{FILE}|
 \item[\UseVerb{include}]Replace the command with the contents of the given file.
+\SaveVerb{include}|$find{FILE}|
+\item[\UseVerb{include}]Replace the command with the name of the given file.
 \SaveVerb{page}|$page{}|
 \item[\UseVerb{page}]Replace the command with the URL of the page
 under construction, relative to the root of the site.
