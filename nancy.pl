@@ -43,7 +43,7 @@ The lazy web site maker
   --version, -v     show program version
   --help, -h, -?    show this help
 
-  SOURCES is a colon-separated list of source directory trees
+  SOURCES is a path list of source directory trees
   DESTINATION is the directory to which the output is written
   TEMPLATE is the name of the template fragment
   BRANCH is the sub-directory of each SOURCE tree to process
