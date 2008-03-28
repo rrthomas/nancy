@@ -44,7 +44,7 @@ Nancy produces the finished pages according to the following algorithm:
 \item For each leaf directory of the source tree, start from that directory.
 \item Set the initial text to \verb|$include{TEMPLATE}|.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
-\item If the resultant text is non-empty, write it to a file: for each   directory \verb|SOURCE/LEAF_PATH| the output file is   \verb|DESTINATION/LEAF_PATH.html|.
+\item Write the resultant text to a file: for each directory \verb|SOURCE/LEAF_PATH| the output file is   \verb|DESTINATION/LEAF_PATH.html|.
 \end{enumerate}
 
 The reason that only leaf directories correspond to pages is to ensure that every page can be specialised without affecting any other page. By convention, every non-leaf directory has an \verb|index| sub-directory, so that there are no ``missing'' URLs in the resulting site. Nancy warns if an \verb|index| directory is absent.

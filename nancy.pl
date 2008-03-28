@@ -92,7 +92,7 @@ sub findFile {
     last if $search_path eq "." || $search_path eq "/"; # Keep going until we go above $path
     $search_path = dirname($search_path);
   }
-  Warn "Cannot find `$file' while building `$path'\n";
+  Warn "Cannot find `$file' while building `$path'";
   return undef;
 }
 
@@ -177,13 +177,9 @@ foreach my $dir (sort keys %sources) {
       # Process one page
       print STDERR "$dir:\n" if $list_files_flag;
       my $out = expand("\$include{$template}", $sourceRoot, $dir);
-      if ($out ne "") {
-        open OUT, ">$dest$suffix" or Warn("Could not write to `$dest'");
-        print OUT $out;
-        close OUT;
-      } else {
-        print STDERR "  (no page written)\n" if $list_files_flag;
-      }
+      open OUT, ">$dest$suffix" or Warn("Could not write to `$dest'");
+      print OUT $out;
+      close OUT;
       print STDERR "\n" if $list_files_flag;
     } else { # non-leaf directory
       # Make directory
