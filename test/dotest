@@ -1,6 +1,16 @@
 #! /bin/sh
 # FIXME: add failure message
-rm -rf dest
-../nancy.pl -l src dest template.html
-rm -rf dest2
-../nancy.pl -l src2:src dest2 template.html
+
+# One-tree test
+rm -rf dest tmp
+mkdir tmp
+mergetrees.pl src tmp
+../nancy.pl -l tmp dest template.html
+diff -Nur -x ".svn" dest expected
+
+# Two-tree test
+rm -rf dest2 tmp2
+mkdir tmp2
+mergetrees.pl src2:src tmp2
+../nancy.pl -l tmp2 dest2 template.html
+diff -Nur -x ".svn" dest2 expected2
