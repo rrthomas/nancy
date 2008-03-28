@@ -8,8 +8,6 @@ END
 use strict;
 use warnings;
 
-use Config;
-use Scalar::Util;
 use File::Basename;
 use File::Spec::Unix;
 use File::Spec;
@@ -25,6 +23,7 @@ my $suffix = ".html"; # suffix to make source directory into destination file
 
 # Get arguments
 my ($version_flag, $help_flag, $list_files_flag);
+my $prog = basename($0);
 my $opts = GetOptions(
   "list-files" => \$list_files_flag,
   "version" => \$version_flag,
@@ -33,17 +32,16 @@ my $opts = GetOptions(
 die $version if $version_flag;
 dieWithUsage() if !$opts || $#ARGV < 2 || $#ARGV > 3;
 
-my $prog = basename($0);
 sub dieWithUsage {
-  die <<'END';
-Usage: $prog SOURCES DESTINATION TEMPLATE [BRANCH]
+  die <<END;
+Usage: $prog SOURCE DESTINATION TEMPLATE [BRANCH]
 The lazy web site maker
 
   --list-files, -l  list files read (on stderr)
   --version, -v     show program version
   --help, -h, -?    show this help
 
-  SOURCES is a path list of source directory trees
+  SOURCE is the source directory tree
   DESTINATION is the directory to which the output is written
   TEMPLATE is the name of the template fragment
   BRANCH is the sub-directory of each SOURCE tree to process
@@ -62,20 +60,12 @@ sub Warn {
 }
 
 Die("No source tree given") unless $ARGV[0];
-my @sourceRoot = split /$Config{path_sep}/, $ARGV[0];
-foreach my $dir (@sourceRoot) {
-  Die("`$dir' not found or is not a directory")
-    unless -d $dir;
-}
+my $sourceRoot = $ARGV[0];
+Die("`$sourceRoot' not found or is not a directory") unless -d $sourceRoot;
 my $destRoot = $ARGV[1];
-Die("`$destRoot' is not a directory")
-  if -e $destRoot && !-d $destRoot;
+Die("`$destRoot' is not a directory") if -e $destRoot && !-d $destRoot;
 my $template = $ARGV[2];
-if ($ARGV[3]) {
-  for (my $i = 0; $i <= $#sourceRoot; $i++) {
-    $sourceRoot[$i] = File::Spec::Unix->catfile($sourceRoot[$i], $ARGV[3]);
-  }
-}
+$sourceRoot = File::Spec::Unix->catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
 
 # Read the given file and return its contents
 # An undefined value is returned if the file can't be opened or read
@@ -88,19 +78,16 @@ sub readFile {
   return $text;
 }
 
-# Search trees for a file starting at the given path; if found return
+# Search tree for a file starting at the given path; if found return
 # its name, if not, print a warning and return undef.
 sub findFile {
-  my ($trees, $path, $file) = @_;
+  my ($tree, $path, $file) = @_;
   my $search_path = $path;
   while (1) {
-    foreach my $tree (@{$trees}) {
-      my $name = File::Spec::Unix->catfile($tree, $search_path, $file);
-      last if -z $name;
-      if (-e $name) {
-        print STDERR "  $name\n" if $list_files_flag;
-        return $name;
-      }
+    my $name = File::Spec::Unix->catfile($tree, $search_path, $file);
+    if (-e $name) {
+      print STDERR "  $name\n" if $list_files_flag;
+      return $name;
     }
     last if $search_path eq "." || $search_path eq "/"; # Keep going until we go above $path
     $search_path = dirname($search_path);
@@ -130,7 +117,7 @@ sub doMacros {
 
 # Expand commands in some text
 sub expand {
-  my ($text, $trees, $page) = @_;
+  my ($text, $tree, $page) = @_;
   my %macros = (
     page => sub {
       return $page;
@@ -142,15 +129,9 @@ sub expand {
     },
     include => sub {
       my ($fragment) = @_;
-      my $name = findFile($trees, $page, $fragment);
+      my $name = findFile($tree, $page, $fragment);
       return readFile($name) if $name;
       return "";
-    },
-    find => sub {
-      my ($fragment) = @_;
-      my $name = findFile($trees, $page, $fragment);
-      return $name if $name;
-      return "no-such-file";
     },
     run => sub {
       my $cmd = '"' . (join '" "', @_) . '"';
@@ -167,48 +148,22 @@ sub expand {
   return $text;
 }
 
-sub emptyDir {
-  my ($dir) = @_;
-  opendir DIR, $dir;
-  my @contents = ();
-  foreach my $name (readdir DIR) {
-    push @contents, $name if $name ne ".svn";
-  };
-  closedir DIR;
-  @contents = File::Spec->no_upwards(@contents);
-  return $#contents == -1;
-}
-
 # Get source directories
-# FIXME: Make exclusion easily extensible, and add patterns for
-# common VCSs (use tar's --exclude-vcs patterns) and editor backup
-# files &c.
 my %sources = ();
 my $non_leaves = 0;
-foreach my $dir (reverse @sourceRoot) {
-  File::Find::find(
-    sub {
-      return if !-d;
-      if (/^\.svn$/) {
-        $File::Find::prune = 1;
-      } else {
-        my $obj = $File::Find::name;
-        $obj = substr($obj, length($dir));
-        # Flag directories as leaf/non-leaf, filtering out redundant names
-        if (emptyDir($_)) { # Empty directories are removed
-          delete $sources{$obj} if $obj ne "";
-        } else { # non-empty directories are added
-          $sources{$obj} = 1 if $obj ne "" && !defined($sources{$obj});
-          if (dirname($obj) ne ".") {
-            $sources{dirname($obj)} = 2;
-            $non_leaves++;
-          }
-        }
-      }
-    },
-    $dir);
-}
-Die("No pages found in source trees") unless $non_leaves > 0;
+File::Find::find(
+  sub {
+    return if !-d;
+    my $obj = $File::Find::name;
+    $obj = substr($obj, length($sourceRoot));
+    $sources{$obj} = 1 if $obj ne "" && !defined($sources{$obj});
+    if (dirname($obj) ne ".") {
+      $sources{dirname($obj)} = 2;
+      $non_leaves++;
+    }
+  },
+  $sourceRoot);
+Die("No pages found in source tree") unless $non_leaves > 0;
 
 # Process source directories; work in sorted order so we process
 # create directories in the destination tree before writing their
@@ -221,7 +176,7 @@ foreach my $dir (sort keys %sources) {
     if ($sources{$dir} == 1) {
       # Process one page
       print STDERR "$dir:\n" if $list_files_flag;
-      my $out = expand("\$include{$template}", \@sourceRoot, $dir);
+      my $out = expand("\$include{$template}", $sourceRoot, $dir);
       if ($out ne "") {
         open OUT, ">$dest$suffix" or Warn("Could not write to `$dest'");
         print OUT $out;
@@ -237,7 +192,7 @@ foreach my $dir (sort keys %sources) {
       Warn("`$dir' looks like an index page, but has sub-directories")
         if basename($dir) eq "index";
       # Check we have an index subdirectory
-      Warn("`$dir' has no (non-empty) `index' subdirectory")
+      Warn("`$dir' has no `index' subdirectory")
         unless $sources{File::Spec::Unix->catfile($dir, "index")};
     }
   }

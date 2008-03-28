@@ -13,13 +13,13 @@
 \begin{document}
 
 \title{Nancy, the lazy web site builder\\User's guide}
-\date{25th March 2008}
+\date{27th March 2008}
 \author{Reuben Thomas}
 \maketitle
 
 \section{Introduction}
 
-Nancy is a simple web site builder that glues together HTML and other fragments to make pages, and allows fragments to be specialised for particular pages. Fragments can be held in files or generated programmatically.
+Nancy is a simple web site builder that glues together HTML and other fragments to make pages, and allows fragments to be specialised for particular pages. Fragments can be files or generated programmatically.
 
 Nancy is a command-line tool.
 
@@ -28,10 +28,10 @@ Nancy is a command-line tool.
 Nancy takes three (or optionally four) arguments:
 
 \begin{verbatim}
-nancy.pl SOURCES DESTINATION TEMPLATE [BRANCH]
+nancy.pl SOURCE DESTINATION TEMPLATE [BRANCH]
 \end{verbatim}
 
-\noindent where \verb|SOURCES| is a colon-separated list of directories that contain the source, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of the \verb|SOURCE| trees to process (if it is omitted, the complete source trees are processed).
+\noindent where \verb|SOURCE| is the source directory tree, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of the \verb|SOURCE| tree to process (if it is omitted, the complete source tree are processed).
 
 If you supply the optional flag \verb|-list-files|, or \verb|-l|, the files read by Nancy will be listed on standard error.
 
@@ -41,8 +41,7 @@ If you supply the optional flag \verb|-list-files|, or \verb|-l|, the files read
 Nancy produces the finished pages according to the following algorithm:
 
 \begin{enumerate}
-\item Scan the source trees from right to left, adding the directories that appear in each tree to a list. If a given directory is empty, remove it and its contents from the list.
-\item For each leaf directory of the list of source directories, start from that directory.
+\item For each leaf directory of the source tree, start from that directory.
 \item Set the initial text to \verb|$include{TEMPLATE}|.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
 \item If the resultant text is non-empty, write it to a file: for each   directory \verb|SOURCE/LEAF_PATH| the output file is   \verb|DESTINATION/LEAF_PATH.html|.
@@ -61,8 +60,6 @@ Nancy recognises these commands:
 \begin{description}
 \SaveVerb{include}|$include{FILE}|
 \item[\UseVerb{include}]Replace the command with the contents of the given file.
-\SaveVerb{include}|$find{FILE}|
-\item[\UseVerb{include}]Replace the command with the name of the given file.
 \SaveVerb{page}|$page{}|
 \item[\UseVerb{page}]Replace the command with the URL of the page
 under construction, relative to the root of the site.
@@ -77,15 +74,12 @@ Only one guarantee is made about the order in which commands are processed: if o
 
 To find the file \verb|FILE_PATH| specified by an \verb|$include| command, Nancy proceeds thus:
 
-\begin{itemize}
-\item Consider the source trees in left-to-right order:
 \begin{enumerate}
-\item Look in \verb|TREE/BRANCH/LEAF_PATH/FILE_PATH|.
+\item Look in \verb|SOURCE/BRANCH/LEAF_PATH/FILE_PATH|.
 \item If the file is not found, remove the final directory from
 \verb|LEAF_PATH| and try again, until \verb|LEAF_PATH| is empty.
-\item Finally, try looking in \verb|TREE/BRANCH/FILE_PATH|.
+\item Finally, try looking in \verb|SOURCE/BRANCH/FILE_PATH|.
 \end{enumerate}
-\end{itemize}
 
 For example, if \verb|SOURCES| is \verb|/dir|, \verb|BRANCH| is omitted and \verb|FILE_PATH| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
 
@@ -100,8 +94,6 @@ For example, if \verb|SOURCES| is \verb|/dir|, \verb|BRANCH| is omitted and \ver
 % FIXME: add use of $root{}: a link from a Person to a Place
 % FIXME: add use of $page{} and $run{} (together? I don't currently
 % have another use for $page{})
-% FIXME: illustrate the use of multiple source trees (based on the
-% tests)
 % FIXME: the examples are unclear; really ought to be actual web pages % with some sort of structure diagrams automatically generated
 
 Suppose a web site has the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
