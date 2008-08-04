@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 my $version = <<'END';
-weavefile $Revision: 824 $ ($Date: 2008-08-04 18:25:55 +0100 (Mon, 04 Aug 2008) $)
+weavefile $Revision$ ($Date$)
 (c) 2002-2008 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)
 Distributed under the GNU General Public License version 3, or (at
 your option) any later version. There is no warranty.
