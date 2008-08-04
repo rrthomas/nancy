@@ -1,4 +1,4 @@
-#! /usr/bin/perl -w
+#! /usr/bin/perl
 my $version = <<'END';
 nancy $Revision$ ($Date$)
 (c) 2002-2008 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)
