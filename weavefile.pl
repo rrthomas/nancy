@@ -10,11 +10,7 @@ use strict;
 use warnings;
 
 use File::Basename;
-# FIXME: To make $page{} work we assume that the OS can handle
-# UNIX-style paths; we should use File::Spec and convert paths into
-# URLs. Do this by splitting using the platform's splitdir, then
-# rejoining using join "/".
-use File::Spec::Unix;
+use File::Spec::Functions qw(catfile splitdir);
 use Getopt::Long;
 
 
@@ -78,7 +74,7 @@ sub findFile {
   my ($tree, $path, $file) = @_;
   my $search_path = $path;
   while (1) {
-    my $name = File::Spec::Unix->catfile($tree, $search_path, $file);
+    my $name = catfile($tree, $search_path, $file);
     if (-e $name) {
       print STDERR "  $name\n" if $list_files_flag;
       return $name;
@@ -114,11 +110,12 @@ sub expand {
   my ($text, $tree, $page) = @_;
   my %macros = (
     page => sub {
-      return $page;
+      my @url = splitdir($page);
+      return join "/", @url;
     },
     root => sub {
-      my $reps = scalar(File::Spec::Unix->splitdir($page)) - 2;
-      return File::Spec::Unix->catfile(("..") x $reps) if $reps > 0;
+      my $reps = scalar(splitdir($page)) - 2;
+      return join "/", (("..") x $reps) if $reps > 0;
       return ".";
     },
     include => sub {
