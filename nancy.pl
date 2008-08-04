@@ -10,7 +10,7 @@ use strict;
 use warnings;
 
 use File::Basename;
-use File::Spec::Unix;
+use File::Spec::Unix; # See FIXME below
 use File::Spec;
 use File::Find;
 use Getopt::Long;
