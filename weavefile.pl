@@ -114,7 +114,7 @@ sub expand {
       return join "/", @url;
     },
     root => sub {
-      my $reps = scalar(splitdir($page)) - 2;
+      my $reps = scalar(splitdir($page)) - 1;
       return join "/", (("..") x $reps) if $reps > 0;
       return ".";
     },

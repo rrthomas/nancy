@@ -9,6 +9,7 @@ END
 use strict;
 use warnings;
 
+use Config;
 use File::Basename;
 use File::Spec::Functions;
 use File::Find;
@@ -91,7 +92,8 @@ foreach my $dir (sort keys %sources) {
     if ($sources{$dir} == 1) {
       # Process one page
       my $list = $list_files_flag ? "--list-files" : "";
-      open(IN, "-|", "weavefile.pl $list $sourceRoot $dir $template");
+      my $page = substr($dir, length($Config{path_sep}));
+      open(IN, "-|", "weavefile.pl $list $sourceRoot $page $template");
       my $out = do { local $/, <IN> };
       close IN;
       open OUT, ">$dest$suffix" or Warn("Could not write to `$dest'");
