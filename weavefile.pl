@@ -142,4 +142,3 @@ sub expand {
 # Process one page
 print STDERR "$directory:\n" if $list_files_flag;
 print STDOUT expand("\$include{$template}", $source, $directory);
-print STDERR "\n" if $list_files_flag;
