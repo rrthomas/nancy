@@ -121,7 +121,12 @@ sub expand {
     include => sub {
       my ($fragment) = @_;
       my $name = findFile($tree, $page, $fragment);
-      return readFile($name) if $name;
+      my $text = "";
+      if ($name) {
+        $text .= "***INCLUDE: $name***" if $list_files_flag;
+        $text .= readFile($name);
+        return $text;
+      }
       return "";
     },
     run => sub {
