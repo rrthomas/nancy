@@ -28,7 +28,7 @@ dieWithUsage() if !$opts || $#ARGV != 2;
 sub dieWithUsage {
   die <<END;
 Usage: $prog SOURCE DIRECTORY TEMPLATE
-The lazy web site maker
+The file weaver
 
   --list-files, -l  list files read (on stderr)
   --version, -v     show program version
