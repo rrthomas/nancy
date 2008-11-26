@@ -9,13 +9,10 @@ END
 use strict;
 use warnings;
 
-use Config;
 use File::Basename;
 use File::Spec::Functions;
 use File::Find;
 use Getopt::Long;
-
-my $suffix = ".html"; # suffix to make source directory into destination file
 
 # Get arguments
 my ($version_flag, $help_flag, $list_files_flag);
@@ -33,7 +30,7 @@ sub dieWithUsage {
 Usage: $prog SOURCE DESTINATION TEMPLATE [BRANCH]
 The lazy web site maker
 
-  --list-files, -l  list files read (on stderr)
+  --list-files, -l  list files read (on standard error)
   --version, -v     show program version
   --help, -h, -?    show this help
 
@@ -60,55 +57,51 @@ Die("No source tree given") unless $ARGV[0];
 my $sourceRoot = $ARGV[0];
 Die("`$sourceRoot' not found or is not a directory") unless -d $sourceRoot;
 my $destRoot = $ARGV[1];
+$destRoot =~ s|/+$||;
 Die("`$destRoot' is not a directory") if -e $destRoot && !-d $destRoot;
 my $template = $ARGV[2];
 $sourceRoot = catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
+$sourceRoot =~ s|/+$||;
 
-# Get source directories
-my %sources = ();
-my $non_leaves = 0;
-File::Find::find(
-  sub {
-    return if !-d;
-    my $obj = $File::Find::name;
-    $obj = substr($obj, length($sourceRoot));
-    $sources{$obj} = 1 if $obj ne "" && !defined($sources{$obj});
-    if (dirname($obj) ne ".") {
-      $sources{dirname($obj)} = 2;
-      $non_leaves++;
-    }
-  },
-  $sourceRoot);
-Die("No pages found in source tree") unless $non_leaves > 0;
+# Turn a directory into a list of subdirectories, with leaf and
+# non-leaf directories marked as such
+# FIXME: Put this function in a module
+sub dirToTreeList {
+  my ($root) = @_;
+  my %list = ();
+  File::Find::find(
+    sub {
+      return if !-d;
+      my $obj = $File::Find::name;
+      my $pattern = "$root(?:" . catfile("", "") . ")?";
+      $obj =~ s/$pattern//;
+      $list{$obj} = "leaf" if !defined($list{$obj});
+      my $parent = dirname($obj);
+      $parent = "" if $parent eq ".";
+      $list{$parent} = "node";
+    },
+    $sourceRoot);
+  return \%list;
+}
 
 # Process source directories; work in sorted order so we process
 # create directories in the destination tree before writing their
 # contents
+my %sources = %{dirToTreeList($sourceRoot)};
 foreach my $dir (sort keys %sources) {
   my $dest = catfile($destRoot, $dir);
-  # Only leaf directories correspond to pages
-  if (defined($sources{$dir}) && $sources{$dir} > 0 &&
-        ((defined($sources{dirname($dir)} && $sources{dirname($dir)} > 0) || $dir eq ""))) {
-    if ($sources{$dir} == 1) {
-      # Process one page
-      my $list = $list_files_flag ? "--list-files" : "";
-      my $page = substr($dir, length($Config{path_sep}));
-      open(IN, "-|", "weavefile.pl $list $sourceRoot $page $template");
-      my $out = do { local $/, <IN> };
-      close IN;
-      open OUT, ">$dest$suffix" or Warn("Could not write to `$dest'");
-      print OUT $out;
-      close OUT;
-      print STDERR "\n" if $list_files_flag;
-    } else { # non-leaf directory
-      # Make directory
-      mkdir $dest;
-      # Warn if directory is called index, as this is confusing
-      Warn("`$dir' looks like an index page, but has sub-directories")
-        if basename($dir) eq "index";
-      # Check we have an index subdirectory
-      Warn("`$dir' has no `index' subdirectory")
-        unless $sources{catfile($dir, "index")};
-    }
+  if ($sources{$dir} eq "leaf") { # Process a leaf directory into a page
+    my @args = ($sourceRoot, $dir, $template);
+    unshift @args, "--list-files" if $list_files_flag;
+    open(IN, "-|", "weavefile.pl", @args);
+    # FIXME: Use slurp once this can be done portably
+    my $out = do { local $/, <IN> };
+    close IN;
+    open OUT, ">$dest" or Warn("Could not write to `$dest'");
+    print OUT $out;
+    close OUT;
+    print STDERR "\n" if $list_files_flag;
+  } else { # Make a non-leaf directory
+    mkdir $dest;
   }
 }

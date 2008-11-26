@@ -13,7 +13,7 @@
 \begin{document}
 
 \title{Nancy, the lazy web site builder\\User's guide}
-\date{8th August 2008}
+\date{15th November 2008}
 \author{Reuben Thomas}
 \maketitle
 
@@ -31,9 +31,9 @@ Nancy takes three (or optionally four) arguments:
 nancy.pl SOURCE DESTINATION TEMPLATE [BRANCH]
 \end{verbatim}
 
-\noindent where \verb|SOURCE| is the source directory tree, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of the \verb|SOURCE| tree to process (if it is omitted, the complete source tree are processed).
+\noindent where \verb|SOURCE| is the source directory tree, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of the \verb|SOURCE| tree to process (if it is omitted, the complete source tree is processed).
 
-If you supply the optional flag \verb|-list-files|, or \verb|-l|, the files read by Nancy will be listed on standard error, and a message will be inserted into the output directly before the contents of the include giving the file name.
+If you supply the optional flag \verb|--list-files| (or \verb|-l|) before the arguments, the files read by Nancy will be listed on standard error, and a message will be inserted into the output directly before the contents of the include giving the file name.
 
 \section{Operation}
 \label{operation}
@@ -41,13 +41,13 @@ If you supply the optional flag \verb|-list-files|, or \verb|-l|, the files read
 Nancy produces the finished pages according to the following algorithm:
 
 \begin{enumerate}
-\item For each leaf directory of the source tree, start from that directory.
+\item For each leaf directory (that is, a directory that contains only files) in the source tree, start from that directory.
 \item Set the initial text to \verb|$include{TEMPLATE}|.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
-\item Write the resultant text to a file: for each directory \verb|SOURCE/LEAF_PATH| the output file is \verb|DESTINATION/LEAF_PATH.html|.
+\item Write the resultant text to a file: for each directory \verb|SOURCE/LEAF_PATH| the output file is \verb|DESTINATION/LEAF_PATH|.
 \end{enumerate}
 
-The reason that only leaf directories correspond to pages is to ensure that every page can be specialised without affecting any other page. By convention, every non-leaf directory has an \verb|index| sub-directory, so that there are no ``missing'' URLs in the resulting site. Nancy warns if an \verb|index| directory is absent.
+The reason that only leaf directories correspond to pages is to ensure that every page can be specialised without affecting any other page. It is advisable to ensure that every non-leaf directory has an \verb|index.html| sub-directory (or some other valid index page name), so that there are no ``missing'' URLs in the resulting site.
 
 A command takes the form
 
@@ -133,7 +133,7 @@ The basic page template looks something like this:
 </html>
 \end{verbatim}
 
-Making the menu an included file is not strictly necessary, but, as in programming, makes the HTML fragments easier to read. The pages will be laid out as follows:
+Making the menu an included file is not strictly necessary, but, as in all programming, makes the HTML fragments easier to read. The pages will be laid out as follows:
 
 \begin{itemize}
 \item \verb|/|
@@ -163,7 +163,7 @@ The corresponding source files will be laid out as follows. This may look a litt
   \item \verb|menu.html|
   \item \verb|logo.html|
   \item \verb|breadcrumb.html|
-  \item \verb|index/|
+  \item \verb|index.html/|
     \begin{itemize}
     \item \verb|main.html|
     \item \verb|logo.html|
@@ -171,15 +171,15 @@ The corresponding source files will be laid out as follows. This may look a litt
   \item \verb|people/|
     \begin{itemize}
     \item \verb|breadcrumb.html|
-    \item \verb|index/|
+    \item \verb|index.html/|
       \begin{itemize}
       \item \verb|main.html|
       \end{itemize}
-    \item \verb|jo_bloggs/|
+    \item \verb|jo_bloggs.html/|
       \begin{itemize}
       \item \verb|main.html|
       \end{itemize}
-    \item \verb|hilary_pilary/|
+    \item \verb|hilary_pilary.html/|
       \begin{itemize}
       \item \verb|main.html|
       \end{itemize}
@@ -187,15 +187,15 @@ The corresponding source files will be laid out as follows. This may look a litt
   \item \verb|places/|
     \begin{itemize}
     \item \verb|breadcrumb.html|
-    \item \verb|index/|
+    \item \verb|index.html/|
       \begin{itemize}
       \item \verb|main.html|
       \end{itemize}
-    \item \verb|vladivostok/|
+    \item \verb|vladivostok.html/|
       \begin{itemize}
       \item \verb|main.html|
       \end{itemize}
-    \item \verb|timbuktu/|
+    \item \verb|timbuktu.html/|
       \begin{itemize}
       \item \verb|main.html|
       \end{itemize}
@@ -203,27 +203,25 @@ The corresponding source files will be laid out as follows. This may look a litt
   \end{itemize}
 \end{itemize}
 
-We could have used a different file suffix for page fragments, but using \verb|.html| is not too confusing, and means that editors and other tools that might depend on the file suffix to treat the file properly don't need special attention.
-
 Note that there is only one menu fragment (the main menu is the same for every page), while each section has its own breadcrumb trail (\verb|breadcrumb.html|), and each page has its own content (\verb|main.html|).
 
 To build the site, Nancy is invoked as:
 
 \begin{verbatim}
-nancy source template.html dest
+nancy.pl source template.html dest
 \end{verbatim}
 
-Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, Nancy will look first for files in \verb|source/places/vladivostok|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
+Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, Nancy will look first for files in \verb|source/places/vladivostok.html|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
 
 \begin{itemize}
 \item \verb|source/template.html|
 \item \verb|source/logo.html|
 \item \verb|source/menu.html|
 \item \verb|source/places/breadcrumb.html|
-\item \verb|source/places/vladivostok/main.html|
+\item \verb|source/places/vladivostok.html/main.html|
 \end{itemize}
 
-For the site's index page, the file \verb|index/logo.html| will be used for the logo fragment, which can refer to the larger graphic desired.
+For the site's index page, the file \verb|index.html/logo.html| will be used for the logo fragment, which can refer to the larger graphic desired.
 
 This scheme, though simple, is surprisingly flexible; this simple example has covered all the standard techniques for Nancy's use.
 
