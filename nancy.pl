@@ -95,7 +95,7 @@ foreach my $dir (sort keys %sources) {
     unshift @args, "--list-files" if $list_files_flag;
     open(IN, "-|", "weavefile.pl", @args);
     # FIXME: Use slurp once this can be done portably
-    my $out = do { local $/, <IN> };
+    my $out = do {local $/, <IN>};
     close IN;
     open OUT, ">$dest" or Warn("Could not write to `$dest'");
     print OUT $out;
