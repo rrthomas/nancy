@@ -1,9 +1,8 @@
-#! /usr/bin/perl -Tw
+#! /usr/bin/perl -T
 # Web wrapper for Nancy
 # (c) 2002-2008 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
 # Distributed under the GNU General Public License
 
-# FIXME: Remove cgi-bin from PATH
 $ENV{PATH} = '/usr/local/bin:/bin:/usr/bin';
 
 use strict;
