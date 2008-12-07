@@ -17,6 +17,7 @@ use vars qw($BaseUrl);
 
 # Root of site relative to root of server
 $BaseUrl = "/";
+# Root of source files
 $DocumentRoot = "/var/www";
 
 # Untaint the given value
