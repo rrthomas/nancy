@@ -34,7 +34,6 @@ my $base = url(-base => 1);
 $base = untaint($base);
 $page =~ s|^$base$BaseUrl||;
 $page =~ s|^/||;
-$page =~ s|\.html$||;
 
 # Perform the request
 my $headers = {};
