@@ -11,7 +11,6 @@ use warnings;
 use CGI qw(:standard);
 use CGI::Carp 'fatalsToBrowser';
 use CGI::Util qw(unescape);
-use Encode;
 
 use vars qw($BaseUrl);
 
