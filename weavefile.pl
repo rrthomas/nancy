@@ -75,7 +75,7 @@ sub findFile {
   my $search_path = $path;
   while (1) {
     my $name = catfile($tree, $search_path, $file);
-    if (-e $name) {
+    if (-f $name) {
       print STDERR "  $name\n" if $list_files_flag;
       return $name;
     }
