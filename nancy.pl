@@ -10,7 +10,7 @@ use strict;
 use warnings;
 
 use File::Basename;
-use File::Spec::Functions;
+use File::Spec::Functions qw(catfile splitdir);
 use File::Find;
 use Getopt::Long;
 
@@ -84,6 +84,93 @@ sub dirToTreeList {
   return \%list;
 }
 
+# Read the given file and return its contents
+# An undefined value is returned if the file can't be opened or read
+sub readFile {
+  my ($file) = @_;
+  local *FILE;
+  open FILE, "<", $file or return;
+  my $text = do {local $/, <FILE>};
+  close FILE;
+  return $text;
+}
+
+# Search tree for a file starting at the given path; if found return
+# its name, if not, print a warning and return undef.
+sub findFile {
+  my ($tree, $path, $file) = @_;
+  my $search_path = $path;
+  while (1) {
+    my $name = catfile($tree, $search_path, $file);
+    if (-f $name) {
+      print STDERR "  $name\n" if $list_files_flag;
+      return $name;
+    }
+    last if $search_path eq "." || $search_path eq "/"; # Keep going until we go above $path
+    $search_path = dirname($search_path);
+  }
+  Warn "Cannot find `$file' while building `$path'";
+  return undef;
+}
+
+# Process a command; if the command is undefined, replace it, uppercased
+sub doMacro {
+  my ($macro, $arg, %macros) = @_;
+  if (defined($macros{$macro})) {
+    my @arg = split /(?<!\\),/, ($arg || "");
+    return $macros{$macro}(@arg);
+  } else {
+    $macro =~ s/^(.)/\u$1/;
+    return "\$$macro\{$arg}";
+  }
+}
+
+# Process commands in some text
+sub doMacros {
+  my ($text, %macros) = @_;
+  1 while $text =~ s/\$([[:lower:]]+){(((?:(?!(?<!\\)[{}])).)*?)(?<!\\)}/doMacro($1, $2, %macros)/ge;
+  return $text;
+}
+
+# Expand commands in some text
+sub expand {
+  my ($text, $tree, $page) = @_;
+  my %macros = (
+    page => sub {
+      my @url = splitdir($page);
+      return join "/", @url;
+    },
+    root => sub {
+      my $reps = scalar(splitdir($page)) - 1;
+      return join "/", (("..") x $reps) if $reps > 0;
+      return ".";
+    },
+    include => sub {
+      my ($fragment) = @_;
+      my $name = findFile($tree, $page, $fragment);
+      my $text = "";
+      if ($name) {
+        $text .= "***INCLUDE: $name***" if $list_files_flag;
+        $text .= readFile($name);
+        return $text;
+      }
+      return "";
+    },
+    run => sub {
+      my $cmd = '"' . (join '" "', @_) . '"';
+      local *PIPE;
+      open(PIPE, "-|", $cmd);
+      my $text = do {local $/, <PIPE>};
+      close PIPE;
+      return $text;
+    },
+  );
+  $text = doMacros($text, %macros);
+  # Convert $Macro back to $macro
+  $text =~ s/(?!<\\)(?<=\$)([[:upper:]])(?=[[:lower:]]*{)/lc($1)/ge;
+  return $text;
+}
+
 # Process source directories; work in sorted order so we process
 # create directories in the destination tree before writing their
 # contents
@@ -91,12 +178,8 @@ my %sources = %{dirToTreeList($sourceRoot)};
 foreach my $dir (sort keys %sources) {
   my $dest = catfile($destRoot, $dir);
   if ($sources{$dir} eq "leaf") { # Process a leaf directory into a page
-    my @args = ($sourceRoot, $dir, $template);
-    unshift @args, "--list-files" if $list_files_flag;
-    open(IN, "-|", "weavefile.pl", @args);
-    # FIXME: Use slurp once this can be done portably
-    my $out = do {local $/, <IN>};
-    close IN;
+    print STDERR "$dir:\n" if $list_files_flag;
+    my $out = expand("\$include{$template}", $sourceRoot, $dir);
     open OUT, ">$dest" or Warn("Could not write to `$dest'");
     print OUT $out;
     close OUT;
