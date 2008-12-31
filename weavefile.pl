@@ -130,12 +130,11 @@ sub expand {
       return "";
     },
     run => sub {
-      my $cmd = '"' . (join '" "', @_) . '"';
-      local *PIPE;
-      open(PIPE, "-|", $cmd);
-      my $text = do {local $/, <PIPE>};
-      close PIPE;
-      return $text;
+      my ($prog) = @_;
+      shift;
+      my $name = findFile($tree, $page, $prog);
+      my $sub = eval(readFile($name));
+      return &{$sub}(@_);
     },
   );
   $text = doMacros($text, %macros);
