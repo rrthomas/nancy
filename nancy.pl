@@ -158,9 +158,10 @@ sub expand {
     },
     run => sub {
       my ($prog) = @_;
+      shift;
       my $name = findFile($tree, $page, $prog);
-      my $sub = eval expand(readFile($name), $tree, $page);
-      return &{$sub}();
+      my $sub = eval(readFile($name));
+      return &{$sub}(@_);
     },
   );
   $text = doMacros($text, %macros);
