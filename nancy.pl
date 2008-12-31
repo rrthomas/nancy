@@ -15,10 +15,11 @@ use File::Find;
 use Getopt::Long;
 
 # Get arguments
-my ($version_flag, $help_flag, $list_files_flag);
+my ($version_flag, $help_flag, $list_files_flag, $warn_flag);
 my $prog = basename($0);
 my $opts = GetOptions(
   "list-files" => \$list_files_flag,
+  "warn" => \$warn_flag,
   "version" => \$version_flag,
   "help" => \$help_flag,
  );
@@ -31,6 +32,7 @@ Usage: $prog SOURCE DESTINATION TEMPLATE [BRANCH]
 The lazy web site maker
 
   --list-files, -l  list files read (on standard error)
+  --warn, -w        warn about possible problems
   --version, -v     show program version
   --help, -h, -?    show this help
 
@@ -63,27 +65,6 @@ my $template = $ARGV[2];
 $sourceRoot = catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
 $sourceRoot =~ s|/+$||;
 
-# Turn a directory into a list of subdirectories, with leaf and
-# non-leaf directories marked as such
-# FIXME: Put this function in a module
-sub dirToTreeList {
-  my ($root) = @_;
-  my %list = ();
-  File::Find::find(
-    sub {
-      return if !-d;
-      my $obj = $File::Find::name;
-      my $pattern = "$root(?:" . catfile("", "") . ")?";
-      $obj =~ s/$pattern//;
-      $list{$obj} = "leaf" if !defined($list{$obj});
-      my $parent = dirname($obj);
-      $parent = "" if $parent eq ".";
-      $list{$parent} = "node";
-    },
-    $sourceRoot);
-  return \%list;
-}
-
 # Read the given file and return its contents
 # An undefined value is returned if the file can't be opened or read
 sub readFile {
@@ -95,21 +76,64 @@ sub readFile {
   return $text;
 }
 
-# Search tree for a file starting at the given path; if found return
+# Turn a directory into a list of subdirectories, with leaf and
+# non-leaf directories marked as such, and read all the files.
+# Report duplicate fragments one of which masks the other.
+sub scanDir {
+  my ($root) = @_;
+  my %list = ();
+  my %fragments = ();
+  File::Find::find(
+    sub {
+      my $obj = $File::Find::name;
+      my $pattern = "$root(?:" . catfile("", "") . ")?";
+      my $name = $obj;
+      $name =~ s/$pattern//;
+      if (-f) {
+        my $text = readFile($obj);
+        $fragments{$name} = $text;
+
+        if ($warn_flag) {
+          # Warn about fragments that mask identical fragments
+          my $search_path = dirname(dirname($name));
+          my $fragment = basename($name);
+          while ($search_path ne "." && $search_path ne "/") {
+            my $parent_name = catfile($search_path, $fragment);
+            $parent_name =~ s|^\./||;
+            if (defined($fragments{$parent_name})) {
+              Warn "$name is identical to $parent_name" if $fragments{$parent_name} eq $text;
+              last; # Stop as soon as we find a fragment of the same name
+            }
+            $search_path = dirname($search_path);
+          }
+        }
+      }
+      return if !-d;
+      $list{$name} = "leaf" if !defined($list{$name});
+      my $parent = dirname($name);
+      $parent = "" if $parent eq ".";
+      $list{$parent} = "node";
+    },
+    $sourceRoot);
+  return \%list, \%fragments;
+}
+
+# Search for fragment starting at the given path; if found return
 # its name, if not, print a warning and return undef.
-sub findFile {
-  my ($tree, $path, $file) = @_;
+sub findFragment {
+  my ($path, $fragment, $fragments) = @_;
   my $search_path = $path;
   while (1) {
-    my $name = catfile($tree, $search_path, $file);
-    if (-f $name) {
+    my $name = catfile($search_path, $fragment);
+    $name =~ s|^\./||;
+    if (defined($fragments->{$name})) {
       print STDERR "  $name\n" if $list_files_flag;
       return $name;
     }
     last if $search_path eq "." || $search_path eq "/"; # Keep going until we go above $path
     $search_path = dirname($search_path);
   }
-  Warn "Cannot find `$file' while building `$path'";
+  Warn "Cannot find `$fragment' while building `$path'";
   return undef;
 }
 
@@ -132,9 +156,12 @@ sub doMacros {
   return $text;
 }
 
+# Fragment to page map
+my %fragment_to_page = ();
+
 # Expand commands in some text
 sub expand {
-  my ($text, $tree, $page) = @_;
+  my ($text, $tree, $page, $fragments) = @_;
   my %macros = (
     page => sub {
       my @url = splitdir($page);
@@ -147,21 +174,25 @@ sub expand {
     },
     include => sub {
       my ($fragment) = @_;
-      my $name = findFile($tree, $page, $fragment);
+      my $name = findFragment($page, $fragment, $fragments);
       my $text = "";
       if ($name) {
+        push @{$fragment_to_page{$name}}, $page;
         $text .= "***INCLUDE: $name***" if $list_files_flag;
-        $text .= readFile($name);
-        return $text;
+        $text .= $fragments->{$name};
       }
-      return "";
+      return $text;
     },
     run => sub {
       my ($prog) = @_;
       shift;
-      my $name = findFile($tree, $page, $prog);
-      my $sub = eval(readFile($name));
-      return &{$sub}(@_);
+      my $name = findFragment($page, $prog, $fragments);
+      if ($name) {
+        push @{$fragment_to_page{$prog}}, $page;
+        my $sub = eval(readFile($name));
+        return &{$sub}(@_);
+      }
+      return "";
     },
   );
   $text = doMacros($text, %macros);
@@ -173,17 +204,50 @@ sub expand {
 # Process source directories; work in sorted order so we process
 # create directories in the destination tree before writing their
 # contents
-my %sources = %{dirToTreeList($sourceRoot)};
-foreach my $dir (sort keys %sources) {
+my ($sources, $fragments) = scanDir($sourceRoot);
+foreach my $dir (sort keys %{$sources}) {
   my $dest = catfile($destRoot, $dir);
-  if ($sources{$dir} eq "leaf") { # Process a leaf directory into a page
+  if ($sources->{$dir} eq "leaf") { # Process a leaf directory into a page
     print STDERR "$dir:\n" if $list_files_flag;
-    my $out = expand("\$include{$template}", $sourceRoot, $dir);
+    my $out = expand("\$include{$template}", $sourceRoot, $dir, $fragments);
     open OUT, ">$dest" or Warn("Could not write to `$dest'");
     print OUT $out;
     close OUT;
     print STDERR "\n" if $list_files_flag;
   } else { # Make a non-leaf directory
     mkdir $dest;
+  }
+}
+
+if ($warn_flag) {
+  # Return the path made up of the first n components of p
+  sub subPath {
+    my ($p, $n) = @_;
+    my @path = splitdir($p);
+    return catfile(@path[0 .. $n - 1]);
+  }
+
+  # Check for "overpromoted" fragments, that is, fragments that are only
+  # used further towards the leaves than they are.
+  foreach my $fragment (keys %fragment_to_page) {
+    my @page_list = @{$fragment_to_page{$fragment}};
+    my $prefix_len = scalar(splitdir($page_list[0]));
+    for (my $i = 1; $i <= $#page_list; $i++) {
+      for (;
+           $prefix_len > 0 &&
+             subPath($page_list[$i], $prefix_len) ne
+               subPath($page_list[1], $prefix_len);
+           $prefix_len--)
+        {}
+    }
+    # If common prefix of pages is longer than the directory of the
+    # fragment, then fragment should be demoted towards leaves
+    Warn "$fragment could be moved into " . subPath($page_list[0], $prefix_len)
+      if $prefix_len > scalar(splitdir(dirname($fragment)));
+  }
+
+  # Check for unused fragments
+  foreach my $fragment (keys %{$fragments}) {
+    Warn "$fragment is unused" if !defined($fragment_to_page{$fragment});
   }
 }

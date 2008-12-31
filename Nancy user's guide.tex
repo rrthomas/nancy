@@ -28,12 +28,25 @@ Nancy is a command-line tool.
 Nancy takes three (or optionally four) arguments:
 
 \begin{verbatim}
-nancy.pl SOURCE DESTINATION TEMPLATE [BRANCH]
+nancy.pl [OPTIONS] SOURCE DESTINATION TEMPLATE [BRANCH]
 \end{verbatim}
 
 \noindent where \verb|SOURCE| is the source directory tree, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of the \verb|SOURCE| tree to process (if it is omitted, the complete source tree is processed).
 
-If you supply the optional flag \verb|--list-files| (or \verb|-l|) before the arguments, the files read by Nancy will be listed on standard error, and a message will be inserted into the output directly before the contents of the include giving the file name.
+The following command-line options may be given to Nancy:
+
+\begin{description}
+\SaveVerb{listfiles}|--list-files|
+\item[\UseVerb{listfiles}]List on standard error the fragments used to make each page, and insert a message into the output directly before the contents of the include giving the file name of the fragment.
+\SaveVerb{warn}|--warn|
+\item[\UseVerb{warn}]Print various warnings about possible problems with the fragments, including listing unused and duplicate fragments.
+\SaveVerb{version}|--version|
+\item[\UseVerb{version}]Print the version number of Nancy.
+\SaveVerb{help}|--help|
+\item[\UseVerb{help}]Print usage information for Nancy.
+\end{description}
+
+The options may be abbreviated to any unambiguous prefix.
 
 \section{Operation}
 \label{operation}
