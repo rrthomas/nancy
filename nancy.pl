@@ -236,7 +236,7 @@ if ($warn_flag) {
       for (;
            $prefix_len > 0 &&
              subPath($page_list[$i], $prefix_len) ne
-               subPath($page_list[1], $prefix_len);
+               subPath($page_list[0], $prefix_len);
            $prefix_len--)
         {}
     }
