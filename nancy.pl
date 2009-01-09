@@ -114,7 +114,7 @@ sub scanDir {
       $parent = "" if $parent eq ".";
       $list{$parent} = "node";
     },
-    $sourceRoot);
+    $root);
   return \%list, \%fragments;
 }
 
