@@ -1,6 +1,6 @@
 #! /usr/bin/perl -T
 # Web wrapper for Nancy
-# (c) 2002-2008 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
+# (c) 2002-2009 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
 # Distributed under the GNU General Public License
 
 use strict;
@@ -16,7 +16,10 @@ my $BaseUrl = "/";
 my $DocumentRoot = "/var/www";
 
 # Extract file name from URL
-my $page = (unescape(url(-absolute => 1)) =~ s|^$BaseUrl/?||);
+my $page = unescape(url(-absolute => 1));
+$page =~ s|^$BaseUrl/?||;
+$page =~ s|\.html$||;
+$page = "index" if $page eq "";
 
 # Perform the request
 open(IN, "-|", "weavefile.pl", $DocumentRoot, $page, "template.html");
