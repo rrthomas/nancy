@@ -118,22 +118,21 @@ sub scanDir {
   return \%list, \%fragments;
 }
 
-# Search for fragment starting at the given path; if found return
+# Search tree for a file starting at the given path; if found return
 # its name, if not, print a warning and return undef.
-sub findFragment {
-  my ($path, $fragment, $fragments) = @_;
+sub findFile {
+  my ($tree, $path, $file) = @_;
   my $search_path = $path;
   while (1) {
-    my $name = catfile($search_path, $fragment);
-    $name =~ s|^\./||;
-    if (defined($fragments->{$name})) {
+    my $name = catfile($tree, $search_path, $file);
+    if (-f $name) {
       print STDERR "  $name\n" if $list_files_flag;
       return $name;
     }
     last if $search_path eq "." || $search_path eq "/"; # Keep going until we go above $path
     $search_path = dirname($search_path);
   }
-  Warn "Cannot find `$fragment' while building `$path'";
+  Warn "Cannot find `$file' while building `$path'";
   return undef;
 }
 
@@ -161,7 +160,7 @@ my %fragment_to_page = ();
 
 # Expand commands in some text
 sub expand {
-  my ($text, $tree, $page, $fragments) = @_;
+  my ($text, $tree, $page) = @_;
   my %macros = (
     page => sub {
       my @url = splitdir($page);
@@ -174,19 +173,19 @@ sub expand {
     },
     include => sub {
       my ($fragment) = @_;
-      my $name = findFragment($page, $fragment, $fragments);
+      my $name = findFile($tree, $page, $fragment);
       my $text = "";
       if ($name) {
         push @{$fragment_to_page{$name}}, $page;
         $text .= "***INCLUDE: $name***" if $list_files_flag;
-        $text .= $fragments->{$name};
+        $text .= readFile($name);
       }
       return $text;
     },
     run => sub {
       my ($prog) = @_;
       shift;
-      my $name = findFragment($page, $prog, $fragments);
+      my $name = findFile($tree, $page, $prog);
       if ($name) {
         push @{$fragment_to_page{$prog}}, $page;
         my $sub = eval(readFile($name));
@@ -209,7 +208,7 @@ foreach my $dir (sort keys %{$sources}) {
   my $dest = catfile($destRoot, $dir);
   if ($sources->{$dir} eq "leaf") { # Process a leaf directory into a page
     print STDERR "$dir:\n" if $list_files_flag;
-    my $out = expand("\$include{$template}", $sourceRoot, $dir, $fragments);
+    my $out = expand("\$include{$template}", $sourceRoot, $dir);
     open OUT, ">$dest" or Warn("Could not write to `$dest'");
     print OUT $out;
     close OUT;
