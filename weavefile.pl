@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#!/usr/bin/perl
 my $version = <<'END';
 weavefile $Revision$ ($Date$)
 (c) 2002-2008 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)
@@ -125,9 +125,8 @@ sub expand {
       if ($name) {
         $text .= "***INCLUDE: $name***" if $list_files_flag;
         $text .= readFile($name);
-        return $text;
       }
-      return "";
+      return $text;
     },
     run => sub {
       my ($prog) = @_;
