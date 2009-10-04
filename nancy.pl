@@ -14,6 +14,10 @@ use File::Spec::Functions qw(catfile splitdir);
 use File::Find;
 use Getopt::Long;
 
+use File::Slurp qw(slurp);
+
+use WWW::Nancy;
+
 # Get arguments
 my ($version_flag, $help_flag, $list_files_flag, $warn_flag);
 my $prog = basename($0);
@@ -65,17 +69,6 @@ my $template = $ARGV[2];
 $sourceRoot = catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
 $sourceRoot =~ s|/+$||;
 
-# Read the given file and return its contents
-# An undefined value is returned if the file can't be opened or read
-sub readFile {
-  my ($file) = @_;
-  local *FILE;
-  open FILE, "<", $file or return;
-  my $text = do {local $/, <FILE>};
-  close FILE;
-  return $text;
-}
-
 # Turn a directory into a list of subdirectories, with leaf and
 # non-leaf directories marked as such, and read all the files.
 # Report duplicate fragments one of which masks the other.
@@ -90,7 +83,7 @@ sub scanDir {
       my $name = $obj;
       $name =~ s/$pattern//;
       if (-f) {
-        my $text = readFile($obj);
+        my $text = slurp($obj);
         $fragments{$name} = $text;
 
         if ($warn_flag) {
@@ -118,85 +111,6 @@ sub scanDir {
   return \%list, \%fragments;
 }
 
-# Search tree for a file starting at the given path; if found return
-# its name, if not, print a warning and return undef.
-sub findFile {
-  my ($tree, $path, $file) = @_;
-  my $search_path = $path;
-  while (1) {
-    my $name = catfile($tree, $search_path, $file);
-    if (-f $name) {
-      print STDERR "  $name\n" if $list_files_flag;
-      return $name;
-    }
-    last if $search_path eq "." || $search_path eq "/"; # Keep going until we go above $path
-    $search_path = dirname($search_path);
-  }
-  Warn "Cannot find `$file' while building `$path'";
-  return undef;
-}
-
-# Process a command; if the command is undefined, replace it, uppercased
-sub doMacro {
-  my ($macro, $arg, %macros) = @_;
-  if (defined($macros{$macro})) {
-    my @arg = split /(?<!\\),/, ($arg || "");
-    return $macros{$macro}(@arg);
-  } else {
-    $macro =~ s/^(.)/\u$1/;
-    return "\$$macro\{$arg}";
-  }
-}
-
-# Process commands in some text
-sub doMacros {
-  my ($text, %macros) = @_;
-  1 while $text =~ s/\$([[:lower:]]+){(((?:(?!(?<!\\)[{}])).)*?)(?<!\\)}/doMacro($1, $2, %macros)/ge;
-  return $text;
-}
-
-# Expand commands in some text
-sub expand {
-  my ($text, $tree, $page, $fragment_to_page) = @_;
-  my %macros = (
-    page => sub {
-      my @url = splitdir($page);
-      return join "/", @url;
-    },
-    root => sub {
-      my $reps = scalar(splitdir($page)) - 1;
-      return join "/", (("..") x $reps) if $reps > 0;
-      return ".";
-    },
-    include => sub {
-      my ($fragment) = @_;
-      my $name = findFile($tree, $page, $fragment);
-      my $text = "";
-      if ($name) {
-        push @{$fragment_to_page->{$name}}, $page;
-        $text .= "***INCLUDE: $name***" if $list_files_flag;
-        $text .= readFile($name);
-      }
-      return $text;
-    },
-    run => sub {
-      my ($prog) = @_;
-      shift;
-      my $name = findFile($tree, $page, $prog);
-      if ($name) {
-        push @{$fragment_to_page->{$prog}}, $page;
-        my $sub = eval(readFile($name));
-        return &{$sub}(@_);
-      }
-      return "";
-    },
-  );
-  $text = doMacros($text, %macros);
-  # Convert $Macro back to $macro
-  $text =~ s/(?!<\\)(?<=\$)([[:upper:]])(?=[[:lower:]]*{)/lc($1)/ge;
-  return $text;
-}
-
 # Fragment to page map
 my %fragment_to_page = ();
 
@@ -208,7 +122,7 @@ foreach my $dir (sort keys %{$sources}) {
   my $dest = catfile($destRoot, $dir);
   if ($sources->{$dir} eq "leaf") { # Process a leaf directory into a page
     print STDERR "$dir:\n" if $list_files_flag;
-    my $out = expand("\$include{$template}", $sourceRoot, $dir, \%fragment_to_page);
+    my $out = WWW::Nancy::expand("\$include{$template}", $sourceRoot, $dir, $list_files_flag, \%fragment_to_page);
     open OUT, ">$dest" or Warn("Could not write to `$dest'");
     print OUT $out;
     close OUT;
