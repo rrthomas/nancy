@@ -155,12 +155,9 @@ sub doMacros {
   return $text;
 }
 
-# Fragment to page map
-my %fragment_to_page = ();
-
 # Expand commands in some text
 sub expand {
-  my ($text, $tree, $page) = @_;
+  my ($text, $tree, $page, $fragment_to_page) = @_;
   my %macros = (
     page => sub {
       my @url = splitdir($page);
@@ -176,7 +173,7 @@ sub expand {
       my $name = findFile($tree, $page, $fragment);
       my $text = "";
       if ($name) {
-        push @{$fragment_to_page{$name}}, $page;
+        push @{$fragment_to_page->{$name}}, $page;
         $text .= "***INCLUDE: $name***" if $list_files_flag;
         $text .= readFile($name);
       }
@@ -187,7 +184,7 @@ sub expand {
       shift;
       my $name = findFile($tree, $page, $prog);
       if ($name) {
-        push @{$fragment_to_page{$prog}}, $page;
+        push @{$fragment_to_page->{$prog}}, $page;
         my $sub = eval(readFile($name));
         return &{$sub}(@_);
       }
@@ -200,6 +197,9 @@ sub expand {
   return $text;
 }
 
+# Fragment to page map
+my %fragment_to_page = ();
+
 # Process source directories; work in sorted order so we process
 # create directories in the destination tree before writing their
 # contents
@@ -208,7 +208,7 @@ foreach my $dir (sort keys %{$sources}) {
   my $dest = catfile($destRoot, $dir);
   if ($sources->{$dir} eq "leaf") { # Process a leaf directory into a page
     print STDERR "$dir:\n" if $list_files_flag;
-    my $out = expand("\$include{$template}", $sourceRoot, $dir);
+    my $out = expand("\$include{$template}", $sourceRoot, $dir, \%fragment_to_page);
     open OUT, ">$dest" or Warn("Could not write to `$dest'");
     print OUT $out;
     close OUT;
