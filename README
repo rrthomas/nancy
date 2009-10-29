@@ -1,8 +1,8 @@
                                 Nancy
                                 -----
 
-              (c) 2002-2008 Reuben Thomas <rrt@sc3d.org>
-                                   
+              (c) 2002-2009 Reuben Thomas <rrt@sc3d.org>
+
 Nancy is a simple web site builder. It has just one construct:
 context-dependent file inclusion. With this single feature you can
 build pretty much any web site whose logical structure mirrors its URL
@@ -17,3 +17,17 @@ See "Nancy user's guide.pdf" for instructions.
 
 Any questions, comments, or bug reports should be sent to Reuben
 Thomas (see above for address).
+
+
+To install Nancy, copy nancy.pl to a directory where executables are
+found, and the WWW and File directories to a Perl library directory.
+
+To install WebNancy, copy webnancy.pl to a CGI script directory, and
+configure the web server to pass all URLs for the site to the script.
+Configuration for Apache (in an .htaccess file) looks something like
+this:
+
+# Direct URLs to Nancy
+RewriteEngine on
+RewriteRule ^$ /ROOT/cgi-bin/webnancy.pl
+RewriteRule ^(.*)\.html$ /ROOT/cgi-bin/webnancy.pl
