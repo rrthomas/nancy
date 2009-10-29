@@ -3,8 +3,7 @@
 # Distributed under the GNU General Public License version 3, or (at
 # your option) any later version. There is no warranty.
 
-# FIXME: Write some proper API documentation, but avoid duplication by
-# referring to Nancy manual.
+# FIXME: Write proper API documentation in POD
 
 package WWW::Nancy;
 
