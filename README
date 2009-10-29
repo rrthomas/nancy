@@ -24,8 +24,8 @@ found, and the WWW and File directories to a Perl library directory.
 
 To install WebNancy, copy webnancy.pl to a CGI script directory, and
 configure the web server to pass all URLs for the site to the script.
-Configuration for Apache (in an .htaccess file) looks something like
-this:
+Copy 404.html to the top of the site. Configuration for Apache (in an
+.htaccess file) looks something like this:
 
 # Direct URLs to Nancy
 RewriteEngine on
