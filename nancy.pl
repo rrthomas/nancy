@@ -100,12 +100,12 @@ sub scanDir {
             $search_path = dirname($search_path);
           }
         }
+      } elsif (-d) {
+        $list{$name} = "leaf" if !defined($list{$name});
+        my $parent = dirname($name);
+        $parent = "" if $parent eq ".";
+        $list{$parent} = "node";
       }
-      return if !-d;
-      $list{$name} = "leaf" if !defined($list{$name});
-      my $parent = dirname($name);
-      $parent = "" if $parent eq ".";
-      $list{$parent} = "node";
     },
     $root);
   return \%list, \%fragments;
@@ -122,7 +122,7 @@ foreach my $dir (sort keys %{$sources}) {
   my $dest = catfile($destRoot, $dir);
   if ($sources->{$dir} eq "leaf") { # Process a leaf directory into a page
     print STDERR "$dir:\n" if $list_files_flag;
-    my $out = WWW::Nancy::expand("\$include{$template}", $sourceRoot, $dir, $list_files_flag, \%fragment_to_page);
+    my $out = WWW::Nancy::expand("\$include{$template}", $sourceRoot, $dir, $fragments, $list_files_flag, \%fragment_to_page);
     open OUT, ">$dest" or Warn("Could not write to `$dest'");
     print OUT $out;
     close OUT;
