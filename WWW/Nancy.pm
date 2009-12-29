@@ -17,6 +17,44 @@ use File::Spec::Functions qw(catfile splitdir);
 my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
 
 
+# Tree operations
+# FIXME: Put them in their own module
+
+# Return subtree at given path
+sub tree_get {
+  my ($tree, $path) = @_;
+  for my $elem (@{$path}) {
+    last if !ref($tree);
+    $tree = $tree->{$elem};
+  }
+  return $tree;
+}
+
+# Set subtree at given path to value
+# FIXME: Create path if it doesn't exist
+sub tree_set {
+  my ($tree, $path, $val) = @_;
+  my $node_name = pop @{$path};
+  my $node = tree_get($tree, $path);
+  $path->{$node_name} = $val;
+}
+
+# Return list of paths in tree
+sub tree_iterate {
+  my ($tree, $path, $paths) = @_;
+  if (UNIVERSAL::isa($tree, "HASH")) {
+    foreach my $node (keys %{$tree}) {
+      my @sub_path = @{$path};
+      push @sub_path, $node;
+      $paths = tree_iterate($tree->{$node}, \@sub_path, $paths);
+    }
+  } else {
+    push @{$paths}, $path;
+  }
+  return $paths;
+}
+
+
 # Search for fragment starting at the given path; if found return
 # its name and contents; if not, print a warning and return undef.
 sub findFragment {
