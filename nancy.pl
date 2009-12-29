@@ -11,7 +11,6 @@ use warnings;
 
 use File::Basename;
 use File::Spec::Functions qw(catfile splitdir);
-use File::Find;
 use Getopt::Long;
 
 use File::Slurp qw(slurp);
@@ -72,67 +71,76 @@ $sourceRoot =~ s|/+$||;
 # Turn a directory into a list of subdirectories, with leaf and
 # non-leaf directories marked as such, and read all the files.
 # Report duplicate fragments one of which masks the other.
-sub scanDir {
-  my ($root) = @_;
-  my %list = ();
-  my %fragments = ();
-  File::Find::find(
-    sub {
-      my $obj = $File::Find::name;
-      my $pattern = "$root(?:" . catfile("", "") . ")?";
-      my $name = $obj;
-      $name =~ s/$pattern//;
-      if (-f) {
-        my $text = slurp($obj);
-        $fragments{$name} = $text;
-
-        if ($warn_flag) {
-          # Warn about fragments that mask identical fragments
-          my $search_path = dirname(dirname($name));
-          my $fragment = basename($name);
-          while ($search_path ne "." && $search_path ne "/") {
-            my $parent_name = catfile($search_path, $fragment);
-            $parent_name =~ s|^\./||;
-            if (defined($fragments{$parent_name})) {
-              Warn "$name is identical to $parent_name" if $fragments{$parent_name} eq $text;
-              last; # Stop as soon as we find a fragment of the same name
-            }
-            $search_path = dirname($search_path);
-          }
-        }
-      } elsif (-d) {
-        $list{$name} = "leaf" if !defined($list{$name});
-        my $parent = dirname($name);
-        $parent = "" if $parent eq ".";
-        $list{$parent} = "node";
-      }
-    },
-    $root);
-  return \%list, \%fragments;
-}
-
-# Fragment to page map
-my %fragment_to_page = ();
-
-# Process source directories; work in sorted order so we process
-# create directories in the destination tree before writing their
-# contents
-my ($sources, $fragments) = scanDir($sourceRoot);
-foreach my $dir (sort keys %{$sources}) {
-  my $dest = catfile($destRoot, $dir);
-  if ($sources->{$dir} eq "leaf") { # Process a leaf directory into a page
-    print STDERR "$dir:\n" if $list_files_flag;
-    my $out = WWW::Nancy::expand("\$include{$template}", $sourceRoot, $dir, $fragments, $list_files_flag, \%fragment_to_page);
-    open OUT, ">$dest" or Warn("Could not write to `$dest'");
-    print OUT $out;
-    close OUT;
-    print STDERR "\n" if $list_files_flag;
-  } else { # Make a non-leaf directory
-    mkdir $dest;
+# FIXME: Separate directory tree traversal from tree building
+sub find {
+  my ($obj) = @_;
+  if (-f $obj) {
+    return slurp($obj);
+  } elsif (-d $obj) {
+    my %dir = ();
+    opendir(DIR, $obj);
+    my @files = readdir(DIR);
+    for my $file (@files) {
+      next if $file eq "." or $file eq "..";
+      $dir{$file} = find(catfile($obj, $file));
+    }
+    return \%dir;
   }
 }
 
+# Process source directories
+my $sourceTree = find($sourceRoot);
+
+# FIXME: The code below up to but not including write_pages should be
+# in Nancy.pm.
+
+sub fragment_tree_to_empty_map {
+  my ($in_tree) = @_;
+  if (ref($in_tree)) {
+    my $out_tree = {};
+    foreach my $node (keys %{$in_tree}) {
+      $out_tree->{$node} = fragment_tree_to_empty_map($in_tree->{$node});
+    }
+    return $out_tree;
+  } else {
+    return;
+  }
+}
+
+# Fragment to page tree
+my $fragment_to_page = fragment_tree_to_empty_map($sourceTree);
+
+# Walk tree, generating pages
+sub generate {
+  my ($name, $tree) = @_;
+  return unless ref($tree);
+  my $type = "leaf";
+  foreach my $sub_name (keys %{$tree}) {
+    $type = "node" if ref($tree->{$sub_name});
+  }
+  if ($type eq "node") {
+    my %dir = ();
+    foreach my $sub_name (keys %{$tree}) {
+      my $res = generate(catfile($name || (), $sub_name), $tree->{$sub_name});
+      $dir{$sub_name} = $res if defined($res);
+    }
+    return \%dir;
+  } else {
+    print STDERR "$name:\n" if $list_files_flag;
+    my $out = WWW::Nancy::expand("\$include{$template}", $sourceRoot, $name, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
+    print STDERR "\n" if $list_files_flag;
+    return $out;
+  }
+}
+
+my $pages = generate(undef, $sourceTree);
+
+
+# Analyze generated pages to print warnings if desired
 if ($warn_flag) {
+  # Check fragments all of whose uses have a common prefix that the
+  # fragment does not share.
+
   # Return the path made up of the first n components of p
   sub subPath {
     my ($p, $n) = @_;
@@ -140,27 +148,57 @@ if ($warn_flag) {
     return catfile(@path[0 .. $n - 1]);
   }
 
-  # Check for "overpromoted" fragments, that is, fragments that are only
-  # used further towards the leaves than they are.
-  foreach my $fragment (keys %fragment_to_page) {
-    my @page_list = @{$fragment_to_page{$fragment}};
-    my $prefix_len = scalar(splitdir($page_list[0]));
-    for (my $i = 1; $i <= $#page_list; $i++) {
-      for (;
-           $prefix_len > 0 &&
-             subPath($page_list[$i], $prefix_len) ne
-               subPath($page_list[0], $prefix_len);
-           $prefix_len--)
-        {}
+  sub check_misplaced {
+    my ($name, $tree) = @_;
+    if (UNIVERSAL::isa($tree, "HASH")) {
+      foreach my $sub_name (keys %{$tree}) {
+        check_misplaced(catfile($name || (), $sub_name), $tree->{$sub_name});
+      }
+    } else {
+      my $prefix_len = scalar(splitdir(@{$tree}[0]));
+      foreach my $page (@{$tree}) {
+        for (;
+             $prefix_len > 0 &&
+               subPath($page, $prefix_len) ne
+                 subPath(@{$tree}[0], $prefix_len);
+               $prefix_len--)
+          {}
+      }
+      Warn "$name could be moved into " . subPath(@{$tree}[0], $prefix_len)
+        if scalar(splitdir(dirname($name))) < $prefix_len &&
+          subPath(@{$tree}[0], $prefix_len) ne subPath(dirname($name), $prefix_len);
     }
-    # If common prefix of pages is longer than the directory of the
-    # fragment, then fragment should be demoted towards leaves
-    Warn "$fragment could be moved into " . subPath($page_list[0], $prefix_len)
-      if $prefix_len > scalar(splitdir(dirname($fragment)));
   }
+  check_misplaced(undef, $fragment_to_page);
 
   # Check for unused fragments
-  foreach my $fragment (keys %{$fragments}) {
-    Warn "$fragment is unused" if !defined($fragment_to_page{$fragment});
+  sub check_unused {
+    my ($name, $tree) = @_;
+    if (UNIVERSAL::isa($tree, "HASH")) {
+      foreach my $sub_name (keys %{$tree}) {
+        check_unused(catfile($name || (), $sub_name), $tree->{$sub_name});
+      }
+    } elsif ($#$tree == -1) {
+      Warn "$name is unused";
+    }
+  }
+  check_unused(undef, $fragment_to_page);
+}
+
+
+# Write pages to disk
+sub write_pages {
+  my ($name, $tree) = @_;
+  if (ref($tree)) {
+    mkdir catfile($destRoot, $name);
+    foreach my $sub_name (keys %{$tree}) {
+      write_pages(catfile($name || (), $sub_name), $tree->{$sub_name});
+    }
+  } else {
+    open OUT, ">" . catfile($destRoot, $name) or Warn("Could not write to `$name'");
+    print OUT $tree;
+    close OUT;
   }
 }
+
+write_pages(undef, $pages);

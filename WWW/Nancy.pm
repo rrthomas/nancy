@@ -14,26 +14,37 @@ use File::Basename;
 use File::Spec::Functions qw(catfile splitdir);
 
 
-my ($list_files_flag, $fragments);
+my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
 
 
 # Search for fragment starting at the given path; if found return
-# its name, if not, print a warning and return undef.
+# its name and contents; if not, print a warning and return undef.
 sub findFragment {
   my ($path, $fragment) = @_;
-  my $search_path = $path;
-  while (1) {
-    my $name = catfile($search_path, $fragment);
-    $name =~ s|^\./||;
-    if (defined($fragments->{$name})) {
+  my @search = splitdir($path);
+  my ($name, $contents, @cur_path, @used_path, $node);
+  for (my $tree = $fragments; ref($tree); $tree = $tree->{$node}) {
+    $node = shift @search;
+    if (defined($tree->{$fragment}) && !ref($tree->{$fragment})) { # We have a fragment, not a directory
+      my $new_name = catfile(@cur_path, $fragment);
+      $name = $new_name;
       print STDERR "  $name\n" if $list_files_flag;
-      return $name;
+      warn("$new_name is identical to $name") if $warn_flag && defined($contents) && $contents eq $tree->{$fragment};
+      $contents = $tree->{$fragment};
+      @used_path = @cur_path;
     }
-    last if $search_path eq "." || $search_path eq "/"; # Keep going until we go above $path
-    $search_path = dirname($search_path);
+    push @cur_path, $node if defined($node);
+    last if !defined($node);
   }
-  warn("Cannot find `$fragment' while building `$path'\n");
-  return undef;
+  warn("Cannot find `$fragment' while building `$path'\n") unless $contents;
+  for (my $useTree = $fragment_to_page; ref($useTree); $useTree = $useTree->{$node}) {
+    $node = shift @used_path;
+    if (!defined($node)) {
+      push @{$useTree->{$fragment}}, $path;
+      last;
+    }
+  }
+  return $name, $contents;
 }
 
 # Process a command; if the command is undefined, replace it, uppercased
@@ -57,17 +68,19 @@ sub doMacros {
 
 # Expand commands in some text
 #   $text - text to expand
-#   $tree - source tree
+#   $tree - source tree path
 #   $page - leaf directory to make into a page
-#   $fragments - map from fragment names to contents
-#   $list_files_flag - whether to output fragment diagnostics
-#   [$fragment_to_page] - optional hash to which to add fragment->page entries
-# returns expanded text
+#   $fragments - tree of fragments
+#   $fragment_to_page - tree of fragment to page maps
+#   $warn_flag - whether to output warnings
+#   $list_files_flag - whether to output fragment lists
+# returns expanded text, fragment to page tree
 sub expand {
-  my ($text, $tree, $page, $fragment_to_page);
-  ($text, $tree, $page, $fragments, $list_files_flag, $fragment_to_page) = @_;
+  my ($text, $tree, $page);
+  ($text, $tree, $page, $fragments, $fragment_to_page, $warn_flag, $list_files_flag) = @_;
   my %macros = (
     page => sub {
+      # Split and join needed for platforms whose path separator is not "/"
       my @url = splitdir($page);
       return join "/", @url;
     },
@@ -78,24 +91,19 @@ sub expand {
     },
     include => sub {
       my ($fragment) = @_;
-      my $name = findFragment($page, $fragment);
+      my ($name, $contents) = findFragment($page, $fragment);
       my $text = "";
       if ($name) {
-        push @{$fragment_to_page->{$name}}, $page
-          if defined($fragment_to_page);
         $text .= "***INCLUDE: $name***" if $list_files_flag;
-        $text .= $fragments->{$name};
+        $text .= $contents;
       }
       return $text;
     },
     run => sub {
       my ($prog) = @_;
-      shift;
-      my $name = findFragment($page, $prog);
+      my ($name, $contents) = findFragment($page, $prog);
       if ($name) {
-        push @{$fragment_to_page->{$prog}}, $page
-          if defined($fragment_to_page);
-        my $sub = eval($fragments->{$name});
+        my $sub = eval($contents);
         return &{$sub}(@_);
       }
       return "";
