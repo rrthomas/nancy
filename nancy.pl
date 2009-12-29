@@ -138,9 +138,6 @@ my $pages = generate(undef, $sourceTree);
 
 # Analyze generated pages to print warnings if desired
 if ($warn_flag) {
-  # Check fragments all of whose uses have a common prefix that the
-  # fragment does not share.
-
   # Return the path made up of the first n components of p
   sub subPath {
     my ($p, $n) = @_;
@@ -148,41 +145,28 @@ if ($warn_flag) {
     return catfile(@path[0 .. $n - 1]);
   }
 
-  sub check_misplaced {
-    my ($name, $tree) = @_;
-    if (UNIVERSAL::isa($tree, "HASH")) {
-      foreach my $sub_name (keys %{$tree}) {
-        check_misplaced(catfile($name || (), $sub_name), $tree->{$sub_name});
-      }
-    } else {
-      my $prefix_len = scalar(splitdir(@{$tree}[0]));
-      foreach my $page (@{$tree}) {
+  # Check for unused fragments and fragments all of whose uses have a
+  # common prefix that the fragment does not share.
+  foreach my $path (@{WWW::Nancy::tree_iterate($fragment_to_page, [], undef)}) {
+    my $node = WWW::Nancy::tree_get($fragment_to_page, $path);
+    my $name = catfile(@{$path});
+    if (!$node) {
+      Warn "`$name' is unused";
+    } elsif (UNIVERSAL::isa($node, "ARRAY")) {
+      my $prefix_len = scalar(splitdir(@{$node}[0]));
+      foreach my $page (@{$node}) {
         for (;
              $prefix_len > 0 &&
                subPath($page, $prefix_len) ne
-                 subPath(@{$tree}[0], $prefix_len);
+                 subPath(@{$node}[0], $prefix_len);
                $prefix_len--)
           {}
       }
-      Warn "$name could be moved into " . subPath(@{$tree}[0], $prefix_len)
+      Warn "`$name' could be moved into " . subPath(@{$node}[0], $prefix_len)
         if scalar(splitdir(dirname($name))) < $prefix_len &&
-          subPath(@{$tree}[0], $prefix_len) ne subPath(dirname($name), $prefix_len);
+          subPath(@{$node}[0], $prefix_len) ne subPath(dirname($name), $prefix_len);
     }
   }
-  check_misplaced(undef, $fragment_to_page);
-
-  # Check for unused fragments
-  sub check_unused {
-    my ($name, $tree) = @_;
-    if (UNIVERSAL::isa($tree, "HASH")) {
-      foreach my $sub_name (keys %{$tree}) {
-        check_unused(catfile($name || (), $sub_name), $tree->{$sub_name});
-      }
-    } elsif ($#$tree == -1) {
-      Warn "$name is unused";
-    }
-  }
-  check_unused(undef, $fragment_to_page);
 }
 
 
