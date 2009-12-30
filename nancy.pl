@@ -110,6 +110,15 @@ sub fragment_tree_to_empty_map {
 # Fragment to page tree
 my $fragment_to_page = fragment_tree_to_empty_map($sourceTree);
 
+# Debug/template code
+# foreach my $path (@{WWW::Nancy::tree_iterate_leaves($fragment_to_page, [], undef)}) {
+#   print STDERR catfile(@{$path}) . "\n";
+# }
+# foreach my $path (@{WWW::Nancy::tree_iterate_preorder($fragment_to_page, [], undef)}) {
+#   push @{$path}, "" if $#$path == -1;
+#   print STDERR catfile(@{$path}) . "\n";
+# }
+
 # Walk tree, generating pages
 sub generate {
   my ($name, $tree) = @_;
@@ -147,7 +156,7 @@ if ($warn_flag) {
 
   # Check for unused fragments and fragments all of whose uses have a
   # common prefix that the fragment does not share.
-  foreach my $path (@{WWW::Nancy::tree_iterate($fragment_to_page, [], undef)}) {
+  foreach my $path (@{WWW::Nancy::tree_iterate_leaves($fragment_to_page, [], undef)}) {
     my $node = WWW::Nancy::tree_get($fragment_to_page, $path);
     my $name = catfile(@{$path});
     if (!$node) {
@@ -171,18 +180,15 @@ if ($warn_flag) {
 
 
 # Write pages to disk
-sub write_pages {
-  my ($name, $tree) = @_;
-  if (ref($tree)) {
+foreach my $path (@{WWW::Nancy::tree_iterate_preorder($pages, [], undef)}) {
+  my $name = "";
+  $name = catfile(@{$path}) if $#$path != -1;
+  my $node = WWW::Nancy::tree_get($pages, $path);
+  if (UNIVERSAL::isa($node, "HASH")) {
     mkdir catfile($destRoot, $name);
-    foreach my $sub_name (keys %{$tree}) {
-      write_pages(catfile($name || (), $sub_name), $tree->{$sub_name});
-    }
   } else {
-    open OUT, ">" . catfile($destRoot, $name) or Warn("Could not write to `$name'");
-    print OUT $tree;
+    open OUT, ">" . catfile($destRoot, $name) or Warn "Could not write to `$name'";
+    print OUT $node;
     close OUT;
   }
 }
-
-write_pages(undef, $pages);

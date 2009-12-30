@@ -23,15 +23,14 @@ my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
 # Return subtree at given path
 sub tree_get {
   my ($tree, $path) = @_;
-  for my $elem (@{$path}) {
+  foreach my $elem (@{$path}) {
     last if !ref($tree);
     $tree = $tree->{$elem};
   }
   return $tree;
 }
 
-# Set subtree at given path to value
-# FIXME: Create path if it doesn't exist
+# Set subtree at given path to given value
 sub tree_set {
   my ($tree, $path, $val) = @_;
   my $node_name = pop @{$path};
@@ -39,14 +38,28 @@ sub tree_set {
   $path->{$node_name} = $val;
 }
 
-# Return list of paths in tree
-sub tree_iterate {
+# Return list of paths in tree, in pre-order
+sub tree_iterate_preorder {
+  my ($tree, $path, $paths) = @_;
+  push @{$paths}, $path if $path;
+  if (UNIVERSAL::isa($tree, "HASH")) {
+    foreach my $node (keys %{$tree}) {
+      my @sub_path = @{$path};
+      push @sub_path, $node;
+      $paths = tree_iterate_preorder($tree->{$node}, \@sub_path, $paths);
+    }
+  }
+  return $paths;
+}
+
+# Return list of leaf paths in tree
+sub tree_iterate_leaves {
   my ($tree, $path, $paths) = @_;
   if (UNIVERSAL::isa($tree, "HASH")) {
     foreach my $node (keys %{$tree}) {
       my @sub_path = @{$path};
       push @sub_path, $node;
-      $paths = tree_iterate($tree->{$node}, \@sub_path, $paths);
+      $paths = tree_iterate_leaves($tree->{$node}, \@sub_path, $paths);
     }
   } else {
     push @{$paths}, $path;
