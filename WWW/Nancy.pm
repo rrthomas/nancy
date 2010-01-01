@@ -35,36 +35,47 @@ sub tree_set {
   my ($tree, $path, $val) = @_;
   my $node_name = pop @{$path};
   my $node = tree_get($tree, $path);
-  $path->{$node_name} = $val;
+  $node->{$node_name} = $val;
+}
+
+# Return whether tree is a leaf
+sub tree_isleaf {
+  my ($tree) = @_;
+  return !UNIVERSAL::isa($tree, "HASH");
+}
+
+# Return whether tree is not a leaf
+sub tree_isnotleaf {
+  my ($tree) = @_;
+  return !tree_isleaf($tree);
+}
+
+# Return list of paths in tree, in pre-order, that match predicate
+# Note that the entire tree is traversed, so excluding a particular
+# node does not automatically exclude its children.
+sub tree_iterate {
+  my ($tree, $pred, $path, $paths) = @_;
+  push @{$paths}, $path if $path && $pred->($tree, $path);
+  if (tree_isnotleaf($tree)) {
+    foreach my $node (keys %{$tree}) {
+      my @sub_path = @{$path};
+      push @sub_path, $node;
+      $paths = tree_iterate($tree->{$node}, $pred, \@sub_path, $paths);
+    }
+  }
+  return $paths;
 }
 
 # Return list of paths in tree, in pre-order
 sub tree_iterate_preorder {
   my ($tree, $path, $paths) = @_;
-  push @{$paths}, $path if $path;
-  if (UNIVERSAL::isa($tree, "HASH")) {
-    foreach my $node (keys %{$tree}) {
-      my @sub_path = @{$path};
-      push @sub_path, $node;
-      $paths = tree_iterate_preorder($tree->{$node}, \@sub_path, $paths);
-    }
-  }
-  return $paths;
+  return tree_iterate($tree, sub { 1; }, $path, $paths);
 }
 
 # Return list of leaf paths in tree
 sub tree_iterate_leaves {
   my ($tree, $path, $paths) = @_;
-  if (UNIVERSAL::isa($tree, "HASH")) {
-    foreach my $node (keys %{$tree}) {
-      my @sub_path = @{$path};
-      push @sub_path, $node;
-      $paths = tree_iterate_leaves($tree->{$node}, \@sub_path, $paths);
-    }
-  } else {
-    push @{$paths}, $path;
-  }
-  return $paths;
+  return tree_iterate($tree, \&tree_isleaf, $path, $paths);
 }
 
 
