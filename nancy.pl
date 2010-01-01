@@ -96,8 +96,9 @@ my $sourceTree = find($sourceRoot);
 
 # Fragment to page tree
 my $fragment_to_page = WWW::Nancy::tree_copy($sourceTree);
-foreach my $path (@{WWW::Nancy::tree_iterate_leaves($sourceTree, [], undef)}) {
-  WWW::Nancy::tree_set($fragment_to_page, $path, undef);
+foreach my $path (@{WWW::Nancy::tree_iterate_preorder($sourceTree, [], undef)}) {
+  WWW::Nancy::tree_set($fragment_to_page, $path, undef)
+      if WWW::Nancy::tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
 }
 
 # Return true if a tree node has non-leaf children
@@ -110,8 +111,8 @@ sub has_node_children {
 
 # Walk tree, generating pages
 my $pages = {};
-foreach my $path (@{WWW::Nancy::tree_iterate($sourceTree, \&WWW::Nancy::tree_isnotleaf, [], undef)}) {
-  next if $#$path == -1;
+foreach my $path (@{WWW::Nancy::tree_iterate_preorder($sourceTree, [], undef)}) {
+  next if $#$path == -1 or WWW::Nancy::tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
   if (has_node_children(WWW::Nancy::tree_get($sourceTree, $path))) {
     WWW::Nancy::tree_set($pages, $path, {});
   } else {
@@ -135,24 +136,26 @@ if ($warn_flag) {
 
   # Check for unused fragments and fragments all of whose uses have a
   # common prefix that the fragment does not share.
-  foreach my $path (@{WWW::Nancy::tree_iterate_leaves($fragment_to_page, [], undef)}) {
+  foreach my $path (@{WWW::Nancy::tree_iterate_preorder($fragment_to_page, [], undef)}) {
     my $node = WWW::Nancy::tree_get($fragment_to_page, $path);
-    my $name = catfile(@{$path});
-    if (!$node) {
-      Warn "`$name' is unused";
-    } elsif (UNIVERSAL::isa($node, "ARRAY")) {
-      my $prefix_len = scalar(splitdir(@{$node}[0]));
-      foreach my $page (@{$node}) {
-        for (;
-             $prefix_len > 0 &&
-               subPath($page, $prefix_len) ne
-                 subPath(@{$node}[0], $prefix_len);
+    if (WWW::Nancy::tree_isleaf($node)) {
+      my $name = catfile(@{$path});
+      if (!$node) {
+        Warn "`$name' is unused";
+      } elsif (UNIVERSAL::isa($node, "ARRAY")) {
+        my $prefix_len = scalar(splitdir(@{$node}[0]));
+        foreach my $page (@{$node}) {
+          for (;
+               $prefix_len > 0 &&
+                 subPath($page, $prefix_len) ne
+                   subPath(@{$node}[0], $prefix_len);
                $prefix_len--)
-          {}
+            {}
+        }
+        Warn "`$name' could be moved into " . subPath(@{$node}[0], $prefix_len)
+          if scalar(splitdir(dirname($name))) < $prefix_len &&
+            subPath(@{$node}[0], $prefix_len) ne subPath(dirname($name), $prefix_len);
       }
-      Warn "`$name' could be moved into " . subPath(@{$node}[0], $prefix_len)
-        if scalar(splitdir(dirname($name))) < $prefix_len &&
-          subPath(@{$node}[0], $prefix_len) ne subPath(dirname($name), $prefix_len);
     }
   }
 }

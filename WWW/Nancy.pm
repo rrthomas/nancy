@@ -50,17 +50,15 @@ sub tree_isnotleaf {
   return !tree_isleaf($tree);
 }
 
-# Return list of paths in tree, in pre-order, that match predicate
-# Note that the entire tree is traversed, so excluding a particular
-# node does not automatically exclude its children.
-sub tree_iterate {
-  my ($tree, $pred, $path, $paths) = @_;
-  push @{$paths}, $path if $path && $pred->($tree, $path);
+# Return list of paths in tree, in pre-order
+sub tree_iterate_preorder {
+  my ($tree, $path, $paths) = @_;
+  push @{$paths}, $path if $path;
   if (tree_isnotleaf($tree)) {
     foreach my $node (keys %{$tree}) {
       my @sub_path = @{$path};
       push @sub_path, $node;
-      $paths = tree_iterate($tree->{$node}, $pred, \@sub_path, $paths);
+      $paths = tree_iterate_preorder($tree->{$node}, \@sub_path, $paths);
     }
   }
   return $paths;
@@ -78,18 +76,6 @@ sub tree_copy {
   } else {
     return $in_tree;
   }
-}
-
-# Return list of paths in tree, in pre-order
-sub tree_iterate_preorder {
-  my ($tree, $path, $paths) = @_;
-  return tree_iterate($tree, sub { 1; }, $path, $paths);
-}
-
-# Return list of leaf paths in tree
-sub tree_iterate_leaves {
-  my ($tree, $path, $paths) = @_;
-  return tree_iterate($tree, \&tree_isleaf, $path, $paths);
 }
 
 
