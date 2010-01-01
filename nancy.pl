@@ -94,21 +94,11 @@ my $sourceTree = find($sourceRoot);
 # FIXME: The code below up to but not including write_pages should be
 # in Nancy.pm.
 
-sub fragment_tree_to_empty_map {
-  my ($in_tree) = @_;
-  if (ref($in_tree)) {
-    my $out_tree = {};
-    foreach my $node (keys %{$in_tree}) {
-      $out_tree->{$node} = fragment_tree_to_empty_map($in_tree->{$node});
-    }
-    return $out_tree;
-  } else {
-    return;
-  }
-}
-
 # Fragment to page tree
-my $fragment_to_page = fragment_tree_to_empty_map($sourceTree);
+my $fragment_to_page = WWW::Nancy::tree_copy($sourceTree);
+foreach my $path (@{WWW::Nancy::tree_iterate_leaves($sourceTree, [], undef)}) {
+  WWW::Nancy::tree_set($fragment_to_page, $path, undef);
+}
 
 # Return true if a tree node has non-leaf children
 sub has_node_children {

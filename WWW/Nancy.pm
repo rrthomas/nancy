@@ -66,6 +66,20 @@ sub tree_iterate {
   return $paths;
 }
 
+# Return a copy of a tree
+sub tree_copy {
+  my ($in_tree) = @_;
+  if (ref($in_tree)) {
+    my $out_tree = {};
+    foreach my $node (keys %{$in_tree}) {
+      $out_tree->{$node} = tree_copy($in_tree->{$node});
+    }
+    return $out_tree;
+  } else {
+    return $in_tree;
+  }
+}
+
 # Return list of paths in tree, in pre-order
 sub tree_iterate_preorder {
   my ($tree, $path, $paths) = @_;
