@@ -110,39 +110,28 @@ sub fragment_tree_to_empty_map {
 # Fragment to page tree
 my $fragment_to_page = fragment_tree_to_empty_map($sourceTree);
 
-# Debug/template code
-# foreach my $path (@{WWW::Nancy::tree_iterate_leaves($fragment_to_page, [], undef)}) {
-#   print STDERR catfile(@{$path}) . "\n";
-# }
-# foreach my $path (@{WWW::Nancy::tree_iterate_preorder($fragment_to_page, [], undef)}) {
-#   push @{$path}, "" if $#$path == -1;
-#   print STDERR catfile(@{$path}) . "\n";
-# }
-
-# Walk tree, generating pages
-sub generate {
-  my ($name, $tree) = @_;
-  return unless ref($tree);
-  my $type = "leaf";
-  foreach my $sub_name (keys %{$tree}) {
-    $type = "node" if ref($tree->{$sub_name});
-  }
-  if ($type eq "node") {
-    my %dir = ();
-    foreach my $sub_name (keys %{$tree}) {
-      my $res = generate(catfile($name || (), $sub_name), $tree->{$sub_name});
-      $dir{$sub_name} = $res if defined($res);
-    }
-    return \%dir;
-  } else {
-    print STDERR "$name:\n" if $list_files_flag;
-    my $out = WWW::Nancy::expand("\$include{$template}", $sourceRoot, $name, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
-    print STDERR "\n" if $list_files_flag;
-    return $out;
+# Return true if a tree node has non-leaf children
+sub has_node_children {
+  my ($tree) = @_;
+  foreach my $node (keys %{$tree}) {
+    return 1 if ref($tree->{$node});
   }
 }
 
-my $pages = generate(undef, $sourceTree);
+# Walk tree, generating pages
+my $pages = {};
+foreach my $path (@{WWW::Nancy::tree_iterate($sourceTree, \&WWW::Nancy::tree_isnotleaf, [], undef)}) {
+  next if $#$path == -1;
+  if (has_node_children(WWW::Nancy::tree_get($sourceTree, $path))) {
+    WWW::Nancy::tree_set($pages, $path, {});
+  } else {
+    my $name = catfile(@{$path});
+    print STDERR "$name:\n" if $list_files_flag;
+    my $out = WWW::Nancy::expand("\$include{$template}", $sourceRoot, $name, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
+    print STDERR "\n" if $list_files_flag;
+    WWW::Nancy::tree_set($pages, $path, $out);
+  }
+}
 
 
 # Analyze generated pages to print warnings if desired
@@ -184,7 +173,7 @@ foreach my $path (@{WWW::Nancy::tree_iterate_preorder($pages, [], undef)}) {
   my $name = "";
   $name = catfile(@{$path}) if $#$path != -1;
   my $node = WWW::Nancy::tree_get($pages, $path);
-  if (UNIVERSAL::isa($node, "HASH")) {
+  if (WWW::Nancy::tree_isnotleaf($node)) {
     mkdir catfile($destRoot, $name);
   } else {
     open OUT, ">" . catfile($destRoot, $name) or Warn "Could not write to `$name'";
