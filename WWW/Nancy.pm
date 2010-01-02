@@ -83,29 +83,25 @@ sub tree_copy {
 # its name and contents; if not, print a warning and return undef.
 sub findFragment {
   my ($path, $fragment) = @_;
-  my @search = splitdir($path);
-  my ($name, $contents, @cur_path, @used_path, $node);
-  for (my $tree = $fragments; ref($tree); $tree = $tree->{$node}) {
-    $node = shift @search;
-    if (defined($tree->{$fragment}) && !ref($tree->{$fragment})) { # We have a fragment, not a directory
-      my $new_name = catfile(@cur_path, $fragment);
+  my ($name, $contents);
+  for (my @search = splitdir($path); 1; pop @search) {
+    push @search, $fragment;
+    my $node = tree_get($fragments, \@search);
+    if (defined($node) && !ref($node)) { # We have a fragment, not a directory
+      my $new_name = catfile(@search);
+      print STDERR "  $new_name\n" if $list_files_flag;
+      warn("`$new_name' is identical to `$name'") if $warn_flag && defined($contents) && $contents eq $node;
       $name = $new_name;
-      print STDERR "  $name\n" if $list_files_flag;
-      warn("$new_name is identical to $name") if $warn_flag && defined($contents) && $contents eq $tree->{$fragment};
-      $contents = $tree->{$fragment};
-      @used_path = @cur_path;
+      $contents = $node;
+      my $used_list = tree_get($fragment_to_page, \@search);
+      $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
+      push @{$used_list}, $path;
+      tree_set($fragment_to_page, \@search, $used_list);
     }
-    push @cur_path, $node if defined($node);
-    last if !defined($node);
+    pop @search;
+    last if $#search == -1;
   }
   warn("Cannot find `$fragment' while building `$path'\n") unless $contents;
-  for (my $useTree = $fragment_to_page; ref($useTree); $useTree = $useTree->{$node}) {
-    $node = shift @used_path;
-    if (!defined($node)) {
-      push @{$useTree->{$fragment}}, $path;
-      last;
-    }
-  }
   return $name, $contents;
 }
 
