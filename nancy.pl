@@ -131,6 +131,7 @@ if ($warn_flag) {
   sub subPath {
     my ($p, $n) = @_;
     my @path = splitdir($p);
+    return "" if $n > $#path + 1;
     return catfile(@path[0 .. $n - 1]);
   }
 
@@ -152,9 +153,10 @@ if ($warn_flag) {
                $prefix_len--)
             {}
         }
-        Warn "`$name' could be moved into " . subPath(@{$node}[0], $prefix_len)
+        my $dir = subPath(@{$node}[0], $prefix_len);
+        Warn "`$name' could be moved into `$dir'"
           if scalar(splitdir(dirname($name))) < $prefix_len &&
-            subPath(@{$node}[0], $prefix_len) ne subPath(dirname($name), $prefix_len);
+            $dir ne subPath(dirname($name), $prefix_len);
       }
     }
   }
