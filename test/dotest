@@ -5,6 +5,7 @@
 rm -rf dest tmp
 mkdir tmp
 mergetrees.pl src tmp
+#perl -wMDevel::SimpleTrace ../nancy.pl --list-files --warn tmp dest template.html
 ../nancy.pl --list-files --warn tmp dest template.html
 #diff -Nur -x ".svn" dest expected
 
