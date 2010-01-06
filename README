@@ -13,19 +13,20 @@ other files (images, audio &c.).
 Nancy is available from http://rrt.sc3d.org/Software/Nancy/. It is
 free software, licensed under the GNU GPL.
 
-See "Nancy user's guide.pdf" for instructions.
+See ‘Nancy user's guide.pdf’ for instructions.
 
 Any questions, comments, or bug reports should be sent to Reuben
 Thomas (see above for address).
 
 
-To install Nancy, copy nancy.pl to a directory where executables are
-found, and the WWW and File directories to a Perl library directory.
+To install Nancy, copy ‘nancy.pl’ to a directory where executables are
+found, and the contents of the ‘perl’ directory to a Perl library
+directory.
 
-To install WebNancy, copy webnancy.pl to a CGI script directory, and
+To install WebNancy, copy ‘webnancy.pl’ to a CGI script directory, and
 configure the web server to pass all URLs for the site to the script.
 Copy 404.html to the top of the site. Configuration for Apache (in an
-.htaccess file) looks something like this:
+‘.htaccess’ file) looks something like this:
 
 # Direct URLs to Nancy
 RewriteEngine on
