@@ -27,4 +27,4 @@ $page = "index" if $page eq "";
 $template = "404.html" if !-d catfile($DocumentRoot, $page);
 
 # Perform the request
-print header() . WWW::Nancy::expand("\$include{$template}", $DocumentRoot, $page);
+print header() . WWW::Nancy::expand("\$include{$template}", $DocumentRoot, $page, WWW::Nancy::find($DocumentRoot));
