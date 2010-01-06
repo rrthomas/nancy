@@ -68,28 +68,8 @@ my $template = $ARGV[2];
 $sourceRoot = catfile($sourceRoot, $ARGV[3]) if $ARGV[3];
 $sourceRoot =~ s|/+$||;
 
-# Turn a directory into a list of subdirectories, with leaf and
-# non-leaf directories marked as such, and read all the files.
-# Report duplicate fragments one of which masks the other.
-# FIXME: Separate directory tree traversal from tree building
-sub find {
-  my ($obj) = @_;
-  if (-f $obj) {
-    return slurp($obj);
-  } elsif (-d $obj) {
-    my %dir = ();
-    opendir(DIR, $obj);
-    my @files = readdir(DIR);
-    for my $file (@files) {
-      next if $file eq "." or $file eq "..";
-      $dir{$file} = find(catfile($obj, $file));
-    }
-    return \%dir;
-  }
-}
-
 # Process source directories
-my $sourceTree = find($sourceRoot);
+my $sourceTree = WWW::Nancy::find($sourceRoot);
 
 # FIXME: The code below up to but not including write_pages should be
 # in Nancy.pm.
