@@ -13,6 +13,8 @@ use warnings;
 use File::Basename;
 use File::Spec::Functions qw(catfile splitdir);
 
+use File::Slurp qw(slurp); # For $run scripts to use
+
 
 my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
 
@@ -93,10 +95,13 @@ sub findFragment {
       warn("`$new_name' is identical to `$name'") if $warn_flag && defined($contents) && $contents eq $node;
       $name = $new_name;
       $contents = $node;
-      my $used_list = tree_get($fragment_to_page, \@search);
-      $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
-      push @{$used_list}, $path;
-      tree_set($fragment_to_page, \@search, $used_list);
+      if ($fragment_to_page) {
+        my $used_list = tree_get($fragment_to_page, \@search);
+        $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
+        push @{$used_list}, $path;
+        tree_set($fragment_to_page, \@search, $used_list);
+        last;
+      }
     }
     pop @search;
     last if $#search == -1;
@@ -129,9 +134,9 @@ sub doMacros {
 #   $tree - source tree path
 #   $page - leaf directory to make into a page
 #   $fragments - tree of fragments
-#   $fragment_to_page - tree of fragment to page maps
-#   $warn_flag - whether to output warnings
-#   $list_files_flag - whether to output fragment lists
+#   [$fragment_to_page] - tree of fragment to page maps
+#   [$warn_flag] - whether to output warnings
+#   [$list_files_flag] - whether to output fragment lists
 # returns expanded text, fragment to page tree
 sub expand {
   my ($text, $tree, $page);
@@ -158,7 +163,7 @@ sub expand {
       return $text;
     },
     run => sub {
-      my ($prog) = @_;
+      my ($prog) = shift;
       my ($name, $contents) = findFragment($page, $prog);
       if ($name) {
         my $sub = eval($contents);
@@ -171,6 +176,62 @@ sub expand {
   # Convert $Macro back to $macro
   $text =~ s/(?!<\\)(?<=\$)([[:upper:]])(?=[[:lower:]]*{)/lc($1)/ge;
   return $text;
+}
+
+# Turn a directory into a list of subdirectories, with leaf and
+# non-leaf directories marked as such, and read all the files.
+# Report duplicate fragments one of which masks the other.
+# FIXME: Separate directory tree traversal from tree building
+# FIXME: Make exclusion easily extensible, and add patterns for
+# common VCSs (use tar's --exclude-vcs patterns) and editor backup
+# files &c.
+sub find {
+  my ($obj) = @_;
+  return if basename($obj) eq ".svn"; # Ignore irrelevant objects
+  if (-f $obj) {
+    return slurp($obj) if -s $obj; # Ignore empty files
+  } elsif (-d $obj) {
+    my %dir = ();
+    opendir(DIR, $obj);
+    my @files = readdir(DIR);
+    for my $file (@files) {
+      next if $file eq "." or $file eq "..";
+      $dir{$file} = find(catfile($obj, $file));
+    }
+    return \%dir if $#file != -1; # Ignore empty directories
+  }
+  # We get here if we are ignoring the file, and return nothing.
+}
+
+# Construct file list
+# FIXME: Make exclusion easily extensible, and add patterns for
+# common VCSs (use tar's --exclude-vcs patterns) and editor backup
+# files &c.
+sub find_merge {
+  my %sources = ();
+  foreach my $root (reverse @sourceRoot) {
+    File::Find::find(
+      sub {
+        if (/^\.svn$/) { # Filter out redundant names
+          $File::Find::prune = 1;
+        } elsif ($File::Find::name ne $root) {
+          my $obj = substr($File::Find::name, length($root));
+          # Unflag empty files, directories and their children
+          if ((-f && -z) || (-d && emptyDir($_))) {
+            delete $sources{$obj};
+            if (-d) {
+              foreach my $o (keys %sources) {
+                delete $sources{$o}
+                  if substr($o, 0, length($obj)) eq $obj;
+              }
+            }
+          } elsif ($obj ne "") {
+            $sources{$obj} = $root;
+          }
+        }
+      },
+      $root);
+  }
 }
 
 return 1;
