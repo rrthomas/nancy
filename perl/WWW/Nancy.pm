@@ -32,12 +32,17 @@ sub tree_get {
   return $tree;
 }
 
-# Set subtree at given path to given value
+# Set subtree at given path to given value, creating any intermediate
+# nodes required
+# FIXME: Return whether we needed to create intermediate nodes
 sub tree_set {
   my ($tree, $path, $val) = @_;
-  my $node_name = pop @{$path};
-  my $node = tree_get($tree, $path);
-  $node->{$node_name} = $val;
+  my $leaf = pop @{$path};
+  foreach my $node (@{$path}) {
+    $tree->{$node} = {} if !defined($tree->{$node});
+    $tree = $tree->{$node};
+  }
+  $tree->{$leaf} = $val;
 }
 
 # Return whether tree is a leaf
@@ -48,8 +53,7 @@ sub tree_isleaf {
 
 # Return whether tree is not a leaf
 sub tree_isnotleaf {
-  my ($tree) = @_;
-  return !tree_isleaf($tree);
+  return !tree_isleaf(@_);
 }
 
 # Return list of paths in tree, in pre-order
@@ -67,6 +71,7 @@ sub tree_iterate_preorder {
 }
 
 # Return a copy of a tree
+# FIXME: Rewrite in terms of tree_merge
 sub tree_copy {
   my ($in_tree) = @_;
   if (ref($in_tree)) {
@@ -77,6 +82,15 @@ sub tree_copy {
     return $out_tree;
   } else {
     return $in_tree;
+  }
+}
+
+# Merge two trees; right-hand operand takes precedence
+sub tree_merge {
+  my ($left, $right) = @_;
+  foreach my $path (@{tree_iterate_preorder($right, [], undef)}) {
+    my $node = tree_get($right, $path);
+    tree_set($left, $path, $node) if tree_isleaf($node);
   }
 }
 
@@ -185,53 +199,36 @@ sub expand {
 # FIXME: Make exclusion easily extensible, and add patterns for
 # common VCSs (use tar's --exclude-vcs patterns) and editor backup
 # files &c.
-sub find {
+sub slurp_tree {
   my ($obj) = @_;
+  # FIXME: Should really do this in a separate step (need to do it
+  # before pruning empty directories)
   return if basename($obj) eq ".svn"; # Ignore irrelevant objects
   if (-f $obj) {
-    return slurp($obj) if -s $obj; # Ignore empty files
+    return slurp($obj); # if -s $obj; # Ignore empty files
   } elsif (-d $obj) {
     my %dir = ();
     opendir(DIR, $obj);
     my @files = readdir(DIR);
-    for my $file (@files) {
+    foreach my $file (@files) {
       next if $file eq "." or $file eq "..";
-      $dir{$file} = find(catfile($obj, $file));
+      $dir{$file} = slurp_tree(catfile($obj, $file));
     }
-    return \%dir if $#file != -1; # Ignore empty directories
+    return \%dir; # if $#file != -1; # Ignore empty directories
   }
   # We get here if we are ignoring the file, and return nothing.
 }
 
-# Construct file list
-# FIXME: Make exclusion easily extensible, and add patterns for
-# common VCSs (use tar's --exclude-vcs patterns) and editor backup
-# files &c.
-sub find_merge {
-  my %sources = ();
-  foreach my $root (reverse @sourceRoot) {
-    File::Find::find(
-      sub {
-        if (/^\.svn$/) { # Filter out redundant names
-          $File::Find::prune = 1;
-        } elsif ($File::Find::name ne $root) {
-          my $obj = substr($File::Find::name, length($root));
-          # Unflag empty files, directories and their children
-          if ((-f && -z) || (-d && emptyDir($_))) {
-            delete $sources{$obj};
-            if (-d) {
-              foreach my $o (keys %sources) {
-                delete $sources{$o}
-                  if substr($o, 0, length($obj)) eq $obj;
-              }
-            }
-          } elsif ($obj ne "") {
-            $sources{$obj} = $root;
-          }
-        }
-      },
-      $root);
+# Construct file tree from multiple source trees, masking out empty
+# files and directories
+sub find {
+  my @roots = reverse @_;
+  my $out = {};
+  foreach my $root (@roots) {
+    tree_merge($out, slurp_tree($root));
   }
+  # FIXME: Remove empty directories and files
+  return $out;
 }
 
 return 1;
