@@ -51,16 +51,11 @@ sub tree_isleaf {
   return !UNIVERSAL::isa($tree, "HASH");
 }
 
-# Return whether tree is not a leaf
-sub tree_isnotleaf {
-  return !tree_isleaf(@_);
-}
-
 # Return list of paths in tree, in pre-order
 sub tree_iterate_preorder {
   my ($tree, $path, $paths) = @_;
   push @{$paths}, $path if $path;
-  if (tree_isnotleaf($tree)) {
+  if (!tree_isleaf($tree)) {
     foreach my $node (keys %{$tree}) {
       my @sub_path = @{$path};
       push @sub_path, $node;

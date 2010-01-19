@@ -148,7 +148,7 @@ foreach my $path (@{WWW::Nancy::tree_iterate_preorder($pages, [], undef)}) {
   my $name = "";
   $name = catfile(@{$path}) if $#$path != -1;
   my $node = WWW::Nancy::tree_get($pages, $path);
-  if (WWW::Nancy::tree_isnotleaf($node)) {
+  if (!WWW::Nancy::tree_isleaf($node)) {
     mkdir catfile($destRoot, $name);
   } else {
     open OUT, ">" . catfile($destRoot, $name) or Warn "Could not write to `$name'";
