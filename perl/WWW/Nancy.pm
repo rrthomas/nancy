@@ -1,4 +1,4 @@
-# Nancy.pm $Revision: 982 $ ($Date: 2009-10-04 22:01:25 +0100 (Sun, 04 Oct 2009) $)
+# Nancy.pm $Revision$ ($Date$)
 # (c) 2002-2010 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)
 # Distributed under the GNU General Public License version 3, or (at
 # your option) any later version. There is no warranty.
@@ -34,15 +34,28 @@ sub tree_get {
 
 # Set subtree at given path to given value, creating any intermediate
 # nodes required
+# FIXME: Allow the entire tree to be overridden; need to return result!
 # FIXME: Return whether we needed to create intermediate nodes
 sub tree_set {
   my ($tree, $path, $val) = @_;
   my $leaf = pop @{$path};
+  return unless defined($leaf); # Ignore attempts to set entire tree
   foreach my $node (@{$path}) {
     $tree->{$node} = {} if !defined($tree->{$node});
     $tree = $tree->{$node};
   }
   $tree->{$leaf} = $val;
+}
+
+# Remove subtree at given path
+sub tree_delete {
+  my ($tree, $path, $val) = @_;
+  my $leaf = pop @{$path};
+  foreach my $node (@{$path}) {
+    return if !exists($tree->{$node});
+    $tree = $tree->{$node};
+  }
+  delete $tree->{$leaf};
 }
 
 # Return whether tree is a leaf
@@ -66,27 +79,26 @@ sub tree_iterate_preorder {
 }
 
 # Return a copy of a tree
-# FIXME: Rewrite in terms of tree_merge
 sub tree_copy {
-  my ($in_tree) = @_;
-  if (ref($in_tree)) {
-    my $out_tree = {};
-    foreach my $node (keys %{$in_tree}) {
-      $out_tree->{$node} = tree_copy($in_tree->{$node});
-    }
-    return $out_tree;
-  } else {
-    return $in_tree;
-  }
+  my ($tree) = @_;
+  return $tree if scalar keys %{$tree} == 0;
+  return tree_merge({}, $tree);
 }
 
-# Merge two trees; right-hand operand takes precedence
+# Merge two trees, returning the result; right-hand operand takes
+# precedence, and its empty subtrees replace left-hand subtrees.
 sub tree_merge {
   my ($left, $right) = @_;
+  my $out = tree_copy($left);
   foreach my $path (@{tree_iterate_preorder($right, [], undef)}) {
     my $node = tree_get($right, $path);
-    tree_set($left, $path, $node) if tree_isleaf($node);
+    if (tree_isleaf($node)) {
+      tree_set($out, $path, $node);
+    } elsif (scalar keys %{$node} == 0) {
+      tree_set($out, $path, {});
+    }
   }
+  return $out;
 }
 
 
@@ -140,7 +152,6 @@ sub doMacros {
 
 # Expand commands in some text
 #   $text - text to expand
-#   $tree - source tree path
 #   $page - leaf directory to make into a page
 #   $fragments - tree of fragments
 #   [$fragment_to_page] - tree of fragment to page maps
@@ -148,8 +159,8 @@ sub doMacros {
 #   [$list_files_flag] - whether to output fragment lists
 # returns expanded text, fragment to page tree
 sub expand {
-  my ($text, $tree, $page);
-  ($text, $tree, $page, $fragments, $fragment_to_page, $warn_flag, $list_files_flag) = @_;
+  my ($text, $page);
+  ($text, $page, $fragments, $fragment_to_page, $warn_flag, $list_files_flag) = @_;
   my %macros = (
     page => sub {
       # Split and join needed for platforms whose path separator is not "/"
@@ -196,22 +207,23 @@ sub expand {
 # files &c.
 sub slurp_tree {
   my ($obj) = @_;
-  # FIXME: Should really do this in a separate step (need to do it
-  # before pruning empty directories)
+  # FIXME: Do this in a separate step (need to do it before pruning
+  # empty directories)
   return if basename($obj) eq ".svn"; # Ignore irrelevant objects
   if (-f $obj) {
-    return slurp($obj); # if -s $obj; # Ignore empty files
+    return slurp($obj);
   } elsif (-d $obj) {
     my %dir = ();
     opendir(DIR, $obj);
     my @files = readdir(DIR);
     foreach my $file (@files) {
       next if $file eq "." or $file eq "..";
-      $dir{$file} = slurp_tree(catfile($obj, $file));
+      my $val = slurp_tree(catfile($obj, $file));
+      $dir{$file} = $val if defined($val);
     }
-    return \%dir; # if $#file != -1; # Ignore empty directories
+    return \%dir;
   }
-  # We get here if we are ignoring the file, and return nothing.
+  # If not a file or directory, return nothing
 }
 
 # Construct file tree from multiple source trees, masking out empty
@@ -220,10 +232,109 @@ sub find {
   my @roots = reverse @_;
   my $out = {};
   foreach my $root (@roots) {
-    tree_merge($out, slurp_tree($root));
+    $out = tree_merge($out, slurp_tree($root));
   }
-  # FIXME: Remove empty directories and files
+  # Get rid of empty files and directories
+  foreach my $path (@{tree_iterate_preorder($out, [], undef)}) {
+    my $node = tree_get($out, $path);
+    if ((tree_isleaf($node) && length($node) == 0) ||
+          (!tree_isleaf($node) && scalar keys %{$node} == 0)) {
+      tree_delete($out, $path);
+    }
+  }
   return $out;
 }
+
+# Write $tree to a file hierarchy based at $root
+sub write_tree {
+  my ($tree, $root) = @_;
+  foreach my $path (@{WWW::Nancy::tree_iterate_preorder($tree, [], undef)}) {
+    my $name = "";
+    $name = catfile(@{$path}) if $#$path != -1;
+    my $node = WWW::Nancy::tree_get($tree, $path);
+    if (!WWW::Nancy::tree_isleaf($node)) {
+      mkdir catfile($root, $name);
+    } else {
+      open OUT, ">" . catfile($root, $name) or print STDERR "Could not write to `$name'";
+      print OUT $node;
+      close OUT;
+    }
+  }
+}
+
+# Macro expand a tree
+sub expand_tree {
+  my ($sourceTree, $template, $warn_flag, $list_files_flag) = @_;
+
+  # Fragment to page tree
+  my $fragment_to_page = WWW::Nancy::tree_copy($sourceTree);
+  foreach my $path (@{WWW::Nancy::tree_iterate_preorder($sourceTree, [], undef)}) {
+    WWW::Nancy::tree_set($fragment_to_page, $path, undef)
+        if WWW::Nancy::tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
+  }
+
+  # Return true if a tree node has non-leaf children
+  sub has_node_children {
+    my ($tree) = @_;
+    foreach my $node (keys %{$tree}) {
+      return 1 if ref($tree->{$node});
+    }
+  }
+
+  # Walk tree, generating pages
+  my $pages = {};
+  foreach my $path (@{WWW::Nancy::tree_iterate_preorder($sourceTree, [], undef)}) {
+    next if $#$path == -1 or WWW::Nancy::tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
+    if (has_node_children(WWW::Nancy::tree_get($sourceTree, $path))) {
+      WWW::Nancy::tree_set($pages, $path, {});
+    } else {
+      my $name = catfile(@{$path});
+      print STDERR "$name:\n" if $list_files_flag;
+      my $out = WWW::Nancy::expand("\$include{$template}", $name, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
+      print STDERR "\n" if $list_files_flag;
+      WWW::Nancy::tree_set($pages, $path, $out);
+    }
+  }
+
+  # Analyze generated pages to print warnings if desired
+  if ($warn_flag) {
+    # Return the path made up of the first n components of p
+    sub subPath {
+      my ($p, $n) = @_;
+      my @path = splitdir($p);
+      return "" if $n > $#path + 1;
+      return catfile(@path[0 .. $n - 1]);
+    }
+
+    # Check for unused fragments and fragments all of whose uses have a
+    # common prefix that the fragment does not share.
+    foreach my $path (@{WWW::Nancy::tree_iterate_preorder($fragment_to_page, [], undef)}) {
+      my $node = WWW::Nancy::tree_get($fragment_to_page, $path);
+      if (WWW::Nancy::tree_isleaf($node)) {
+        my $name = catfile(@{$path});
+        if (!$node) {
+          print STDERR "`$name' is unused";
+        } elsif (UNIVERSAL::isa($node, "ARRAY")) {
+          my $prefix_len = scalar(splitdir(@{$node}[0]));
+          foreach my $page (@{$node}) {
+            for (;
+                 $prefix_len > 0 &&
+                   subPath($page, $prefix_len) ne
+                     subPath(@{$node}[0], $prefix_len);
+                 $prefix_len--)
+              {}
+          }
+          my $dir = subPath(@{$node}[0], $prefix_len);
+          print STDERR "`$name' could be moved into `$dir'"
+            if scalar(splitdir(dirname($name))) < $prefix_len &&
+              $dir ne subPath(dirname($name), $prefix_len);
+        }
+      }
+    }
+  }
+
+  return $pages;
+}
+
 
 return 1;
