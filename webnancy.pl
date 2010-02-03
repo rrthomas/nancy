@@ -1,6 +1,6 @@
 #!/usr/bin/perl -T
 # Web wrapper for Nancy
-# (c) 2002-2009 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
+# (c) 2002-2010 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
 # Distributed under the GNU General Public License
 
 use strict;
