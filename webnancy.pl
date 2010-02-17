@@ -16,15 +16,17 @@ use WWW::Nancy;
 my $BaseUrl = "/";
 # Root of source files
 my $DocumentRoot = "/var/www";
-
-my $template = "template.html";
+# File tree
+my $Tree = WWW::Nancy::find($DocumentRoot);
+# Template
+my $Template = "template.html";
 
 # Extract file name from URL
 my $page = unescape(url(-absolute => 1));
 $page =~ s|^$BaseUrl/?||;
-$page =~ s|\.html$||;
-$page = "index" if $page eq "";
-$template = "404.html" if !-d catfile($DocumentRoot, $page);
+$page = "index.html" if $page eq "";
+# FIXME: Look in the tree to check 404
+$Template = "404.html" if !-d catfile($DocumentRoot, $page);
 
 # Perform the request
-print header() . WWW::Nancy::expand("\$include{$template}", $DocumentRoot, $page, WWW::Nancy::find($DocumentRoot));
+print header() . WWW::Nancy::expand("\$include{$Template}", $page, $Tree);
