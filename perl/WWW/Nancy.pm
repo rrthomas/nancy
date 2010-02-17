@@ -22,6 +22,16 @@ my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
 # Tree operations
 # FIXME: Put them in their own module
 
+sub tree_dump {
+  my ($tree) = @_;
+  foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
+    my $node = tree_get($tree, $path);
+    print STDERR (join "/", @{$path});
+    print STDERR ":" if !tree_isleaf($node);
+    print STDERR "\n";
+  }
+}
+
 # Return subtree at given path
 sub tree_get {
   my ($tree, $path) = @_;
@@ -108,23 +118,35 @@ sub findFragment {
   my ($path, $fragment) = @_;
   my ($name, $contents);
   for (my @search = splitdir($path); 1; pop @search) {
-    push @search, $fragment;
-    my $node = tree_get($fragments, \@search);
+    my @thissearch = @search;
+    my @fragpath = splitdir($fragment);
+    # Cope with `..' and `.' (need to do this each time round the
+    # loop). There is no obvious standard function to do this, because
+    # File::Spec::canonpath does not do `..' removal, as that does not
+    # work with symlinks; in other words, Nancy's relative paths don't
+    # behave in the presence of symlinks.
+    foreach my $elem (@fragpath) {
+      if ($elem eq "..") {
+        pop @thissearch;
+      } elsif ($elem ne ".") {
+        push @thissearch, $elem;
+      }
+    }
+    my $node = tree_get($fragments, \@thissearch);
     if (defined($node) && !ref($node)) { # We have a fragment, not a directory
-      my $new_name = catfile(@search);
+      my $new_name = catfile(@thissearch);
       print STDERR "  $new_name\n" if $list_files_flag;
       warn("`$new_name' is identical to `$name'") if $warn_flag && defined($contents) && $contents eq $node;
       $name = $new_name;
-      $contents = $node;
+      $contents = slurp($node);
       if ($fragment_to_page) {
-        my $used_list = tree_get($fragment_to_page, \@search);
+        my $used_list = tree_get($fragment_to_page, \@thissearch);
         $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
         push @{$used_list}, $path;
-        tree_set($fragment_to_page, \@search, $used_list);
-        last;
+        tree_set($fragment_to_page, \@thissearch, $used_list);
       }
+      last;
     }
-    pop @search;
     last if $#search == -1;
   }
   warn("Cannot find `$fragment' while building `$path'\n") unless $contents;
@@ -211,7 +233,7 @@ sub slurp_tree {
   # empty directories)
   return if basename($obj) eq ".svn"; # Ignore irrelevant objects
   if (-f $obj) {
-    return slurp($obj);
+    return $obj;
   } elsif (-d $obj) {
     my %dir = ();
     opendir(DIR, $obj);
@@ -237,7 +259,7 @@ sub find {
   # Get rid of empty files and directories
   foreach my $path (@{tree_iterate_preorder($out, [], undef)}) {
     my $node = tree_get($out, $path);
-    if ((tree_isleaf($node) && length($node) == 0) ||
+    if ((tree_isleaf($node) && -z $node) ||
           (!tree_isleaf($node) && scalar keys %{$node} == 0)) {
       tree_delete($out, $path);
     }
@@ -248,15 +270,15 @@ sub find {
 # Write $tree to a file hierarchy based at $root
 sub write_tree {
   my ($tree, $root) = @_;
-  foreach my $path (@{WWW::Nancy::tree_iterate_preorder($tree, [], undef)}) {
+  foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
     my $name = "";
     $name = catfile(@{$path}) if $#$path != -1;
-    my $node = WWW::Nancy::tree_get($tree, $path);
-    if (!WWW::Nancy::tree_isleaf($node)) {
+    my $node = tree_get($tree, $path);
+    if (!tree_isleaf($node)) {
       mkdir catfile($root, $name);
     } else {
       open OUT, ">" . catfile($root, $name) or print STDERR "Could not write to `$name'";
-      print OUT $node;
+      print OUT slurp($node);
       close OUT;
     }
   }
@@ -267,10 +289,10 @@ sub expand_tree {
   my ($sourceTree, $template, $warn_flag, $list_files_flag) = @_;
 
   # Fragment to page tree
-  my $fragment_to_page = WWW::Nancy::tree_copy($sourceTree);
-  foreach my $path (@{WWW::Nancy::tree_iterate_preorder($sourceTree, [], undef)}) {
-    WWW::Nancy::tree_set($fragment_to_page, $path, undef)
-        if WWW::Nancy::tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
+  my $fragment_to_page = tree_copy($sourceTree);
+  foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
+    tree_set($fragment_to_page, $path, undef)
+        if tree_isleaf(tree_get($sourceTree, $path));
   }
 
   # Return true if a tree node has non-leaf children
@@ -283,16 +305,16 @@ sub expand_tree {
 
   # Walk tree, generating pages
   my $pages = {};
-  foreach my $path (@{WWW::Nancy::tree_iterate_preorder($sourceTree, [], undef)}) {
-    next if $#$path == -1 or WWW::Nancy::tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
-    if (has_node_children(WWW::Nancy::tree_get($sourceTree, $path))) {
-      WWW::Nancy::tree_set($pages, $path, {});
+  foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
+    next if $#$path == -1 or tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
+    if (has_node_children(tree_get($sourceTree, $path))) {
+      tree_set($pages, $path, {});
     } else {
       my $name = catfile(@{$path});
       print STDERR "$name:\n" if $list_files_flag;
-      my $out = WWW::Nancy::expand("\$include{$template}", $name, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
+      my $out = expand("\$include{$template}", $name, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
       print STDERR "\n" if $list_files_flag;
-      WWW::Nancy::tree_set($pages, $path, $out);
+      tree_set($pages, $path, $out);
     }
   }
 
@@ -308,9 +330,9 @@ sub expand_tree {
 
     # Check for unused fragments and fragments all of whose uses have a
     # common prefix that the fragment does not share.
-    foreach my $path (@{WWW::Nancy::tree_iterate_preorder($fragment_to_page, [], undef)}) {
-      my $node = WWW::Nancy::tree_get($fragment_to_page, $path);
-      if (WWW::Nancy::tree_isleaf($node)) {
+    foreach my $path (@{tree_iterate_preorder($fragment_to_page, [], undef)}) {
+      my $node = tree_get($fragment_to_page, $path);
+      if (tree_isleaf($node)) {
         my $name = catfile(@{$path});
         if (!$node) {
           print STDERR "`$name' is unused";
