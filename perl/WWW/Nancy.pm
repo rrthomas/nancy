@@ -180,7 +180,7 @@ sub expand {
       my ($fragpath, $contents) = findFragment($path, $fragment);
       my $text = "";
       if ($fragpath) {
-        $text .= "***INCLUDE: $name***" if $list_files_flag;
+        $text .= "***INCLUDE: $fragpath***" if $list_files_flag;
         $text .= $contents;
       }
       return $text;
