@@ -16,7 +16,6 @@ use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
 
-
 my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
 
 
@@ -103,7 +102,7 @@ sub tree_merge {
 sub findFragment {
   my ($path, $fragment) = @_;
   my ($name, $contents, $node);
-  for (my @search = splitdir($path); 1; pop @search) {
+  for (my @search = @{$path}; 1; pop @search) {
     my @thissearch = @search;
     my @fragpath = splitdir($fragment);
     # Cope with `..' and `.' (need to do this each time round the
@@ -128,15 +127,14 @@ sub findFragment {
       if ($fragment_to_page) {
         my $used_list = tree_get($fragment_to_page, \@search);
         $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
-        push @{$used_list}, $path;
-        tree_set($fragment_to_page, \@search, $used_list);
-        last;
+        push @{$used_list}, catfile($path);
+        tree_set($fragment_to_page, \@thissearch, $used_list);
       }
     }
     pop @search;
     last if $#search == -1;
   }
-  warn("Cannot find `$fragment' while building `$path'\n") unless $contents;
+  warn("Cannot find `$fragment' while building `" . catfile($path) ."'\n") unless $contents;
   return $name, $contents, $node;
 }
 
@@ -161,30 +159,27 @@ sub doMacros {
 
 # Expand commands in some text
 #   $text - text to expand
-#   $tree - source tree path
-#   $page - leaf directory to make into a page
+#   $path - leaf directory to make into a page
 #   $fragments - tree of fragments
 #   [$fragment_to_page] - tree of fragment to page maps
 #   [$warn_flag] - whether to output warnings
 #   [$list_files_flag] - whether to output fragment lists
 # returns expanded text
 sub expand {
-  my ($text, $tree, $page);
-  ($text, $tree, $page, $fragments, $fragment_to_page, $warn_flag, $list_files_flag) = @_;
+  my ($text, $path);
+  ($text, $path, $fragments, $fragment_to_page, $warn_flag, $list_files_flag) = @_;
   my %macros = (
     page => sub {
-      # Split and join needed for platforms whose path separator is not "/"
-      my @url = splitdir($page);
-      return join "/", @url;
+      # join, not catdir as we're making a URL, not a path
+      return join "/", @{$path};
     },
     root => sub {
-      my $reps = scalar(splitdir($page)) - 1;
-      return join "/", (("..") x $reps) if $reps > 0;
+      return join "/", (("..") x $#{$path}) if $#{$path} > 0;
       return ".";
     },
     include => sub {
       my ($fragment) = @_;
-      my ($name, $contents) = findFragment($page, $fragment);
+      my ($name, $contents) = findFragment($path, $fragment);
       my $text = "";
       if ($name) {
         $text .= "***INCLUDE: $name***" if $list_files_flag;
@@ -194,7 +189,7 @@ sub expand {
     },
     run => sub {
       my ($prog) = shift;
-      my ($name, $contents) = findFragment($page, $prog);
+      my ($name, $contents) = findFragment($path, $prog);
       if ($name) {
         my $sub = eval(untaint($contents));
         return &{$sub}(@_);
@@ -271,7 +266,7 @@ sub write_tree {
   my ($tree, $root) = @_;
   foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
     my $name = "";
-    $name = catfile(@{$path}) if $#$path != -1;
+    $name = catfile($path) if $#$path != -1;
     my $node = tree_get($tree, $path);
     if (!tree_isleaf($node)) {
       mkdir catfile($root, $name);
@@ -311,9 +306,8 @@ sub expand_tree {
     if (has_node_children(tree_get($sourceTree, $path)) || ($path->[$#{$path}] !~ /\./)) {
       tree_set($pages, $path, {});
     } else {
-      my $name = catfile(@{$path});
-      print STDERR "$name:\n" if $list_files_flag;
-      my $out = expand("\$include{$template}", $name, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
+      print STDERR catfile($path) . ":\n" if $list_files_flag;
+      my $out = expand("\$include{$template}", $path, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
       print STDERR "\n" if $list_files_flag;
       tree_set($pages, $path, $out);
     }
@@ -334,7 +328,7 @@ sub expand_tree {
     foreach my $path (@{tree_iterate_preorder($fragment_to_page, [], undef)}) {
       my $node = tree_get($fragment_to_page, $path);
       if (tree_isleaf($node)) {
-        my $name = catfile(@{$path});
+        my $name = catfile($path);
         if (!$node) {
           print STDERR "`$name' is unused";
         } elsif (UNIVERSAL::isa($node, "ARRAY")) {
