@@ -162,12 +162,11 @@ sub doMacros {
 #   $path - leaf directory to make into a page
 #   $fragments - tree of fragments
 #   [$fragment_to_page] - tree of fragment to page maps
-#   [$warn_flag] - whether to output warnings
 #   [$list_files_flag] - whether to output fragment lists
 # returns expanded text
 sub expand {
   my ($text, $path);
-  ($text, $path, $fragments, $fragment_to_page, $warn_flag, $list_files_flag) = @_;
+  ($text, $path, $fragments, $fragment_to_page, $list_files_flag) = @_;
   my %macros = (
     page => sub {
       # join, not catdir as we're making a URL, not a path
@@ -277,7 +276,8 @@ sub write_tree {
 
 # Macro expand a tree
 sub expand_tree {
-  my ($sourceTree, $template, $warn_flag, $list_files_flag) = @_;
+  my ($sourceTree, $template);
+  ($sourceTree, $template, $warn_flag, $list_files_flag) = @_;
 
   # Fragment to page tree
   my $fragment_to_page = tree_copy($sourceTree);
@@ -304,7 +304,7 @@ sub expand_tree {
       tree_set($pages, $path, {});
     } else {
       print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
-      my $out = expand("\$include{$template}", $path, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
+      my $out = expand("\$include{$template}", $path, $sourceTree, $fragment_to_page, $list_files_flag);
       print STDERR "\n" if $list_files_flag;
       tree_set($pages, $path, $out);
     }
