@@ -97,12 +97,12 @@ sub tree_merge {
 
 
 # Search for fragment starting at the given path; if found return its
-# name, contents and file name; if not, print a warning and return
+# path, contents and file name; if not, print a warning and return
 # undef.
 sub findFragment {
   my ($path, $fragment) = @_;
   my @fragpath = splitdir($fragment);
-  my ($name, $contents, $node);
+  my (@foundpath, $contents, $node);
   for (my @search = @{$path}; 1; pop @search) {
     my @thissearch = @search;
     # Append fragment path, coping with `..' and `.'. There is no
@@ -119,11 +119,11 @@ sub findFragment {
     }
     $node = tree_get($fragments, \@thissearch);
     if (defined($node) && tree_isleaf($node)) { # We have a fragment, not a directory
-      my $new_name = catfile(@thissearch);
       my $new_contents = slurp($node);
-      print STDERR "  $new_name\n" if $list_files_flag;
-      warn("`$new_name' is identical to `$name'") if $warn_flag && defined($contents) && $new_contents eq $contents;
-      $name = $new_name;
+      print STDERR "  " . catfile(@thissearch) . "\n" if $list_files_flag;
+      warn("`" . catfile(@thissearch) . "' is identical to `" . catfile(@foundpath) . "'")
+        if $warn_flag && defined($contents) && $new_contents eq $contents;
+      @foundpath = @thissearch;
       $contents = $new_contents;
       if ($fragment_to_page) {
         my $used_list = tree_get($fragment_to_page, \@search);
@@ -136,7 +136,7 @@ sub findFragment {
     last if $#search == -1;
   }
   warn("Cannot find `$fragment' while building `" . catfile(@{$path}) ."'\n") unless $contents;
-  return $name, $contents, $node;
+  return \@foundpath, $contents, $node;
 }
 
 # Process a command; if the command is undefined, replace it, uppercased
