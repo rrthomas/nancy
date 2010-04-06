@@ -206,7 +206,6 @@ sub expand {
 }
 
 # Read a directory tree into a tree
-# Report duplicate fragments one of which masks the other.
 # FIXME: Separate directory tree traversal from tree building
 # FIXME: Make exclusion easily extensible, and add patterns for
 # common VCSs (use tar's --exclude-vcs patterns) and editor backup
@@ -230,6 +229,18 @@ sub read_tree {
     return \%dir; # if $#file != -1; # Ignore empty directories
   }
   # We get here if we are ignoring the file, and return nothing.
+}
+
+# Slurp the leaves of a tree, assuming they are filenames
+sub tree_slurp {
+  my ($tree) = @_;
+  foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
+    my $node = tree_get($tree, $path);
+    if (tree_isleaf($node)) {
+      tree_set($tree, $path, scalar(slurp($node)));
+    }
+  }
+  return $tree;
 }
 
 # Construct file tree from multiple source trees, masking out empty
@@ -291,7 +302,7 @@ sub expand_tree {
   # Walk tree, generating pages
   my $pages = {};
   foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
-    next if $#$path == -1 or tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
+    next if $#$path == -1 or tree_isleaf(tree_get($sourceTree, $path));
     if (has_node_children(tree_get($sourceTree, $path))) {
       tree_set($pages, $path, {});
     } else {
