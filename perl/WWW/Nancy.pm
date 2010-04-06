@@ -338,6 +338,7 @@ sub expand_page {
           my @pagepath = @{$path};
           pop @pagepath; # Remove current directory, which represents a page
           make_fragment_path(\@pagepath, $link);
+          no warnings qw(recursion); # We may recurse deeply.
           expand_page($fragments, \@pagepath);
         }
       }
