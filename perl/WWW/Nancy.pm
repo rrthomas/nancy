@@ -273,6 +273,22 @@ sub write_tree {
   }
 }
 
+# Return true if a tree node has non-leaf children
+sub has_node_children {
+  my ($tree) = @_;
+  foreach my $node (keys %{$tree}) {
+    return 1 if !tree_isleaf($tree->{$node});
+  }
+}
+
+# Return the path made up of the first n components of p
+sub subPath {
+  my ($p, $n) = @_;
+  my @path = splitdir($p);
+  return "" if $n > $#path + 1;
+  return catfile(@path[0 .. $n - 1]);
+}
+
 # Macro expand a tree
 sub expand_tree {
   my ($sourceTree, $template);
@@ -283,14 +299,6 @@ sub expand_tree {
   foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
     tree_set($fragment_to_page, $path, undef)
         if tree_isleaf(tree_get($sourceTree, $path));
-  }
-
-  # Return true if a tree node has non-leaf children
-  sub has_node_children {
-    my ($tree) = @_;
-    foreach my $node (keys %{$tree}) {
-      return 1 if !tree_isleaf($tree->{$node});
-    }
   }
 
   # Walk tree, generating pages
@@ -311,14 +319,6 @@ sub expand_tree {
 
   # Analyze generated pages to print warnings if desired
   if ($warn_flag) {
-    # Return the path made up of the first n components of p
-    sub subPath {
-      my ($p, $n) = @_;
-      my @path = splitdir($p);
-      return "" if $n > $#path + 1;
-      return catfile(@path[0 .. $n - 1]);
-    }
-
     # Check for unused fragments and fragments all of whose uses have a
     # common prefix that the fragment does not share.
     foreach my $path (@{tree_iterate_preorder($fragment_to_page, [], undef)}) {
