@@ -8,12 +8,12 @@
 \frenchspacing
 
 % New commands
-\renewcommand{\copyrightyear}{2002--2008}
+\renewcommand{\copyrightyear}{2002--2010}
 
 \begin{document}
 
 \title{Nancy, the lazy web site builder\\User's guide}
-\date{31st December 2008}
+\date{20th March 2010}
 \author{Reuben Thomas}
 \maketitle
 
@@ -28,10 +28,10 @@ Nancy is a command-line tool.
 Nancy takes three (or optionally four) arguments:
 
 \begin{verbatim}
-nancy.pl [OPTIONS] SOURCE DESTINATION TEMPLATE [BRANCH]
+nancy.pl [OPTIONS] SOURCES DESTINATION TEMPLATE [BRANCH]
 \end{verbatim}
 
-\noindent where \verb|SOURCE| is the source directory tree, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of the \verb|SOURCE| tree to process (if it is omitted, the complete source tree is processed).
+\noindent where \verb|SOURCES| is a colon-separated list of directories that contain the source, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of the \verb|SOURCE| trees to process (if it is omitted, the complete source trees are processed).
 
 The following command-line options may be given to Nancy:
 
@@ -54,7 +54,8 @@ The options may be abbreviated to any unambiguous prefix.
 Nancy produces the finished pages according to the following algorithm:
 
 \begin{enumerate}
-\item For each leaf directory (that is, a directory that contains only files) in the source tree, start from that directory.
+\item Scan the source trees from right to left, adding the directories that appear in each tree to a list. If a given directory is empty, remove it and its contents from the list.
+\item For each leaf directory (that is, a directory that contains only files) of the list of source directories, start from that directory.
 \item Set the initial text to \verb|$include{TEMPLATE}|.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
 \item Write the resultant text to a file: for each directory \verb|SOURCE/LEAF_PATH| the output file is \verb|DESTINATION/LEAF_PATH|.
@@ -88,12 +89,15 @@ Only one guarantee is made about the order in which commands are processed: if o
 
 To find the file \verb|FILE_PATH| specified by an \verb|$include| command, Nancy proceeds thus:
 
+\begin{itemize}
+\item Consider the source trees in left-to-right order:
 \begin{enumerate}
 \item Look in \verb|SOURCE/BRANCH/LEAF_PATH/FILE_PATH|.
 \item If the file is not found, remove the final directory from
 \verb|LEAF_PATH| and try again, until \verb|LEAF_PATH| is empty.
 \item Finally, try looking in \verb|SOURCE/BRANCH/FILE_PATH|.
 \end{enumerate}
+\end{itemize}
 
 For example, if \verb|SOURCES| is \verb|/dir|, \verb|BRANCH| is omitted and \verb|FILE_PATH| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
 
@@ -108,6 +112,8 @@ For example, if \verb|SOURCES| is \verb|/dir|, \verb|BRANCH| is omitted and \ver
 % FIXME: add use of $root{}: a link from a Person to a Place
 % FIXME: add use of $page{} and $run{} (together? I don't currently
 % have another use for $page{})
+% FIXME: illustrate the use of multiple source trees (based on the
+% tests)
 % FIXME: the examples are unclear; really ought to be actual web pages % with some sort of structure diagrams automatically generated
 
 Suppose a web site has the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
