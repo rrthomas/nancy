@@ -16,7 +16,7 @@ use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
 
-my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $extra_output);
+my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $output);
 
 
 # Tree operations
@@ -306,7 +306,7 @@ sub subPath {
 # Add a page to the output (for calling from $run scripts)
 sub add_output {
   my ($path, $contents) = @_;
-  tree_set($extra_output, $path, $contents);
+  tree_set($output, $path, $contents);
 }
 
 # Macro expand a tree
@@ -323,18 +323,15 @@ sub expand_tree {
 
   # Walk tree, generating pages
   # FIXME: Non-leaf directories with dot in name should generate warning
-  my $pages = {};
-  $extra_output = {};
+  $output = {};
   foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
     next if $#$path == -1 or tree_isleaf(tree_get($sourceTree, $path));
-    # If a non-leaf directory or no dot in its name
-    if (has_node_children(tree_get($sourceTree, $path)) || ($path->[$#{$path}] !~ /\./)) {
-      tree_set($pages, $path, {});
-    } else {
+    # If a leaf directory with a dot in its name
+    if (!has_node_children(tree_get($sourceTree, $path)) && ($path->[$#{$path}] =~ /\./)) {
       print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
       my $out = expand("\$include{$template}", $path, $sourceTree);
       print STDERR "\n" if $list_files_flag;
-      tree_set($pages, $path, $out);
+      tree_set($output, $path, $out);
     }
   }
 
@@ -367,7 +364,7 @@ sub expand_tree {
     }
   }
 
-  return tree_merge($pages, $extra_output);
+  return $output;
 }
 
 
