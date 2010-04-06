@@ -177,9 +177,9 @@ sub expand {
     },
     include => sub {
       my ($fragment) = @_;
-      my ($name, $contents) = findFragment($path, $fragment);
+      my ($fragpath, $contents) = findFragment($path, $fragment);
       my $text = "";
-      if ($name) {
+      if ($fragpath) {
         $text .= "***INCLUDE: $name***" if $list_files_flag;
         $text .= $contents;
       }
@@ -187,8 +187,8 @@ sub expand {
     },
     run => sub {
       my ($prog) = shift;
-      my ($name, $contents) = findFragment($path, $prog);
-      return &{eval(untaint($contents))}(@_) if $name;
+      my ($fragpath, $contents) = findFragment($path, $prog);
+      return &{eval(untaint($contents))}(@_) if $fragpath;
       return "";
     },
   );
