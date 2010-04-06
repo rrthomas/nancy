@@ -362,7 +362,7 @@ sub expand_tree {
   $output = {};
   expand_page($sourceTree, [$start]);
 
-  # Analyze generated pages to print warnings if desired
+  # Analyse generated pages to print warnings if desired
   if ($warn_flag) {
     # Check for unused fragments and fragments all of whose uses have a
     # common prefix that the fragment does not share.
