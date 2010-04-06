@@ -12,8 +12,7 @@ use warnings;
 
 use File::Basename;
 use File::Spec::Functions qw(catfile splitdir);
-
-use File::Slurp qw(slurp); # For $run scripts to use
+use File::Slurp qw(slurp); # Also used in $run scripts
 
 
 my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
@@ -95,14 +94,28 @@ sub tree_merge {
 }
 
 
-# Search for fragment starting at the given path; if found return
-# its name and contents; if not, print a warning and return undef.
+# Search for fragment starting at the given path; if found return its
+# name, contents and file name; if not, print a warning and return
+# undef.
 sub findFragment {
   my ($path, $fragment) = @_;
-  my ($name, $contents);
+  my ($name, $contents, $node);
   for (my @search = splitdir($path); 1; pop @search) {
-    push @search, $fragment;
-    my $node = tree_get($fragments, \@search);
+    my @thissearch = @search;
+    my @fragpath = splitdir($fragment);
+    # Cope with `..' and `.' (need to do this each time round the
+    # loop). There is no obvious standard function to do this, because
+    # File::Spec::canonpath does not do `..' removal, as that does not
+    # work with symlinks; in other words, Nancy's relative paths don't
+    # behave in the presence of symlinks.
+    foreach my $elem (@fragpath) {
+      if ($elem eq "..") {
+        pop @thissearch;
+      } elsif ($elem ne ".") {
+        push @thissearch, $elem;
+      }
+    }
+    $node = tree_get($fragments, \@thissearch);
     if (defined($node) && !ref($node)) { # We have a fragment, not a directory
       my $new_name = catfile(@search);
       print STDERR "  $new_name\n" if $list_files_flag;
@@ -121,7 +134,7 @@ sub findFragment {
     last if $#search == -1;
   }
   warn("Cannot find `$fragment' while building `$path'\n") unless $contents;
-  return $name, $contents;
+  return $name, $contents, $node;
 }
 
 # Process a command; if the command is undefined, replace it, uppercased
