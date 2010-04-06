@@ -120,10 +120,11 @@ sub findFragment {
     $node = tree_get($fragments, \@thissearch);
     if (defined($node) && tree_isleaf($node)) { # We have a fragment, not a directory
       my $new_name = catfile(@thissearch);
+      my $new_contents = slurp($node);
       print STDERR "  $new_name\n" if $list_files_flag;
-      warn("`$new_name' is identical to `$name'") if $warn_flag && defined($contents) && $contents eq $node;
+      warn("`$new_name' is identical to `$name'") if $warn_flag && defined($contents) && $new_contents eq $contents;
       $name = $new_name;
-      $contents = $node;
+      $contents = $new_contents;
       if ($fragment_to_page) {
         my $used_list = tree_get($fragment_to_page, \@search);
         $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
@@ -267,7 +268,7 @@ sub write_tree {
     if (!tree_isleaf($node)) {
       mkdir catfile($root, $name);
     } else {
-      open OUT, ">" . catfile($root, $name) or print STDERR "Could not write to `$name'";
+      open OUT, ">" . catfile($root, $name) or print STDERR "Could not write to `$name'\n";
       print OUT $node;
       close OUT;
     }
@@ -327,7 +328,7 @@ sub expand_tree {
       if (tree_isleaf($node)) {
         my $name = catfile(@{$path});
         if (!$node) {
-          print STDERR "`$name' is unused";
+          print STDERR "`$name' is unused\n";
         } elsif (UNIVERSAL::isa($node, "ARRAY")) {
           my $prefix_len = scalar(splitdir(@{$node}[0]));
           foreach my $page (@{$node}) {
@@ -339,7 +340,7 @@ sub expand_tree {
               {}
           }
           my $dir = subPath(@{$node}[0], $prefix_len);
-          print STDERR "`$name' could be moved into `$dir'"
+          print STDERR "`$name' could be moved into `$dir'\n"
             if scalar(splitdir(dirname($name))) < $prefix_len &&
               $dir ne subPath(dirname($name), $prefix_len);
         }
