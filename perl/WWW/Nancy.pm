@@ -325,9 +325,9 @@ sub expand_tree {
   # FIXME: Non-leaf directories with dot in name should generate warning
   $output = {};
   foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
-    next if $#$path == -1 or tree_isleaf(tree_get($sourceTree, $path));
     # If a leaf directory with a dot in its name
-    if (!has_node_children(tree_get($sourceTree, $path)) && ($path->[$#{$path}] =~ /\./)) {
+    if ($#$path != -1 && !tree_isleaf(tree_get($sourceTree, $path)) &&
+          !has_node_children(tree_get($sourceTree, $path)) && ($path->[$#{$path}] =~ /\./)) {
       print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
       my $out = expand("\$include{$template}", $path, $sourceTree);
       print STDERR "\n" if $list_files_flag;
