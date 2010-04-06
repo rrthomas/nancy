@@ -16,9 +16,11 @@ use WWW::Nancy;
 my $BaseUrl = "/";
 # Root of source files
 my $DocumentRoot = "/var/www";
+# Template
+my $Template = "template.html";
 
-my $template = "template.html";
-
+# File tree
+my $tree = WWW::Nancy::find($DocumentRoot);
 # Extract file name from URL
 my $page = unescape(url(-absolute => 1));
 $page =~ s|^$BaseUrl/?||;
@@ -26,5 +28,5 @@ $page =~ s|\.html$||;
 $page = "index" if $page eq "";
 $template = "404.html" if !-d catfile($DocumentRoot, $page);
 
-# Perform the request
-print header() . WWW::Nancy::expand("\$include{$template}", $DocumentRoot, $page);
+# Output page
+print header() . WWW::Nancy::expand("\$include{$Template}", $page, $tree);
