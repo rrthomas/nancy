@@ -26,7 +26,7 @@ my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
 sub tree_get {
   my ($tree, $path) = @_;
   foreach my $elem (@{$path}) {
-    last if !ref($tree);
+    last if tree_isleaf($tree);
     $tree = $tree->{$elem};
   }
   return $tree;
@@ -118,8 +118,8 @@ sub findFragment {
       }
     }
     $node = tree_get($fragments, \@thissearch);
-    if (defined($node) && !ref($node)) { # We have a fragment, not a directory
-      my $new_name = catfile(@search);
+    if (defined($node) && !!tree_isleaf($node)) { # We have a fragment, not a directory
+      my $new_name = catfile(@thissearch);
       print STDERR "  $new_name\n" if $list_files_flag;
       warn("`$new_name' is identical to `$name'") if $warn_flag && defined($contents) && $contents eq $node;
       $name = $new_name;
@@ -127,14 +127,14 @@ sub findFragment {
       if ($fragment_to_page) {
         my $used_list = tree_get($fragment_to_page, \@search);
         $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
-        push @{$used_list}, catfile($path);
+        push @{$used_list}, catfile(@{$path});
         tree_set($fragment_to_page, \@thissearch, $used_list);
       }
     }
     pop @search;
     last if $#search == -1;
   }
-  warn("Cannot find `$fragment' while building `" . catfile($path) ."'\n") unless $contents;
+  warn("Cannot find `$fragment' while building `" . catfile(@{$path}) ."'\n") unless $contents;
   return $name, $contents, $node;
 }
 
@@ -266,7 +266,7 @@ sub write_tree {
   my ($tree, $root) = @_;
   foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
     my $name = "";
-    $name = catfile($path) if $#$path != -1;
+    $name = catfile(@{$path}) if $#$path != -1;
     my $node = tree_get($tree, $path);
     if (!tree_isleaf($node)) {
       mkdir catfile($root, $name);
@@ -293,7 +293,7 @@ sub expand_tree {
   sub has_node_children {
     my ($tree) = @_;
     foreach my $node (keys %{$tree}) {
-      return 1 if ref($tree->{$node});
+      return 1 if !tree_isleaf($tree->{$node});
     }
   }
 
@@ -306,7 +306,7 @@ sub expand_tree {
     if (has_node_children(tree_get($sourceTree, $path)) || ($path->[$#{$path}] !~ /\./)) {
       tree_set($pages, $path, {});
     } else {
-      print STDERR catfile($path) . ":\n" if $list_files_flag;
+      print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
       my $out = expand("\$include{$template}", $path, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
       print STDERR "\n" if $list_files_flag;
       tree_set($pages, $path, $out);
@@ -328,7 +328,7 @@ sub expand_tree {
     foreach my $path (@{tree_iterate_preorder($fragment_to_page, [], undef)}) {
       my $node = tree_get($fragment_to_page, $path);
       if (tree_isleaf($node)) {
-        my $name = catfile($path);
+        my $name = catfile(@{$path});
         if (!$node) {
           print STDERR "`$name' is unused";
         } elsif (UNIVERSAL::isa($node, "ARRAY")) {
