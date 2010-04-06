@@ -328,8 +328,9 @@ sub expand_page {
       print STDERR "\n" if $list_files_flag;
       tree_set($output, $path, $out);
 
-      # Find all local links and add them to output
-      my @links = $out =~ /\Whref=\"(?!(?:http|mailto):)([^\"\#]+)/g;
+      # Find all local links and add them to output (a local link is
+      # one that doesn't start with a scheme)
+      my @links = $out =~ /\Whref=\"(?![a-z]+:)([^\"\#]+)/g;
       foreach my $link (@links) {
         if ($link !~ /\.html$/) {
           my ($path, $contents) = findFragment($path, $link);
