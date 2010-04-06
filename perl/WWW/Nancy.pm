@@ -108,7 +108,7 @@ sub findFragment {
     # Cope with `..' and `.' (need to do this each time round the
     # loop). There is no obvious standard function to do this, because
     # File::Spec::canonpath does not do `..' removal, as that does not
-    # work with symlinks; in other words, Nancy's relative paths don't
+    # work with symlinks; in other words, our relative paths don't
     # behave in the presence of symlinks.
     foreach my $elem (@fragpath) {
       if ($elem eq "..") {
