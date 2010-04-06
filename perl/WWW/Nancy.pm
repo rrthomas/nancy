@@ -359,7 +359,7 @@ sub expand_tree {
       if tree_isleaf(tree_get($sourceTree, $path));
   }
 
-  # Expand tree, starting from root index.html
+  # Expand tree, starting from $start
   $output = {};
   expand_page($sourceTree, [$start]);
 
