@@ -231,4 +231,96 @@ sub find {
   return $out;
 }
 
+# Write $tree to a file hierarchy based at $root
+sub write_tree {
+  my ($tree, $root) = @_;
+  foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
+    my $name = "";
+    $name = catfile(@{$path}) if $#$path != -1;
+    my $node = tree_get($tree, $path);
+    if (!tree_isleaf($node)) {
+      mkdir catfile($root, $name);
+    } else {
+      open OUT, ">" . catfile($root, $name) or print STDERR "Could not write to `$name'";
+      print OUT $node;
+      close OUT;
+    }
+  }
+}
+
+# Macro expand a tree
+sub expand_tree {
+  my ($sourceTree, $template, $warn_flag, $list_files_flag) = @_;
+
+  # Fragment to page tree
+  my $fragment_to_page = tree_copy($sourceTree);
+  foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
+    tree_set($fragment_to_page, $path, undef)
+        if tree_isleaf(tree_get($sourceTree, $path));
+  }
+
+  # Return true if a tree node has non-leaf children
+  sub has_node_children {
+    my ($tree) = @_;
+    foreach my $node (keys %{$tree}) {
+      return 1 if ref($tree->{$node});
+    }
+  }
+
+  # Walk tree, generating pages
+  my $pages = {};
+  foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
+    next if $#$path == -1 or tree_isleaf(WWW::Nancy::tree_get($sourceTree, $path));
+    if (has_node_children(tree_get($sourceTree, $path))) {
+      tree_set($pages, $path, {});
+    } else {
+      my $name = catfile(@{$path});
+      print STDERR "$name:\n" if $list_files_flag;
+      my $out = expand("\$include{$template}", $name, $sourceTree, $fragment_to_page, $warn_flag, $list_files_flag);
+      print STDERR "\n" if $list_files_flag;
+      tree_set($pages, $path, $out);
+    }
+  }
+
+  # Analyze generated pages to print warnings if desired
+  if ($warn_flag) {
+    # Return the path made up of the first n components of p
+    sub subPath {
+      my ($p, $n) = @_;
+      my @path = splitdir($p);
+      return "" if $n > $#path + 1;
+      return catfile(@path[0 .. $n - 1]);
+    }
+
+    # Check for unused fragments and fragments all of whose uses have a
+    # common prefix that the fragment does not share.
+    foreach my $path (@{tree_iterate_preorder($fragment_to_page, [], undef)}) {
+      my $node = tree_get($fragment_to_page, $path);
+      if (tree_isleaf($node)) {
+        my $name = catfile(@{$path});
+        if (!$node) {
+          print STDERR "`$name' is unused";
+        } elsif (UNIVERSAL::isa($node, "ARRAY")) {
+          my $prefix_len = scalar(splitdir(@{$node}[0]));
+          foreach my $page (@{$node}) {
+            for (;
+                 $prefix_len > 0 &&
+                   subPath($page, $prefix_len) ne
+                     subPath(@{$node}[0], $prefix_len);
+                 $prefix_len--)
+              {}
+          }
+          my $dir = subPath(@{$node}[0], $prefix_len);
+          print STDERR "`$name' could be moved into `$dir'"
+            if scalar(splitdir(dirname($name))) < $prefix_len &&
+              $dir ne subPath(dirname($name), $prefix_len);
+        }
+      }
+    }
+  }
+
+  return $pages;
+}
+
+
 return 1;
