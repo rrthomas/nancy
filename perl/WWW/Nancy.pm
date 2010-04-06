@@ -190,10 +190,7 @@ sub expand {
     run => sub {
       my ($prog) = shift;
       my ($name, $contents) = findFragment($path, $prog);
-      if ($name) {
-        my $sub = eval(untaint($contents));
-        return &{$sub}(@_);
-      }
+      return &{eval(untaint($contents))}(@_) if $name;
       return "";
     },
   );
