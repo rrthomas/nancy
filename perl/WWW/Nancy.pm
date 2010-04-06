@@ -16,7 +16,7 @@ use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
 
-my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
+my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $extra_output);
 
 
 # Tree operations
@@ -38,12 +38,26 @@ sub tree_get {
 # FIXME: Return whether we needed to create intermediate nodes
 sub tree_set {
   my ($tree, $path, $val) = @_;
-  my $leaf = pop @{$path};
-  foreach my $node (@{$path}) {
+  my @path = @{$path};
+  my $leaf = pop @path;
+  return unless defined($leaf); # Ignore attempts to set entire tree
+  foreach my $node (@path) {
     $tree->{$node} = {} if !defined($tree->{$node});
     $tree = $tree->{$node};
   }
   $tree->{$leaf} = $val;
+}
+
+# Remove subtree at given path
+sub tree_delete {
+  my ($tree, $path, $val) = @_;
+  my @path = @{$path};
+  my $leaf = pop @path;
+  foreach my $node (@path) {
+    return if !exists($tree->{$node});
+    $tree = $tree->{$node};
+  }
+  delete $tree->{$leaf};
 }
 
 # Return whether tree is a leaf
@@ -289,6 +303,12 @@ sub subPath {
   return catfile(@path[0 .. $n - 1]);
 }
 
+# Add a page to the output (for calling from $run scripts)
+sub add_output {
+  my ($path, $contents) = @_;
+  tree_set($extra_output, $path, $contents);
+}
+
 # Macro expand a tree
 sub expand_tree {
   my ($sourceTree, $template);
@@ -298,12 +318,13 @@ sub expand_tree {
   $fragment_to_page = tree_copy($sourceTree);
   foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
     tree_set($fragment_to_page, $path, undef)
-        if tree_isleaf(tree_get($sourceTree, $path));
+      if tree_isleaf(tree_get($sourceTree, $path));
   }
 
   # Walk tree, generating pages
   # FIXME: Non-leaf directories with dot in name should generate warning
   my $pages = {};
+  $extra_output = {};
   foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
     next if $#$path == -1 or tree_isleaf(tree_get($sourceTree, $path));
     # If a non-leaf directory or no dot in its name
@@ -346,7 +367,7 @@ sub expand_tree {
     }
   }
 
-  return $pages;
+  return tree_merge($pages, $extra_output);
 }
 
 
