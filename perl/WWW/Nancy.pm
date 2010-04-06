@@ -118,7 +118,7 @@ sub findFragment {
       }
     }
     $node = tree_get($fragments, \@thissearch);
-    if (defined($node) && !!tree_isleaf($node)) { # We have a fragment, not a directory
+    if (defined($node) && tree_isleaf($node)) { # We have a fragment, not a directory
       my $new_name = catfile(@thissearch);
       print STDERR "  $new_name\n" if $list_files_flag;
       warn("`$new_name' is identical to `$name'") if $warn_flag && defined($contents) && $contents eq $node;
