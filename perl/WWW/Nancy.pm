@@ -205,14 +205,13 @@ sub expand {
   return $text;
 }
 
-# Turn a directory into a list of subdirectories, with leaf and
-# non-leaf directories marked as such, and read all the files.
+# Read a directory tree into a tree
 # Report duplicate fragments one of which masks the other.
 # FIXME: Separate directory tree traversal from tree building
 # FIXME: Make exclusion easily extensible, and add patterns for
 # common VCSs (use tar's --exclude-vcs patterns) and editor backup
 # files &c.
-sub slurp_tree {
+sub read_tree {
   my ($obj) = @_;
   # FIXME: Should really do this in a separate step (need to do it
   # before pruning empty directories)
@@ -225,7 +224,8 @@ sub slurp_tree {
     my @files = readdir(DIR);
     foreach my $file (@files) {
       next if $file eq "." or $file eq "..";
-      $dir{$file} = slurp_tree(catfile($obj, $file));
+      my $val = read_tree(catfile($obj, $file));
+      $dir{$file} = $val if defined($val);
     }
     return \%dir; # if $#file != -1; # Ignore empty directories
   }
@@ -238,7 +238,15 @@ sub find {
   my @roots = reverse @_;
   my $out = {};
   foreach my $root (@roots) {
-    tree_merge($out, slurp_tree($root));
+    $out = tree_merge($out, read_tree($root));
+  }
+  # Get rid of empty files and directories
+  foreach my $path (@{tree_iterate_preorder($out, [], undef)}) {
+    my $node = tree_get($out, $path);
+    if ((tree_isleaf($node) && -z $node) ||
+          (!tree_isleaf($node) && scalar keys %{$node} == 0)) {
+      tree_delete($out, $path);
+    }
   }
   # FIXME: Remove empty directories and files
   return $out;
