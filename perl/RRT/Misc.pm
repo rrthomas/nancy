@@ -14,7 +14,7 @@ package RRT::Misc;
 use strict;
 use warnings;
 
-use Perl6::Slurp;
+use File::Slurp;
 use POSIX 'floor';
 use File::Basename;
 use Cwd 'abs_path';
@@ -99,7 +99,7 @@ sub getMime {
   my ($file) = @_;
   local *READER;
   open(READER, "-|", "mimetype", $file);
-  my $mimetype = slurp \*READER;
+  my $mimetype = slurp(\*READER);
   chomp $mimetype;
   return $mimetype;
 }
