@@ -35,6 +35,7 @@ sub tree_get {
 
 # Set subtree at given path to given value, creating any intermediate
 # nodes required
+# FIXME: Allow the entire tree to be set; need to return result!
 # FIXME: Return whether we needed to create intermediate nodes
 sub tree_set {
   my ($tree, $path, $val) = @_;
@@ -166,7 +167,7 @@ sub doMacros {
 #   [$fragment_to_page] - tree of fragment to page maps
 #   [$warn_flag] - whether to output warnings
 #   [$list_files_flag] - whether to output fragment lists
-# returns expanded text, fragment to page tree
+# returns expanded text
 sub expand {
   my ($text, $tree, $page);
   ($text, $tree, $page, $fragments, $fragment_to_page, $warn_flag, $list_files_flag) = @_;
@@ -302,10 +303,12 @@ sub expand_tree {
   }
 
   # Walk tree, generating pages
+  # FIXME: Non-leaf directories with dot in name should generate warning
   my $pages = {};
   foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
     next if $#$path == -1 or tree_isleaf(tree_get($sourceTree, $path));
-    if (has_node_children(tree_get($sourceTree, $path))) {
+    # If a non-leaf directory or no dot in its name
+    if (has_node_children(tree_get($sourceTree, $path)) || ($path->[$#{$path}] !~ /\./)) {
       tree_set($pages, $path, {});
     } else {
       my $name = catfile(@{$path});
