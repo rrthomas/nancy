@@ -14,6 +14,8 @@ use File::Basename;
 use File::Spec::Functions qw(catfile splitdir);
 use File::Slurp qw(slurp); # Also used in $run scripts
 
+use RRT::Misc;
+
 
 my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page);
 
@@ -193,7 +195,7 @@ sub expand {
       my ($prog) = shift;
       my ($name, $contents) = findFragment($page, $prog);
       if ($name) {
-        my $sub = eval($contents);
+        my $sub = eval(untaint($contents));
         return &{$sub}(@_);
       }
       return "";
