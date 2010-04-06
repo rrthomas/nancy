@@ -16,7 +16,7 @@ use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
 
-my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $output);
+my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $output, $template);
 
 
 # Tree operations
@@ -109,28 +109,34 @@ sub tree_merge {
   }
 }
 
+# Append relative fragment path to search path
+# FIXME: Modifies first arg (is used as return value)
+sub make_fragment_path {
+  my ($search, $fragment) = @_;
+  my @fragpath = splitdir($fragment);
+  # Append fragment path, coping with `..' and `.'. There is no
+  # obvious standard function to do this: File::Spec::canonpath does
+  # not do `..' removal, as that does not work with symlinks; in
+  # other words, our relative paths don't behave in the presence of
+  # symlinks.
+  foreach my $elem (@fragpath) {
+    if ($elem eq "..") {
+      pop @{$search};
+    } elsif ($elem ne ".") {
+      push @{$search}, $elem;
+    }
+  }
+}
 
 # Search for fragment starting at the given path; if found return its
 # path, contents and file name; if not, print a warning and return
 # undef.
 sub findFragment {
   my ($path, $fragment) = @_;
-  my @fragpath = splitdir($fragment);
   my (@foundpath, $contents, $node);
   for (my @search = @{$path}; 1; pop @search) {
     my @thissearch = @search;
-    # Append fragment path, coping with `..' and `.'. There is no
-    # obvious standard function to do this: File::Spec::canonpath does
-    # not do `..' removal, as that does not work with symlinks; in
-    # other words, our relative paths don't behave in the presence of
-    # symlinks.
-    foreach my $elem (@fragpath) {
-      if ($elem eq "..") {
-        pop @thissearch;
-      } elsif ($elem ne ".") {
-        push @thissearch, $elem;
-      }
-    }
+    make_fragment_path(\@thissearch, $fragment);
     $node = tree_get($fragments, \@thissearch);
     if (defined($node) && tree_isleaf($node)) { # We have a fragment, not a directory
       my $new_contents = slurp($node);
@@ -209,6 +215,7 @@ sub expand {
   $text = doMacros($text, %macros);
   # Convert $Macro back to $macro
   $text =~ s/(?!<\\)(?<=\$)([[:upper:]])(?=[[:lower:]]*{)/lc($1)/ge;
+
   return $text;
 }
 
@@ -309,10 +316,39 @@ sub add_output {
   tree_set($output, $path, $contents);
 }
 
+# Expand a file system object, recursively expanding links
+sub expand_page {
+  my ($tree, $path) = @_;
+  if (!defined(tree_get($output, $path))) {
+    # If a leaf directory with a dot in its name
+    if ($#$path != -1 && !tree_isleaf(tree_get($tree, $path)) &&
+          !has_node_children(tree_get($tree, $path)) && ($path->[$#{$path}] =~ /\./)) {
+      print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
+      my $out = expand("\$include{$template}", $path, $tree);
+      print STDERR "\n" if $list_files_flag;
+      tree_set($output, $path, $out);
+
+      # Find all local links and add them to output
+      my @links = $out =~ /\Whref=\"(?!(?:http|mailto):)([^\"\#]+)/g;
+      foreach my $link (@links) {
+        if ($link !~ /\.html$/) {
+          my ($path, $contents) = findFragment($path, $link);
+          add_output($path, $contents) if $path;
+        } else {
+          my @pagepath = @{$path};
+          pop @pagepath; # Remove current directory, which represents a page
+          make_fragment_path(\@pagepath, $link);
+          expand_page($fragments, \@pagepath);
+        }
+      }
+    }
+  }
+}
+
 # Macro expand a tree
 sub expand_tree {
-  my ($sourceTree, $template);
-  ($sourceTree, $template, $warn_flag, $list_files_flag) = @_;
+  my ($sourceTree, $start);
+  ($sourceTree, $template, $start, $warn_flag, $list_files_flag) = @_;
 
   # Fragment to page tree
   $fragment_to_page = tree_copy($sourceTree);
@@ -321,19 +357,9 @@ sub expand_tree {
       if tree_isleaf(tree_get($sourceTree, $path));
   }
 
-  # Walk tree, generating pages
-  # FIXME: Non-leaf directories with dot in name should generate warning
+  # Expand tree, starting from root index.html
   $output = {};
-  foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
-    # If a leaf directory with a dot in its name
-    if ($#$path != -1 && !tree_isleaf(tree_get($sourceTree, $path)) &&
-          !has_node_children(tree_get($sourceTree, $path)) && ($path->[$#{$path}] =~ /\./)) {
-      print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
-      my $out = expand("\$include{$template}", $path, $sourceTree);
-      print STDERR "\n" if $list_files_flag;
-      tree_set($output, $path, $out);
-    }
-  }
+  expand_page($sourceTree, [$start]);
 
   # Analyze generated pages to print warnings if desired
   if ($warn_flag) {

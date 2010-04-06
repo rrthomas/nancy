@@ -132,35 +132,5 @@ foreach my $dir (sort keys %{$sources}) {
   }
 }
 
-if ($warn_flag) {
-  # Return the path made up of the first n components of p
-  sub subPath {
-    my ($p, $n) = @_;
-    my @path = splitdir($p);
-    return catfile(@path[0 .. $n - 1]);
-  }
-
-  # Check for "overpromoted" fragments, that is, fragments that are only
-  # used further towards the leaves than they are.
-  foreach my $fragment (keys %fragment_to_page) {
-    my @page_list = @{$fragment_to_page{$fragment}};
-    my $prefix_len = scalar(splitdir($page_list[0]));
-    for (my $i = 1; $i <= $#page_list; $i++) {
-      for (;
-           $prefix_len > 0 &&
-             subPath($page_list[$i], $prefix_len) ne
-               subPath($page_list[0], $prefix_len);
-           $prefix_len--)
-        {}
-    }
-    # If common prefix of pages is longer than the directory of the
-    # fragment, then fragment should be demoted towards leaves
-    Warn "$fragment could be moved into " . subPath($page_list[0], $prefix_len)
-      if $prefix_len > scalar(splitdir(dirname($fragment)));
-  }
-
-  # Check for unused fragments
-  foreach my $fragment (keys %{$fragments}) {
-    Warn "$fragment is unused" if !defined($fragment_to_page{$fragment});
-  }
-}
+# Process source directories
+WWW::Nancy::write_tree(WWW::Nancy::expand_tree(WWW::Nancy::find(@sourceRoot), $template, "index.html", $warn_flag, $list_files_flag), $destRoot);
