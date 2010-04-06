@@ -101,10 +101,10 @@ sub tree_merge {
 # undef.
 sub findFragment {
   my ($path, $fragment) = @_;
+  my @fragpath = splitdir($fragment);
   my ($name, $contents, $node);
   for (my @search = @{$path}; 1; pop @search) {
     my @thissearch = @search;
-    my @fragpath = splitdir($fragment);
     # Cope with `..' and `.' (need to do this each time round the
     # loop). There is no obvious standard function to do this, because
     # File::Spec::canonpath does not do `..' removal, as that does not
