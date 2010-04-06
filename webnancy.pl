@@ -1,6 +1,6 @@
 #!/usr/bin/perl -T
 # Web wrapper for Nancy
-# (c) 2002-2009 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
+# (c) 2002-2010 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
 # Distributed under the GNU General Public License
 
 use strict;
@@ -24,9 +24,9 @@ my $tree = WWW::Nancy::find($DocumentRoot);
 # Extract file name from URL
 my $page = unescape(url(-absolute => 1));
 $page =~ s|^$BaseUrl/?||;
-$page =~ s|\.html$||;
-$page = "index" if $page eq "";
-$template = "404.html" if !-d catfile($DocumentRoot, $page);
+$page = "index.html" if $page eq "";
+# FIXME: Look in the tree to check 404
+$Template = "404.html" if !-d catfile($DocumentRoot, $page);
 
 # Output page
 print header() . WWW::Nancy::expand("\$include{$Template}", $page, $tree);

@@ -1,4 +1,4 @@
-# Nancy.pm $Revision: 982 $ ($Date: 2009-10-04 22:01:25 +0100 (Sun, 04 Oct 2009) $)
+# Nancy.pm $Revision$ ($Date$)
 # (c) 2002-2010 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)
 # Distributed under the GNU General Public License version 3, or (at
 # your option) any later version. There is no warranty.
@@ -21,6 +21,16 @@ my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $output, $templ
 
 # Tree operations
 # FIXME: Put them in their own module
+
+sub tree_dump {
+  my ($tree) = @_;
+  foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
+    my $node = tree_get($tree, $path);
+    print STDERR (join "/", @{$path});
+    print STDERR ":" if !tree_isleaf($node);
+    print STDERR "\n";
+  }
+}
 
 # Return subtree at given path
 sub tree_get {
@@ -66,16 +76,11 @@ sub tree_isleaf {
   return !UNIVERSAL::isa($tree, "HASH");
 }
 
-# Return whether tree is not a leaf
-sub tree_isnotleaf {
-  return !tree_isleaf(@_);
-}
-
 # Return list of paths in tree, in pre-order
 sub tree_iterate_preorder {
   my ($tree, $path, $paths) = @_;
   push @{$paths}, $path if $path;
-  if (tree_isnotleaf($tree)) {
+  if (!tree_isleaf($tree)) {
     foreach my $node (keys %{$tree}) {
       my @sub_path = @{$path};
       push @sub_path, $node;
@@ -86,27 +91,26 @@ sub tree_iterate_preorder {
 }
 
 # Return a copy of a tree
-# FIXME: Rewrite in terms of tree_merge
 sub tree_copy {
-  my ($in_tree) = @_;
-  if (ref($in_tree)) {
-    my $out_tree = {};
-    foreach my $node (keys %{$in_tree}) {
-      $out_tree->{$node} = tree_copy($in_tree->{$node});
-    }
-    return $out_tree;
-  } else {
-    return $in_tree;
-  }
+  my ($tree) = @_;
+  return $tree if scalar keys %{$tree} == 0;
+  return tree_merge({}, $tree);
 }
 
-# Merge two trees; right-hand operand takes precedence
+# Merge two trees, returning the result; right-hand operand takes
+# precedence, and its empty subtrees replace left-hand subtrees.
 sub tree_merge {
   my ($left, $right) = @_;
+  my $out = tree_copy($left);
   foreach my $path (@{tree_iterate_preorder($right, [], undef)}) {
     my $node = tree_get($right, $path);
-    tree_set($left, $path, $node) if tree_isleaf($node);
+    if (tree_isleaf($node)) {
+      tree_set($out, $path, $node);
+    } elsif (scalar keys %{$node} == 0) {
+      tree_set($out, $path, {});
+    }
   }
+  return $out;
 }
 
 # Append relative fragment path to search path
@@ -146,13 +150,13 @@ sub findFragment {
       @foundpath = @thissearch;
       $contents = $new_contents;
       if ($fragment_to_page) {
-        my $used_list = tree_get($fragment_to_page, \@search);
+        my $used_list = tree_get($fragment_to_page, \@thissearch);
         $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
         push @{$used_list}, catfile(@{$path});
         tree_set($fragment_to_page, \@thissearch, $used_list);
       }
+      last;
     }
-    pop @search;
     last if $#search == -1;
   }
   warn("Cannot find `$fragment' while building `" . catfile(@{$path}) ."'\n") unless $contents;
@@ -226,11 +230,11 @@ sub expand {
 # files &c.
 sub read_tree {
   my ($obj) = @_;
-  # FIXME: Should really do this in a separate step (need to do it
-  # before pruning empty directories)
+  # FIXME: Do this in a separate step (need to do it before pruning
+  # empty directories)
   return if basename($obj) eq ".svn"; # Ignore irrelevant objects
   if (-f $obj) {
-    return slurp($obj); # if -s $obj; # Ignore empty files
+    return $obj;
   } elsif (-d $obj) {
     my %dir = ();
     opendir(DIR, $obj);
@@ -240,9 +244,9 @@ sub read_tree {
       my $val = read_tree(catfile($obj, $file));
       $dir{$file} = $val if defined($val);
     }
-    return \%dir; # if $#file != -1; # Ignore empty directories
+    return \%dir;
   }
-  # We get here if we are ignoring the file, and return nothing.
+  # If not a file or directory, return nothing
 }
 
 # Slurp the leaves of a tree, assuming they are filenames
@@ -273,7 +277,6 @@ sub find {
       tree_delete($out, $path);
     }
   }
-  # FIXME: Remove empty directories and files
   return $out;
 }
 
