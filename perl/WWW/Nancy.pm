@@ -242,18 +242,6 @@ sub read_tree {
   # If not a file or directory, return nothing
 }
 
-# Slurp the leaves of a tree, assuming they are filenames
-sub tree_slurp {
-  my ($tree) = @_;
-  foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
-    my $node = tree_get($tree, $path);
-    if (tree_isleaf($node)) {
-      tree_set($tree, $path, scalar(slurp($node)));
-    }
-  }
-  return $tree;
-}
-
 # Construct file tree from multiple source trees, masking out empty
 # files and directories
 sub find {
