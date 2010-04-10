@@ -202,12 +202,8 @@ sub expand {
     include => sub {
       my ($fragment) = @_;
       my ($fragpath, $contents) = findFragment($path, $fragment);
-      my $text = "";
-      if ($fragpath) {
-        $text .= "***INCLUDE: " . catfile(@{$fragpath}) . "***" if $list_files_flag;
-        $text .= $contents;
-      }
-      return $text;
+      return $contents if $fragpath;
+      return "";
     },
     run => sub {
       my ($prog) = shift;
@@ -297,14 +293,6 @@ sub write_tree {
   }
 }
 
-# Return true if a tree node has non-leaf children
-sub has_node_children {
-  my ($tree) = @_;
-  foreach my $node (keys %{$tree}) {
-    return 1 if !tree_isleaf($tree->{$node});
-  }
-}
-
 # Return the path made up of the first n components of p
 sub subPath {
   my ($p, $n) = @_;
@@ -313,7 +301,7 @@ sub subPath {
   return catfile(@path[0 .. $n - 1]);
 }
 
-# Add a page to the output (for calling from $run scripts)
+# Add a page to the output
 sub add_output {
   my ($path, $contents) = @_;
   tree_set($output, $path, $contents);
@@ -322,10 +310,11 @@ sub add_output {
 # Expand a file system object, recursively expanding links
 sub expand_page {
   my ($tree, $path) = @_;
+  # Don't expand the same node twice
   if (!defined(tree_get($output, $path))) {
-    # If a leaf directory with a dot in its name
-    if ($#$path != -1 && !tree_isleaf(tree_get($tree, $path)) &&
-          !has_node_children(tree_get($tree, $path)) && ($path->[$#{$path}] =~ /\./)) {
+    # If we are looking at a non-leaf or undefined node, expand it
+    if ($#$path != -1 && (!defined(tree_get($tree, $path)) ||
+                            !tree_isleaf(tree_get($tree, $path)))) {
       print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
       my $out = expand("\$include{$template}", $path, $tree);
       print STDERR "\n" if $list_files_flag;
