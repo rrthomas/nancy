@@ -56,11 +56,13 @@ Nancy produces the finished pages according to the following algorithm:
 \begin{enumerate}
 \item Scan the source trees from right to left, adding the directories that appear in each tree to a list. If a given directory is empty, remove it and its contents from the list.
 \item Add the page \verb|START| to an empty list.
+\item While there is at least one previously unprocessed page in the list that corresponds to a directory in the input, take one and:
+\begin{enumerate}
 \item Set the initial text to \verb|$include{TEMPLATE}|.
-\item Find all the \verb|href| links in the page, and add them to the list.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
+\item Find all the \verb|href| links in the text, and add them to the list.
 \item Write the resultant text to a file: for each directory \verb|SOURCE/PATH| the output file is \verb|DESTINATION/PATH|.
-\item Process the rest of the pages in the list, skipping any that have already been processed, until the list is empty.
+\end{enumerate}
 \end{enumerate}
 
 In general, only leaf directories, that is, directories that only contain files, should correspond to pages: this is to ensure that every page can be specialised without affecting any other page. It is advisable to ensure that every non-leaf directory has an \verb|index.html| sub-directory (or some other valid index page name), so that there are no URLs in the resulting site that do not correspond to a page.
