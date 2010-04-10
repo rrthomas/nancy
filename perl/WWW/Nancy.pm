@@ -12,7 +12,7 @@ use warnings;
 use feature ":5.10";
 
 use File::Basename;
-use File::Spec::Functions qw(catfile splitdir);
+use File::Spec::Functions qw(catfile);
 use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
@@ -116,9 +116,8 @@ sub tree_merge {
 
 # Append relative fragment path to search path
 sub make_fragment_path {
-  my ($search, $fragment) = @_;
-  my @path = @{$search};
-  my @fragpath = splitdir($fragment);
+  my ($fragment, @search) = @_;
+  my @fragpath = split m|/|, $fragment;
   # Append fragment path, coping with `..' and `.'. There is no
   # obvious standard function to do this: File::Spec::canonpath does
   # not do `..' removal, as that does not work with symlinks; in
@@ -126,12 +125,12 @@ sub make_fragment_path {
   # symlinks.
   foreach my $elem (@fragpath) {
     if ($elem eq "..") {
-      pop @path;
+      pop @search;
     } elsif ($elem ne ".") {
-      push @path, $elem;
+      push @search, $elem;
     }
   }
-  return @path;
+  return @search;
 }
 
 # Search for fragment starting at the given path; if found return its
@@ -141,7 +140,7 @@ sub findFragment {
   my ($path, $fragment) = @_;
   my (@foundpath, $contents, $node);
   for (my @search = @{$path}; 1; pop @search) {
-    my @thissearch = make_fragment_path(\@search, $fragment);
+    my @thissearch = make_fragment_path($fragment, @search);
     $node = tree_get($fragments, \@thissearch);
     if (defined($node) && tree_isleaf($node)) { # We have a fragment, not a directory
       my $new_contents = slurp($node);
@@ -222,14 +221,11 @@ sub expand {
 
 # Read a directory tree into a tree
 # FIXME: Separate directory tree traversal from tree building
-# FIXME: Make exclusion easily extensible, and add patterns for
-# common VCSs (use tar's --exclude-vcs patterns) and editor backup
-# files &c.
 sub read_tree {
   my ($obj) = @_;
   # FIXME: Do this in a separate step (need to do it before pruning
   # empty directories)
-  return if basename($obj) eq ".svn"; # Ignore irrelevant objects
+  return if basename($obj) =~ m/^\./; # Ignore hidden objects
   if (-f $obj) {
     return $obj;
   } elsif (-d $obj) {
@@ -314,16 +310,15 @@ sub expand_page {
       tree_set($output, $path, $out);
 
       # Find all local links and add them to output (a local link is
-      # one that doesn't start with a scheme)
+      # one that doesn't start with a URI scheme)
       my @links = $out =~ /\Whref=\"(?![a-z]+:)([^\"\#]+)/g;
       foreach my $link (@links) {
         if ($link !~ /\.html$/) {
           my ($fragpath, $contents) = findFragment($path, $link);
           add_output($fragpath, $contents) if $fragpath;
         } else {
-          my @pagepath = @{$path};
-          pop @pagepath; # Remove current directory, which represents a page
-          @pagepath = make_fragment_path(\@pagepath, $link);
+          # Remove current directory, which represents a page
+          my @pagepath = make_fragment_path($link, @{$path}[0..$#{$path} - 1]);
           no warnings qw(recursion); # We may recurse deeply.
           expand_page($fragments, \@pagepath);
         }
