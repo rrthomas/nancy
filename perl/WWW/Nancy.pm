@@ -365,7 +365,7 @@ sub expand_tree {
           }
           my @dir = @{@{$node}[0]}[0..$prefix];
           print STDERR "`" . catfile(@{$path}) . "' could be moved into `" . catfile(@dir) . "'\n"
-            if $#{$path} <= $prefix && !(@dir ~~ @{$path});
+            if defined(tree_get($sourceTree, \@dir)) && $#{$path} <= $prefix && !(@dir ~~ @{$path});
         }
       }
     }
