@@ -11,7 +11,6 @@ use warnings;
 
 use Config;
 use File::Basename;
-use File::Spec::Functions qw(catfile);
 use Getopt::Long;
 
 use WWW::Nancy;
@@ -30,7 +29,7 @@ dieWithUsage() if !$opts || $#ARGV < 2 || $#ARGV > 3;
 
 sub dieWithUsage {
   die <<END;
-Usage: $prog SOURCES DESTINATION TEMPLATE [BRANCH]
+Usage: $prog SOURCES DESTINATION TEMPLATE START
 The lazy web site maker
 
   --list-files, -l  list files read (on standard error)
@@ -41,8 +40,7 @@ The lazy web site maker
   SOURCES is the source directory trees
   DESTINATION is the directory to which the output is written
   TEMPLATE is the name of the template fragment
-  BRANCH is the sub-directory of each SOURCE tree to process
-    (defaults to the entire tree)
+  START is the root page of the site
 END
 }
 
@@ -55,23 +53,17 @@ sub Die {
 # FIXME: Move source and destination validation into Nancy.pm
 Die("No source tree given") unless $ARGV[0];
 my @sourceRoot = split /$Config{path_sep}/, $ARGV[0];
-foreach my $dir (@sourceRoot) {
-  Die("`$dir' not found or is not a directory")
-    unless -d $dir;
+for (my $i = 0; $i <= $#sourceRoot; $i++) {
+  $sourceRoot[$i] =~ s|/+$||;
+  Die("`$sourceRoot[$i]' not found or is not a directory")
+    unless -d $sourceRoot[$i];
 }
 my $destRoot = $ARGV[1];
 $destRoot =~ s|/+$||;
 Die("`$destRoot' is not a directory")
   if -e $destRoot && !-d $destRoot;
-my $template = $ARGV[2];
-if ($ARGV[3]) {
-  for (my $i = 0; $i <= $#sourceRoot; $i++) {
-    $sourceRoot[$i] = File::Spec::Unix->catfile($sourceRoot[$i], $ARGV[3]);
-  }
-}
-for (my $i = 0; $i <= $#sourceRoot; $i++) {
-  $sourceRoot[$i] =~ s|/+$||;
-}
+my $template = $ARGV[2] or Die("no template given");
+my $start = $ARGV[3] or Die("no start page given");
 
 # Process source directories
-WWW::Nancy::write_tree(WWW::Nancy::expand_tree(WWW::Nancy::find(@sourceRoot), $template, "index.html", $warn_flag, $list_files_flag), $destRoot);
+WWW::Nancy::write_tree(WWW::Nancy::expand_tree(WWW::Nancy::find(@sourceRoot), $template, $start, $warn_flag, $list_files_flag), $destRoot);
