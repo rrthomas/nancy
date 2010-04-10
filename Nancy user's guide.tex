@@ -13,7 +13,7 @@
 \begin{document}
 
 \title{Nancy, the lazy web site builder\\User's guide}
-\date{20th March 2010}
+\date{8th April 2010}
 \author{Reuben Thomas}
 \maketitle
 
@@ -25,13 +25,13 @@ Nancy is a command-line tool.
 
 \section{Invocation}
 
-Nancy takes three (or optionally four) arguments:
+Nancy takes four arguments:
 
 \begin{verbatim}
-nancy.pl [OPTIONS] SOURCES DESTINATION TEMPLATE [BRANCH]
+nancy.pl [OPTIONS] SOURCES DESTINATION TEMPLATE START
 \end{verbatim}
 
-\noindent where \verb|SOURCES| is a colon-separated list of directories that contain the source, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and the optional \verb|BRANCH| gives the sub-directory of the \verb|SOURCE| trees to process (if it is omitted, the complete source trees are processed).
+\noindent where \verb|SOURCES| is a colon-separated list of directories that contain the source, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and \verb|START| gives the top-most page of the site.
 
 The following command-line options may be given to Nancy:
 
@@ -55,13 +55,15 @@ Nancy produces the finished pages according to the following algorithm:
 
 \begin{enumerate}
 \item Scan the source trees from right to left, adding the directories that appear in each tree to a list. If a given directory is empty, remove it and its contents from the list.
-\item For each leaf directory (that is, a directory that contains only files) of the list of source directories, start from that directory.
+\item Add the page \verb|START| to an empty list.
 \item Set the initial text to \verb|$include{TEMPLATE}|.
+\item Find all the \verb|href| links in the page, and add them to the list.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
-\item Write the resultant text to a file: for each directory \verb|SOURCE/LEAF_PATH| the output file is \verb|DESTINATION/LEAF_PATH|.
+\item Write the resultant text to a file: for each directory \verb|SOURCE/PATH| the output file is \verb|DESTINATION/PATH|.
+\item Process the rest of the pages in the list, skipping any that have already been processed, until the list is empty.
 \end{enumerate}
 
-The reason that only leaf directories correspond to pages is to ensure that every page can be specialised without affecting any other page. It is advisable to ensure that every non-leaf directory has an \verb|index.html| sub-directory (or some other valid index page name), so that there are no ``missing'' URLs in the resulting site.
+In general, only leaf directories, that is, directories that only contain files, should correspond to pages: this is to ensure that every page can be specialised without affecting any other page. It is advisable to ensure that every non-leaf directory has an \verb|index.html| sub-directory (or some other valid index page name), so that there are no URLs in the resulting site that do not correspond to a page.
 
 A command takes the form
 
@@ -87,19 +89,18 @@ fragment evaluated as a Perl expression, which is expected to produce a subrouti
 
 Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for |\verb|$run| commands; if you nest them, you have to deal with this potential pitfall.)
 
-To find the file \verb|FILE_PATH| specified by an \verb|$include| command, Nancy proceeds thus:
+To find the fragment \verb|FRAGMENT_PATH| specified by an \verb|$include| command, Nancy proceeds thus:
 
 \begin{itemize}
 \item Consider the source trees in left-to-right order:
 \begin{enumerate}
-\item Look in \verb|SOURCE/BRANCH/LEAF_PATH/FILE_PATH|.
-\item If the file is not found, remove the final directory from
-\verb|LEAF_PATH| and try again, until \verb|LEAF_PATH| is empty.
-\item Finally, try looking in \verb|SOURCE/BRANCH/FILE_PATH|.
+\item Look in \verb|SOURCE/PAGE_PATH/FRAGMENT_PATH|.
+\item If the file is not found, remove the last directory from \verb|PAGE_PATH| and try again, until \verb|PAGE_PATH| is empty.
+\item Finally, try looking in \verb|SOURCE/FRAGMENT_PATH|.
 \end{enumerate}
 \end{itemize}
 
-For example, if \verb|SOURCES| is \verb|/dir|, \verb|BRANCH| is omitted and \verb|FILE_PATH| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
+For example, if \verb|SOURCES| is \verb|/dir| and \verb|FILE_PATH| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
 
 \begin{enumerate}
 \item \verb|/dir/foo/bar/baz/file.html|
@@ -118,7 +119,7 @@ For example, if \verb|SOURCES| is \verb|/dir|, \verb|BRANCH| is omitted and \ver
 
 Suppose a web site has the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
 
-Most of the elements are the same on each page, but the breadcrumb trail has to show the canonical path to each page, and the logo is bigger on the home page.
+Most of the elements are the same on each page, but the breadcrumb trail has to show the canonical path to each page, and the logo is bigger on the home page, which is called \verb|index.html|.
 
 Suppose further that the web site has the following structure, where each line corresponds to a page:
 
@@ -153,7 +154,7 @@ The basic page template looks something like this:
 </html>
 \end{verbatim}
 
-Making the menu an included file is not strictly necessary, but, as in all programming, makes the HTML fragments easier to read. The pages will be laid out as follows:
+Making the menu an included file is not strictly necessary, but makes the HTML fragments easier to read. The pages will be laid out as follows:
 
 \begin{itemize}
 \item \verb|/|
@@ -228,7 +229,7 @@ Note that there is only one menu fragment (the main menu is the same for every p
 To build the site, Nancy is invoked as:
 
 \begin{verbatim}
-nancy.pl source template.html dest
+nancy.pl source template.html dest index.html
 \end{verbatim}
 
 Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, Nancy will look first for files in \verb|source/places/vladivostok.html|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
