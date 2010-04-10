@@ -290,10 +290,8 @@ sub expand_page {
   # Don't expand the same node twice
   if (!defined(tree_get($output, $path))) {
     my $node = tree_get($tree, $path);
-    if (!defined($node)) {
-      print STDERR "Link to non-existent page `" . catfile(@{$path}) . "'\n";
-    } elsif ($#$path != -1 && !tree_isleaf($node)) {
-      # If we are looking at a non-leaf node, expand it
+    # If we are looking at a non-leaf node, expand it
+    if ($#$path != -1 && defined($node) && !tree_isleaf($node)) {
       print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
       my $out = expand("\$include{$template}", $path, $tree);
       print STDERR "\n" if $list_files_flag;
@@ -306,7 +304,12 @@ sub expand_page {
         # Remove current directory, which represents a page
         my @pagepath = make_fragment_path($link, @{$path}[0..$#{$path} - 1]);
         no warnings qw(recursion); # We may recurse deeply.
-        expand_page($fragments, \@pagepath);
+        my $node = tree_get($fragments, \@pagepath);
+        if (!defined($node)) {
+          print STDERR "Broken link from `" . catfile(@{$path}) . "' to `" . catfile(@pagepath) . "'\n";
+        } else {
+          expand_page($fragments, \@pagepath);
+        }
       }
     } else {
       add_output($path, $node) if tree_isleaf($node);
