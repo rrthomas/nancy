@@ -9,6 +9,7 @@ package WWW::Nancy;
 
 use strict;
 use warnings;
+use feature ":5.10";
 
 use File::Basename;
 use File::Spec::Functions qw(catfile splitdir);
@@ -152,7 +153,7 @@ sub findFragment {
       if ($fragment_to_page) {
         my $used_list = tree_get($fragment_to_page, \@thissearch);
         $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
-        push @{$used_list}, catfile(@{$path});
+        push @{$used_list}, $path;
         tree_set($fragment_to_page, \@thissearch, $used_list);
       }
       last;
@@ -293,14 +294,6 @@ sub write_tree {
   }
 }
 
-# Return the path made up of the first n components of p
-sub subPath {
-  my ($p, $n) = @_;
-  my @path = splitdir($p);
-  return "" if $n > $#path + 1;
-  return catfile(@path[0 .. $n - 1]);
-}
-
 # Add a page to the output
 sub add_output {
   my ($path, $contents) = @_;
@@ -325,8 +318,8 @@ sub expand_page {
       my @links = $out =~ /\Whref=\"(?![a-z]+:)([^\"\#]+)/g;
       foreach my $link (@links) {
         if ($link !~ /\.html$/) {
-          my ($path, $contents) = findFragment($path, $link);
-          add_output($path, $contents) if $path;
+          my ($fragpath, $contents) = findFragment($path, $link);
+          add_output($fragpath, $contents) if $fragpath;
         } else {
           my @pagepath = @{$path};
           pop @pagepath; # Remove current directory, which represents a page
@@ -362,23 +355,17 @@ sub expand_tree {
     foreach my $path (@{tree_iterate_preorder($fragment_to_page, [], undef)}) {
       my $node = tree_get($fragment_to_page, $path);
       if (tree_isleaf($node)) {
-        my $name = catfile(@{$path});
         if (!$node) {
-          print STDERR "`$name' is unused\n";
+          print STDERR "`" . catfile(@{$path}) . "' is unused\n";
         } elsif (UNIVERSAL::isa($node, "ARRAY")) {
-          my $prefix_len = scalar(splitdir(@{$node}[0]));
+          my $prefix = $#{@{$node}[0]};
           foreach my $page (@{$node}) {
-            for (;
-                 $prefix_len > 0 &&
-                   subPath($page, $prefix_len) ne
-                     subPath(@{$node}[0], $prefix_len);
-                 $prefix_len--)
-              {}
+            for (; $prefix >= 0 && !(@{$page}[0..$prefix] ~~ @{@{$node}[0]}[0..$prefix]);
+                 $prefix--) {}
           }
-          my $dir = subPath(@{$node}[0], $prefix_len);
-          print STDERR "`$name' could be moved into `$dir'\n"
-            if scalar(splitdir(dirname($name))) < $prefix_len &&
-              $dir ne subPath(dirname($name), $prefix_len);
+          my @dir = @{@{$node}[0]}[0..$prefix];
+          print STDERR "`" . catfile(@{$path}) . "' could be moved into `" . catfile(@dir) . "'\n"
+            if $#{$path} <= $prefix && !(@dir ~~ @{$path});
         }
       }
     }
