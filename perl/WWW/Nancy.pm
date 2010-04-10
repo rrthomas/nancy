@@ -115,9 +115,9 @@ sub tree_merge {
 }
 
 # Append relative fragment path to search path
-# FIXME: Modifies first arg (is used as return value)
 sub make_fragment_path {
   my ($search, $fragment) = @_;
+  my @path = @{$search};
   my @fragpath = splitdir($fragment);
   # Append fragment path, coping with `..' and `.'. There is no
   # obvious standard function to do this: File::Spec::canonpath does
@@ -126,11 +126,12 @@ sub make_fragment_path {
   # symlinks.
   foreach my $elem (@fragpath) {
     if ($elem eq "..") {
-      pop @{$search};
+      pop @path;
     } elsif ($elem ne ".") {
-      push @{$search}, $elem;
+      push @path, $elem;
     }
   }
+  return @path;
 }
 
 # Search for fragment starting at the given path; if found return its
@@ -140,8 +141,7 @@ sub findFragment {
   my ($path, $fragment) = @_;
   my (@foundpath, $contents, $node);
   for (my @search = @{$path}; 1; pop @search) {
-    my @thissearch = @search;
-    make_fragment_path(\@thissearch, $fragment);
+    my @thissearch = make_fragment_path(\@search, $fragment);
     $node = tree_get($fragments, \@thissearch);
     if (defined($node) && tree_isleaf($node)) { # We have a fragment, not a directory
       my $new_contents = slurp($node);
@@ -323,7 +323,7 @@ sub expand_page {
         } else {
           my @pagepath = @{$path};
           pop @pagepath; # Remove current directory, which represents a page
-          make_fragment_path(\@pagepath, $link);
+          @pagepath = make_fragment_path(\@pagepath, $link);
           no warnings qw(recursion); # We may recurse deeply.
           expand_page($fragments, \@pagepath);
         }
