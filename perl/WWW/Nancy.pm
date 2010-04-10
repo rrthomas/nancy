@@ -302,8 +302,10 @@ sub expand_page {
   # Don't expand the same node twice
   if (!defined(tree_get($output, $path))) {
     my $node = tree_get($tree, $path);
-    # If we are looking at a non-leaf or undefined node, expand it
-    if ($#$path != -1 && !(defined($node) && tree_isleaf($node))) {
+    if (!defined($node)) {
+      print STDERR "Link to non-existent page `" . catfile(@{$path}) . "'\n";
+    } elsif ($#$path != -1 && !tree_isleaf($node)) {
+      # If we are looking at a non-leaf node, expand it
       print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
       my $out = expand("\$include{$template}", $path, $tree);
       print STDERR "\n" if $list_files_flag;
