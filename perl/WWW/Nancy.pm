@@ -301,9 +301,9 @@ sub expand_page {
   my ($tree, $path) = @_;
   # Don't expand the same node twice
   if (!defined(tree_get($output, $path))) {
+    my $node = tree_get($tree, $path);
     # If we are looking at a non-leaf or undefined node, expand it
-    if ($#$path != -1 && (!defined(tree_get($tree, $path)) ||
-                            !tree_isleaf(tree_get($tree, $path)))) {
+    if ($#$path != -1 && !(defined($node) && tree_isleaf($node))) {
       print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
       my $out = expand("\$include{$template}", $path, $tree);
       print STDERR "\n" if $list_files_flag;
@@ -313,16 +313,13 @@ sub expand_page {
       # one that doesn't start with a URI scheme)
       my @links = $out =~ /\Whref=\"(?![a-z]+:)([^\"\#]+)/g;
       foreach my $link (@links) {
-        if ($link !~ /\.html$/) {
-          my ($fragpath, $contents) = findFragment($path, $link);
-          add_output($fragpath, $contents) if $fragpath;
-        } else {
-          # Remove current directory, which represents a page
-          my @pagepath = make_fragment_path($link, @{$path}[0..$#{$path} - 1]);
-          no warnings qw(recursion); # We may recurse deeply.
-          expand_page($fragments, \@pagepath);
-        }
+        # Remove current directory, which represents a page
+        my @pagepath = make_fragment_path($link, @{$path}[0..$#{$path} - 1]);
+        no warnings qw(recursion); # We may recurse deeply.
+        expand_page($fragments, \@pagepath);
       }
+    } else {
+      add_output($path, $node) if tree_isleaf($node);
     }
   }
 }
