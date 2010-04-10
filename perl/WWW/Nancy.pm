@@ -12,7 +12,7 @@ use warnings;
 use feature ":5.10";
 
 use File::Basename;
-use File::Spec::Functions qw(catfile);
+use File::Spec::Functions qw(catfile splitdir); # splitdir also used in $run scripts
 use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
@@ -348,19 +348,17 @@ sub expand_tree {
     # common prefix that the fragment does not share.
     foreach my $path (@{tree_iterate_preorder($fragment_to_page, [], undef)}) {
       my $node = tree_get($fragment_to_page, $path);
-      if (tree_isleaf($node)) {
-        if (!$node) {
-          print STDERR "`" . catfile(@{$path}) . "' is unused\n";
-        } elsif (UNIVERSAL::isa($node, "ARRAY")) {
-          my $prefix = $#{@{$node}[0]};
-          foreach my $page (@{$node}) {
-            for (; $prefix >= 0 && !(@{$page}[0..$prefix] ~~ @{@{$node}[0]}[0..$prefix]);
-                 $prefix--) {}
-          }
-          my @dir = @{@{$node}[0]}[0..$prefix];
-          print STDERR "`" . catfile(@{$path}) . "' could be moved into `" . catfile(@dir) . "'\n"
-            if defined(tree_get($sourceTree, \@dir)) && $#{$path} <= $prefix && !(@dir ~~ @{$path});
+      if (!$node) {
+        print STDERR "`" . catfile(@{$path}) . "' is unused\n";
+      } elsif (tree_isleaf($node) && UNIVERSAL::isa($node, "ARRAY")) {
+        my $prefix = $#{@{$node}[0]};
+        foreach my $page (@{$node}) {
+          for (; $prefix >= 0 && !(@{$page}[0..$prefix] ~~ @{@{$node}[0]}[0..$prefix]);
+               $prefix--) {}
         }
+        my @dir = @{@{$node}[0]}[0..$prefix];
+        print STDERR "`" . catfile(@{$path}) . "' could be moved into `" . catfile(@dir) . "'\n"
+          if defined(tree_get($sourceTree, \@dir)) && $#{$path} <= $prefix && !(@dir ~~ @{$path});
       }
     }
   }
