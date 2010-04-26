@@ -149,9 +149,11 @@ sub findFragment {
       $contents = $new_contents;
       if ($fragment_to_page) {
         my $used_list = tree_get($fragment_to_page, \@thissearch);
-        $used_list = [] if !UNIVERSAL::isa($used_list, "ARRAY");
-        push @{$used_list}, $path;
-        tree_set($fragment_to_page, \@thissearch, $used_list);
+        if (UNIVERSAL::isa($used_list, "ARRAY")) {
+          push @{$used_list}, $path;
+        } else {
+          tree_set($fragment_to_page, \@thissearch, [$path]);
+        }
       }
       last;
     }
@@ -317,14 +319,7 @@ sub expand_tree {
   my ($sourceTree, $start);
   ($sourceTree, $template, $start, $warn_flag, $list_files_flag) = @_;
 
-  # Fragment to page tree
-  $fragment_to_page = tree_copy($sourceTree);
-  foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
-    tree_set($fragment_to_page, $path, undef)
-      if tree_isleaf(tree_get($sourceTree, $path));
-  }
-
-  # Expand tree, starting from $start
+  $fragment_to_page = {};
   $output = {};
   expand_page($sourceTree, [$start]);
 
@@ -332,7 +327,7 @@ sub expand_tree {
   if ($warn_flag) {
     # Check for unused fragments and fragments all of whose uses have a
     # common prefix that the fragment does not share.
-    foreach my $path (@{tree_iterate_preorder($fragment_to_page, [], undef)}) {
+    foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
       my $node = tree_get($fragment_to_page, $path);
       if (!$node) {
         print STDERR "`" . catfile(@{$path}) . "' is unused\n";
