@@ -275,10 +275,22 @@ sub write_tree {
   }
 }
 
+# Slurp a fragment
+sub slurp_fragment {
+  my ($path) = @_;
+  my @fragpath = make_fragment_path($path);
+  my $node = tree_get($fragments, \@fragpath);
+  my $contents;
+  $contents = slurp($node)
+    if defined($node) && tree_isleaf($node); # We have a fragment, not a directory
+  return \@fragpath, $contents;
+}
+
 # Add a page to the output
 sub add_output {
-  my ($path, $contents) = @_;
-  tree_set($output, $path, $contents);
+  my ($path) = @_;
+  my ($fragpath, $contents) = slurp_fragment($path);
+  tree_set($output, $fragpath, $contents) if $contents;
 }
 
 # Expand a file system object, recursively expanding links
@@ -309,7 +321,7 @@ sub expand_page {
         }
       }
     } else {
-      add_output($path, $node) if tree_isleaf($node);
+      tree_set($output, $path, $node) if tree_isleaf($node);
     }
   }
 }
