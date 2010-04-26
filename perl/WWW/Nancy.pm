@@ -45,8 +45,6 @@ sub tree_get {
 
 # Set subtree at given path to given value, creating any intermediate
 # nodes required
-# FIXME: Allow the entire tree to be set; need to return result!
-# FIXME: Return whether we needed to create intermediate nodes
 sub tree_set {
   my ($tree, $path, $val) = @_;
   my @path = @{$path};
@@ -220,11 +218,8 @@ sub expand {
 }
 
 # Read a directory tree into a tree
-# FIXME: Separate directory tree traversal from tree building
 sub read_tree {
   my ($obj) = @_;
-  # FIXME: Do this in a separate step (need to do it before pruning
-  # empty directories)
   return if basename($obj) =~ m/^\./; # Ignore hidden objects
   if (-f $obj) {
     return $obj;
