@@ -136,23 +136,21 @@ sub make_fragment_path {
 # undef.
 sub findFragment {
   my ($path, $fragment) = @_;
-  my (@foundpath, $contents, $node);
+  my (@foundpath, $contents);
   for (my @search = @{$path}; 1; pop @search) {
-    my @thissearch = make_fragment_path($fragment, @search);
-    $node = tree_get($fragments, \@thissearch);
-    if (defined($node) && tree_isleaf($node)) { # We have a fragment, not a directory
-      my $new_contents = slurp($node);
-      print STDERR "  " . catfile(@thissearch) . "\n" if $list_files_flag;
-      warn("`" . catfile(@thissearch) . "' is identical to `" . catfile(@foundpath) . "'")
+    my ($thissearch, $new_contents, $node) = slurp_fragment($fragment, @search);
+    if (defined($new_contents)) {
+      print STDERR "  " . catfile(@{$thissearch}) . "\n" if $list_files_flag;
+      warn("`" . catfile(@{$thissearch}) . "' is identical to `" . catfile(@foundpath) . "'")
         if $warn_flag && defined($contents) && $new_contents eq $contents;
-      @foundpath = @thissearch;
+      @foundpath = @{$thissearch};
       $contents = $new_contents;
       if ($fragment_to_page) {
-        my $used_list = tree_get($fragment_to_page, \@thissearch);
+        my $used_list = tree_get($fragment_to_page, $thissearch);
         if (UNIVERSAL::isa($used_list, "ARRAY")) {
           push @{$used_list}, $path;
         } else {
-          tree_set($fragment_to_page, \@thissearch, [$path]);
+          tree_set($fragment_to_page, $thissearch, [$path]);
         }
       }
       last;
@@ -160,7 +158,7 @@ sub findFragment {
     last if $#search == -1;
   }
   warn("Cannot find `$fragment' while building `" . catfile(@{$path}) ."'\n") unless $contents;
-  return \@foundpath, $contents, $node;
+  return \@foundpath, $contents;
 }
 
 # Process a command; if the command is undefined, replace it, uppercased
@@ -277,8 +275,8 @@ sub write_tree {
 
 # Slurp a fragment
 sub slurp_fragment {
-  my ($path) = @_;
-  my @fragpath = make_fragment_path($path);
+  my ($path, @search) = @_;
+  my @fragpath = make_fragment_path($path, @search);
   my $node = tree_get($fragments, \@fragpath);
   my $contents;
   $contents = slurp($node)
