@@ -17,7 +17,7 @@ use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
 
-my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $output, $template);
+my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $output);
 
 
 # Tree operations
@@ -283,7 +283,7 @@ sub add_output {
 
 # Expand a file system object, recursively expanding links
 sub expand_page {
-  my ($tree, $path) = @_;
+  my ($tree, $path, $template) = @_;
   # Don't expand the same node twice
   if (!defined(tree_get($output, $path))) {
     my $node = tree_get($tree, $path);
@@ -305,7 +305,7 @@ sub expand_page {
         if (!defined($node)) {
           print STDERR "Broken link from `" . catfile(@{$path}) . "' to `" . catfile(@pagepath) . "'\n";
         } else {
-          expand_page($fragments, \@pagepath);
+          expand_page($fragments, \@pagepath, $template);
         }
       }
     } else {
@@ -316,12 +316,12 @@ sub expand_page {
 
 # Macro expand a tree
 sub expand_tree {
-  my ($sourceTree, $start);
+  my ($sourceTree, $start, $template);
   ($sourceTree, $template, $start, $warn_flag, $list_files_flag) = @_;
 
   $fragment_to_page = {};
   $output = {};
-  expand_page($sourceTree, [$start]);
+  expand_page($sourceTree, [$start], $template);
 
   # Analyse generated pages to print warnings if desired
   if ($warn_flag) {
