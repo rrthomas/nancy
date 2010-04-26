@@ -12,7 +12,7 @@ use warnings;
 use feature ":5.10";
 
 use File::Basename;
-use File::Spec::Functions qw(catfile splitdir); # splitdir also used in $run scripts
+use File::Spec::Functions qw(catfile);
 use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
@@ -283,7 +283,7 @@ sub slurp_fragment {
   my $contents;
   $contents = slurp($node)
     if defined($node) && tree_isleaf($node); # We have a fragment, not a directory
-  return \@fragpath, $contents;
+  return \@fragpath, $contents, $node;
 }
 
 # Add a page to the output
