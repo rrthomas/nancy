@@ -113,15 +113,15 @@ sub tree_merge {
 }
 
 # Append relative fragment path to search path
-sub make_fragment_path {
-  my ($fragment, @search) = @_;
-  my @fragpath = split m|/|, $fragment;
-  # Append fragment path, coping with `..' and `.'. There is no
+sub make_relative_path {
+  my ($file, @search) = @_;
+  my @filepath = split m|/|, $file;
+  # Append file path, coping with `..' and `.'. There is no
   # obvious standard function to do this: File::Spec::canonpath does
   # not do `..' removal, as that does not work with symlinks; in
   # other words, our relative paths don't behave in the presence of
   # symlinks.
-  foreach my $elem (@fragpath) {
+  foreach my $elem (@filepath) {
     if ($elem eq "..") {
       pop @search;
     } elsif ($elem ne ".") {
@@ -138,7 +138,7 @@ sub findFragment {
   my ($path, $fragment) = @_;
   my (@foundpath, $contents);
   for (my @search = @{$path}; 1; pop @search) {
-    my ($thissearch, $new_contents, $node) = slurp_fragment($fragment, @search);
+    my ($thissearch, $new_contents, $node) = slurp_file($fragment, @search);
     if (defined($new_contents)) {
       print STDERR "  " . catfile(@{$thissearch}) . "\n" if $list_files_flag;
       warn("`" . catfile(@{$thissearch}) . "' is identical to `" . catfile(@foundpath) . "'")
@@ -274,21 +274,21 @@ sub write_tree {
 }
 
 # Slurp a fragment
-sub slurp_fragment {
+sub slurp_file {
   my ($path, @search) = @_;
-  my @fragpath = make_fragment_path($path, @search);
-  my $node = tree_get($fragments, \@fragpath);
+  my @filepath = make_relative_path($path, @search);
+  my $node = tree_get($fragments, \@filepath);
   my $contents;
   $contents = slurp($node)
     if defined($node) && tree_isleaf($node); # We have a fragment, not a directory
-  return \@fragpath, $contents, $node;
+  return \@filepath, $contents, $node;
 }
 
-# Add a page to the output
+# Add a file to the output
 sub add_output {
   my ($path) = @_;
-  my ($fragpath, $contents) = slurp_fragment($path);
-  tree_set($output, $fragpath, $contents) if $contents;
+  my ($filepath, $contents) = slurp_file($path);
+  tree_set($output, $filepath, $contents) if $contents;
 }
 
 # Expand a file system object, recursively expanding links
@@ -309,7 +309,7 @@ sub expand_page {
       my @links = $out =~ /\Whref=\"(?![a-z]+:)([^\"\#]+)/g;
       foreach my $link (@links) {
         # Remove current directory, which represents a page
-        my @pagepath = make_fragment_path($link, @{$path}[0..$#{$path} - 1]);
+        my @pagepath = make_relative_path($link, @{$path}[0..$#{$path} - 1]);
         no warnings qw(recursion); # We may recurse deeply.
         my $node = tree_get($fragments, \@pagepath);
         if (!defined($node)) {
@@ -319,7 +319,7 @@ sub expand_page {
         }
       }
     } else {
-      tree_set($output, $path, $node) if tree_isleaf($node);
+      add_output(catfile(@{$path}));
     }
   }
 }
