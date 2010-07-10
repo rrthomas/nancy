@@ -190,7 +190,7 @@ sub expand {
   ($text, $path, $fragments) = @_;
   my %macros = (
     page => sub {
-      # join, not catfile as we're making a URL, not a path
+      # join, not catfile, as we're making a URL, not a path
       return join "/", @{$path};
     },
     root => sub {
