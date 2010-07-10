@@ -112,7 +112,7 @@ sub tree_merge {
   return $out;
 }
 
-# Append relative fragment path to search path
+# Append relative path to search path
 sub make_relative_path {
   my ($file, @search) = @_;
   my @filepath = split m|/|, $file;
@@ -273,14 +273,14 @@ sub write_tree {
   }
 }
 
-# Slurp a fragment
+# Slurp a file
 sub slurp_file {
   my ($path, @search) = @_;
   my @filepath = make_relative_path($path, @search);
   my $node = tree_get($fragments, \@filepath);
   my $contents;
   $contents = slurp($node)
-    if defined($node) && tree_isleaf($node); # We have a fragment, not a directory
+    if defined($node) && tree_isleaf($node); # We have a file, not a directory
   return \@filepath, $contents, $node;
 }
 
