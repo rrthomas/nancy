@@ -189,10 +189,6 @@ sub expand {
   my ($text, $path);
   ($text, $path, $fragments) = @_;
   my %macros = (
-    page => sub {
-      # join, not catfile, as we're making a URL, not a path
-      return join "/", @{$path};
-    },
     root => sub {
       return join "/", (("..") x $#{$path}) if $#{$path} > 0;
       return ".";
@@ -206,7 +202,7 @@ sub expand {
     run => sub {
       my ($prog) = shift;
       my ($fragpath, $contents) = findFragment($path, $prog);
-      return &{eval(untaint($contents))}(@_) if $fragpath;
+      return &{eval(untaint($contents))}(@_, $path) if $fragpath;
       return "";
     },
   );

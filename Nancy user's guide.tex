@@ -79,15 +79,12 @@ Nancy recognises these commands:
 \begin{description}
 \SaveVerb{include}|$include{FILE}|
 \item[\UseVerb{include}]Replace the command with the contents of the given file.
-\SaveVerb{page}|$page{}|
-\item[\UseVerb{page}]Replace the command with the URL of the page
-under construction, relative to the root of the site.
 \SaveVerb{root}|$root{}|
 \SaveVerb{rellink}|<a href="root{}/path/to/page.html">|
 \item[\UseVerb{root}]Replace the command with the relative URL to the root of the site from the page under construction. This means that every link in a site can be written relative to the current page, either explicitly (which is a good way to link to pages related to the current page, as such links do not need to be rewritten if the related pages are moved together within the site), or implicitly as \UseVerb{rellink}. Hence the site's base URL can be changed without needing to change any intra-site links.
 \SaveVerb{run}|$run{PERL-FRAGMENT[, ARGUMENT, ...]}|
 \item[\UseVerb{run}]Replace the command with the output of the given
-fragment evaluated as a Perl expression, which is expected to produce a subroutine, which is then called with the given arguments.
+fragment evaluated as a Perl expression, which is expected to produce a subroutine, which is then called with the given arguments, and the directory in which the current fragment is found as an extra final argument, represented as a reference to an array of path components, left-to-right.
 \end{description}
 
 Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for |\verb|$run| commands; if you nest them, you have to deal with this potential pitfall.)
