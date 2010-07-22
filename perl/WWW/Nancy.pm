@@ -269,15 +269,24 @@ sub write_tree {
   }
 }
 
-# Slurp a file
-sub slurp_file {
+# Find a file name in the tree given a search position and relative path
+# Return tree path and file name
+sub find_file {
   my ($path, @search) = @_;
   my @filepath = make_relative_path($path, @search);
   my $node = tree_get($fragments, \@filepath);
+  return \@filepath, $node;
+}
+
+# Find a file name with find_file and slurp it if it exists
+# Return tree path, contents and file name
+sub slurp_file {
+  my ($path, @search) = @_;
+  my ($filepath, $node) = find_file($path, @search);
   my $contents;
   $contents = slurp($node)
     if defined($node) && tree_isleaf($node); # We have a file, not a directory
-  return \@filepath, $contents, $node;
+  return $filepath, $contents, $node;
 }
 
 # Add a file to the output
