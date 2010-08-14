@@ -1,4 +1,4 @@
-% Nancy User's Guide
+% Nancy User’s Guide
 
 \documentclass[english]{scrartcl}
 \usepackage{babel,a4,newlfont,fancyvrb,copyrght}
@@ -12,34 +12,34 @@
 
 \begin{document}
 
-\title{Nancy, the lazy web site builder\\User's guide}
-\date{8th April 2010}
+\title{Nancy, the lazy web site maker\\User’s guide}
+\date{11th August 2010}
 \author{Reuben Thomas}
 \maketitle
+% FIXME: Add logo
 
 \section{Introduction}
 
-Nancy is a simple web site builder that glues together HTML and other fragments to make pages, and allows fragments to be specialised for particular pages. Fragments can be files or generated programmatically.
+Nancy is a simple web site maker that glues together HTML fragments and other files to make pages, and finds all the pages and files that make up a site. Files can be generated programmatically, and specialized for particular pages.
 
-Nancy is a command-line tool.
+Nancy has a command-line tool to build a static site and a CGI script to generate pages on the fly.
+% FIXME: Document webnancy
 
 \section{Invocation}
 
 Nancy takes four arguments:
 
 \begin{verbatim}
-nancy.pl [OPTIONS] SOURCES DESTINATION TEMPLATE START
+nancy.pl [OPTIONS] SOURCES DESTINATION TEMPLATE HOME
 \end{verbatim}
 
-\noindent where \verb|SOURCES| is a colon-separated list of directories that contain the source, \verb|DESTINATION| is the directory to which the resulting HTML pages will be written, \verb|TEMPLATE| is the name of the template file, and \verb|START| gives the top-most page of the site.
+\noindent where \verb|SOURCES| is a list of directories that contain the source (separated by the system directory separator, usually a colon), \verb|DESTINATION| is the directory to which the resulting files will be written, \verb|TEMPLATE| is the name of the template file, and \verb|HOME| gives the home page of the site.
 
-The following command-line options may be given to Nancy:
+The following command-line options may be given:
 
 \begin{description}
 \SaveVerb{listfiles}|--list-files|
-\item[\UseVerb{listfiles}]List on standard error the fragments used to make each page, and insert a message into the output directly before the contents of the include giving the file name of the fragment.
-\SaveVerb{warn}|--warn|
-\item[\UseVerb{warn}]Print various warnings about possible problems with the fragments, including listing unused and duplicate fragments.
+\item[\UseVerb{listfiles}]List on standard error the files used to make each page.
 \SaveVerb{version}|--version|
 \item[\UseVerb{version}]Print the version number of Nancy.
 \SaveVerb{help}|--help|
@@ -51,18 +51,20 @@ The options may be abbreviated to any unambiguous prefix.
 \section{Operation}
 \label{operation}
 
-Nancy produces the finished pages according to the following algorithm:
+Nancy produces the site according to the following algorithm:
 
-% FIXME: Need to formalise how image &c. files get into the output
 \begin{enumerate}
-\item Scan the source trees from right to left, adding the directories that appear in each tree to a list. If a given directory is empty, remove it and its contents from the list. If a given file is empty, remove it from the list.
-\item Add the page \verb|START| to an empty list.
-\item While there is at least one previously unprocessed page in the list that corresponds to a directory in the input, take one and:
+\item Start with the \verb|HOME|.
+\item For the current object:
+\begin{enumerate}
+\item If it is a file, copy it to the output.
+\item Otherwise, assuming it is a directory:
 \begin{enumerate}
 \item Set the initial text to \verb|$include{TEMPLATE}|.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
-\item Find all the \verb|href| links in the text, and add them to the list.
+\item Find all the \verb|href| and \verb|src| links in the text, and process each as the current object.
 \item Write the resultant text to a file: for each directory \verb|SOURCE/PATH| the output file is \verb|DESTINATION/PATH|.
+\end{enumerate}
 \end{enumerate}
 \end{enumerate}
 
@@ -81,26 +83,26 @@ Nancy recognises these commands:
 \item[\UseVerb{include}]Replace the command with the contents of the given file.
 \SaveVerb{root}|$root{}|
 \SaveVerb{rellink}|<a href="root{}/path/to/page.html">|
-\item[\UseVerb{root}]Replace the command with the relative URL to the root of the site from the page under construction. This means that every link in a site can be written relative to the current page, either explicitly (which is a good way to link to pages related to the current page, as such links do not need to be rewritten if the related pages are moved together within the site), or implicitly as \UseVerb{rellink}. Hence the site's base URL can be changed without needing to change any intra-site links.
-\SaveVerb{run}|$run{PERL-FRAGMENT[, ARGUMENT, ...]}|
+\item[\UseVerb{root}]Replace the command with the relative URL to the root of the site from the page under construction. This means that every link in a site can be written relative to the current page, either explicitly (which is a good way to link to pages related to the current page, as such links do not need to be rewritten if the related pages are moved together within the site), or implicitly as \UseVerb{rellink}. Hence the site’s base URL can be changed without needing to change any intra-site links.
+\SaveVerb{run}|$run{FILE[, ARGUMENT, ...]}|
 \item[\UseVerb{run}]Replace the command with the output of the given
-fragment evaluated as a Perl expression, which is expected to produce a subroutine, which is then called with the given arguments, and the directory in which the current fragment is found as an extra final argument, represented as a reference to an array of path components, left-to-right.
+file evaluated as a Perl expression, which is expected to produce a subroutine, which is then called with the given arguments, and the directory in which the current file is found as an extra final argument, represented as a reference to an array of path components, left-to-right.
 \end{description}
 
-Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for |\verb|$run| commands; if you nest them, you have to deal with this potential pitfall.)
+Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for \verb|$run| commands; if you nest them, you have to deal with this potential pitfall.)
 
-To find the fragment \verb|FRAGMENT_PATH| specified by an \verb|$include| command, Nancy proceeds thus:
+To find the file \verb|FILE| specified by a \verb|$include| or \verb|$run| command, Nancy proceeds thus:
 
 \begin{itemize}
-\item Consider the source trees in left-to-right order:
+\item Consider the source trees in right-to-left order. For each tree:
 \begin{enumerate}
-\item Look in \verb|SOURCE/PAGE_PATH/FRAGMENT_PATH|.
+\item See whether \verb|SOURCE/PAGE_PATH/FILE| exists. If the file exists but is empty, or any directory in \verb|FILE|’s path is empty, consider \verb|FILE| not to have been found.
 \item If the file is not found, remove the last directory from \verb|PAGE_PATH| and try again, until \verb|PAGE_PATH| is empty.
-\item Finally, try looking in \verb|SOURCE/FRAGMENT_PATH|.
+\item Finally, try looking in \verb|SOURCE/FILE|.
 \end{enumerate}
 \end{itemize}
 
-For example, if \verb|SOURCES| is \verb|/dir| and \verb|FILE_PATH| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
+For example, if \verb|SOURCES| is \verb|/dir| and \verb|FILE| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
 
 \begin{enumerate}
 \item \verb|/dir/foo/bar/baz/file.html|
@@ -110,12 +112,12 @@ For example, if \verb|SOURCES| is \verb|/dir| and \verb|FILE_PATH| is \verb|foo/
 \end{enumerate}
 
 \section{Example}
-% FIXME: add use of $root{}: a link from a Person to a Place
-% FIXME: add use of $page{} and $run{} (together? I don't currently
-% have another use for $page{})
+% FIXME: add example use of $root{}: a link from a Person to a Place
+% FIXME: add example use of $run{}
 % FIXME: illustrate the use of multiple source trees (based on the
 % tests)
-% FIXME: the examples are unclear; really ought to be actual web pages % with some sort of structure diagrams automatically generated
+% FIXME: the examples are unclear; really ought to be actual web pages
+% with some sort of structure diagrams automatically generated
 
 Suppose a web site has the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
 
@@ -154,7 +156,7 @@ The basic page template looks something like this:
 </html>
 \end{verbatim}
 
-Making the menu an included file is not strictly necessary, but makes the HTML fragments easier to read. The pages will be laid out as follows:
+Making the menu an included file is not strictly necessary, but makes the template easier to read. The pages will be laid out as follows:
 
 \begin{itemize}
 \item \verb|/|
@@ -242,8 +244,8 @@ Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. Acc
 \item \verb|source/places/vladivostok.html/main.html|
 \end{itemize}
 
-For the site's index page, the file \verb|index.html/logo.html| will be used for the logo fragment, which can refer to the larger graphic desired.
+For the site’s index page, the file \verb|index.html/logo.html| will be used for the logo fragment, which can refer to the larger graphic desired.
 
-This scheme, though simple, is surprisingly flexible; this simple example has covered all the standard techniques for Nancy's use.
+This scheme, though simple, is surprisingly flexible; this simple example has covered all the standard techniques for Nancy’s use.
 
 \end{document}

@@ -8,62 +8,103 @@ END
 
 use strict;
 use warnings;
+use feature ":5.10";
 
 use Config;
+use File::Spec::Functions qw(catfile);
 use File::Basename;
+use File::Path;
 use Getopt::Long;
 
+use File::Slurp qw(slurp);
 use WWW::Nancy;
 
+
 # Get arguments
-my ($version_flag, $help_flag, $list_files_flag, $warn_flag);
+my ($version_flag, $help_flag);
 my $prog = basename($0);
 my $opts = GetOptions(
-  "list-files" => \$list_files_flag,
-  "warn" => \$warn_flag,
+  "list-files" => \$WWW::Nancy::list_files_flag,
   "version" => \$version_flag,
   "help" => \$help_flag,
  );
 die $version if $version_flag;
-dieWithUsage() if !$opts || $#ARGV < 2 || $#ARGV > 3;
-
-sub dieWithUsage {
-  die <<END;
-Usage: $prog SOURCES DESTINATION TEMPLATE START
+die <<END if !$opts || $#ARGV != 3;
+Usage: $prog SOURCES DESTINATION TEMPLATE HOME
 The lazy web site maker
 
   --list-files, -l  list files read (on standard error)
-  --warn, -w        warn about possible problems
   --version, -v     show program version
-  --help, -h, -?    show this help
+  --help, -h        show this help
 
   SOURCES is the source directory trees
   DESTINATION is the directory to which the output is written
   TEMPLATE is the name of the template fragment
-  START is the root page of the site
+  HOME is the home page of the site
 END
-}
 
 # FIXME: Use a module to add the boilerplate to the messages
-sub Die {
-  my ($message) = @_;
-  die "$prog: $message\n";
-}
+sub Die { die "$prog: $_[0]\n"; }
 
-# FIXME: Move source and destination validation into Nancy.pm
 Die("no source trees given") unless $ARGV[0];
-my @sourceRoot = split /$Config{path_sep}/, $ARGV[0];
-for (my $i = 0; $i <= $#sourceRoot; $i++) {
-  $sourceRoot[$i] =~ s|/+$||;
-  Die("`$sourceRoot[$i]' not found or is not a directory")
-    unless -d $sourceRoot[$i];
+my @roots = split /$Config{path_sep}/, $ARGV[0];
+foreach (@roots) {
+  Die("no such directory `$_'") unless -d $_;
+  $_ =~ s|/+$||;
 }
-my $destRoot = $ARGV[1];
-$destRoot =~ s|/+$||;
-Die("`$destRoot' is not a directory")
-  if -e $destRoot && !-d $destRoot;
+my $dest_root = $ARGV[1];
+$dest_root =~ s|/+$||;
+Die("`$dest_root' is not a directory")
+  if -e $dest_root && !-d $dest_root;
 my $template = $ARGV[2] or Die("no template given");
 my $start = $ARGV[3] or Die("no start page given");
 
-# Process source directories
-WWW::Nancy::write_tree(WWW::Nancy::expand_tree(\@sourceRoot, $template, $start, $warn_flag, $list_files_flag), $destRoot);
+
+# Expand source trees to the destination tree
+
+# Write $contents to $file under $dest_root
+sub write_file {
+  my ($file, $contents) = @_;
+  my $out_file = catfile($dest_root, @{$file});
+  mkpath(dirname($out_file));
+  open OUT, ">$out_file" or Die("could not write to `$out_file'");
+  print OUT $contents;
+  close OUT;
+}
+
+# Expand a page, recursively expanding links
+sub expand_page {
+  my ($path) = @_;
+  # Don't expand the same node twice
+  if (!stat(catfile($dest_root, @{$path}))) {
+    my $node = WWW::Nancy::find_in_trees($path, @roots);
+    # If we are looking at a non-leaf node, expand it
+    if ($#$path != -1 && defined($node) && -d $node) {
+      print STDERR catfile(@{$path}) . ":\n" if $WWW::Nancy::list_files_flag;
+      my $out = WWW::Nancy::expand("\$include{$template}", $path, @roots);
+      print STDERR "\n" if $WWW::Nancy::list_files_flag;
+      write_file($path, $out);
+
+      # Find all local links and add them to output (a local link is
+      # one that doesn't start with a URI scheme)
+      my @links = $out =~ /\Whref\s*=\s*\"(?![a-z]+:)([^\"\#]+)/g;
+      push @links, $out =~ /\Wsrc\s*=\s*\"(?![a-z]+:)([^\"\#]+)/g;
+      foreach my $link (@links) {
+        # Remove current directory, which represents a page
+        my @linkpath = WWW::Nancy::normalize_path(@{$path}[0..$#{$path} - 1], split "/", $link);
+        if (defined(WWW::Nancy::find_in_trees(\@linkpath, @roots))) {
+          no warnings qw(recursion); # We may recurse deeply
+          expand_page(\@linkpath);
+        } else {
+          warn "Broken link from `" . catfile(@{$path}) . "' to `" . catfile(@linkpath) . "'\n";
+        }
+      }
+    } else {
+      my $node = WWW::Nancy::find_in_trees($path, @roots);
+      my $contents = slurp($node) if defined($node);
+      write_file($path, $contents) if $contents;
+    }
+  }
+}
+
+expand_page([$start]);
