@@ -19,8 +19,6 @@ my $DocumentRoot = "/var/www";
 # Template
 my $Template = "template.html";
 
-# File tree
-my $tree = WWW::Nancy::find($DocumentRoot);
 # Extract file name from URL
 my $page = unescape(url(-absolute => 1));
 $page =~ s|^$BaseUrl/?||;
@@ -29,4 +27,4 @@ $page = "index.html" if $page eq "";
 $Template = "404.html" if !-d catfile($DocumentRoot, $page);
 
 # Output page
-print header() . WWW::Nancy::expand("\$include{$Template}", $page, $tree);
+print header() . WWW::Nancy::expand("\$include{$Template}", $page, $DocumentRoot);
