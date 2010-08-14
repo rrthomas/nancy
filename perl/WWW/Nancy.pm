@@ -311,7 +311,8 @@ sub expand_page {
 
       # Find all local links and add them to output (a local link is
       # one that doesn't start with a URI scheme)
-      my @links = $out =~ /\Whref=\"(?![a-z]+:)([^\"\#]+)/g;
+      my @links = $out =~ /\Whref\s*=\s*\"(?![a-z]+:)([^\"\#]+)/g;
+      push @links, $out =~ /\Wsrc\s*=\s*\"(?![a-z]+:)([^\"\#]+)/g;
       foreach my $link (@links) {
         # Remove current directory, which represents a page
         my @pagepath = make_relative_path($link, @{$path}[0..$#{$path} - 1]);
