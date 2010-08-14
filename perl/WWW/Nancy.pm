@@ -11,18 +11,18 @@ use strict;
 use warnings;
 use feature ":5.10";
 
-use File::Basename;
 use File::Spec::Functions qw(catfile);
 use File::Slurp qw(slurp); # Also used in $run scripts
 
 use RRT::Misc;
 
-my ($warn_flag, $list_files_flag, $fragments, $fragment_to_page, $output);
+my ($warn_flag, $list_files_flag, $files, $file_to_page, $output, $roots);
 
 
 # Tree operations
 # FIXME: Put them in their own module
 
+# For debugging
 sub tree_dump {
   my ($tree) = @_;
   foreach my $path (@{tree_iterate_preorder($tree, [], undef)}) {
@@ -37,7 +37,10 @@ sub tree_dump {
 sub tree_get {
   my ($tree, $path) = @_;
   foreach my $elem (@{$path}) {
-    last if tree_isleaf($tree);
+    if (tree_isleaf($tree)) {
+      $tree = undef;
+      last;
+    }
     $tree = $tree->{$elem};
   }
   return $tree;
@@ -49,24 +52,16 @@ sub tree_set {
   my ($tree, $path, $val) = @_;
   my @path = @{$path};
   my $leaf = pop @path;
-  return unless defined($leaf); # Ignore attempts to set entire tree
+  return unless defined($leaf); # FIXME: Ignore attempts to set entire tree
   foreach my $node (@path) {
-    $tree->{$node} = {} if !defined($tree->{$node});
+    $tree->{$node} = {} if tree_isleaf($tree->{$node});
     $tree = $tree->{$node};
   }
-  $tree->{$leaf} = $val;
-}
-
-# Remove subtree at given path
-sub tree_delete {
-  my ($tree, $path, $val) = @_;
-  my @path = @{$path};
-  my $leaf = pop @path;
-  foreach my $node (@path) {
-    return if !exists($tree->{$node});
-    $tree = $tree->{$node};
+  if (defined($val)) {
+    $tree->{$leaf} = $val;
+  } else {
+    delete $tree->{$leaf};
   }
-  delete $tree->{$leaf};
 }
 
 # Return whether tree is a leaf
@@ -89,28 +84,6 @@ sub tree_iterate_preorder {
   return $paths;
 }
 
-# Return a copy of a tree
-sub tree_copy {
-  my ($tree) = @_;
-  return $tree if scalar keys %{$tree} == 0;
-  return tree_merge({}, $tree);
-}
-
-# Merge two trees, returning the result; right-hand operand takes
-# precedence, and its empty subtrees replace left-hand subtrees.
-sub tree_merge {
-  my ($left, $right) = @_;
-  my $out = tree_copy($left);
-  foreach my $path (@{tree_iterate_preorder($right, [], undef)}) {
-    my $node = tree_get($right, $path);
-    if (tree_isleaf($node)) {
-      tree_set($out, $path, $node);
-    } elsif (scalar keys %{$node} == 0) {
-      tree_set($out, $path, {});
-    }
-  }
-  return $out;
-}
 
 # Append relative path to search path
 sub make_relative_path {
@@ -131,38 +104,38 @@ sub make_relative_path {
   return @search;
 }
 
-# Search for fragment starting at the given path; if found return its
+# Search for file starting at the given path; if found return its
 # path, contents and file name; if not, print a warning and return
 # undef.
-sub findFragment {
-  my ($path, $fragment) = @_;
+sub inherit_file {
+  my ($path, $file) = @_;
   my (@foundpath, $contents);
   for (my @search = @{$path}; 1; pop @search) {
-    my ($thissearch, $new_contents, $node) = slurp_file($fragment, @search);
+    my ($thissearch, $new_contents, $node) = slurp_file($file, @search);
     if (defined($new_contents)) {
       print STDERR "  " . catfile(@{$thissearch}) . "\n" if $list_files_flag;
       warn("`" . catfile(@{$thissearch}) . "' is identical to `" . catfile(@foundpath) . "'")
         if $warn_flag && defined($contents) && $new_contents eq $contents;
       @foundpath = @{$thissearch};
       $contents = $new_contents;
-      if ($fragment_to_page) {
-        my $used_list = tree_get($fragment_to_page, $thissearch);
+      if ($file_to_page) {
+        my $used_list = tree_get($file_to_page, $thissearch);
         if (UNIVERSAL::isa($used_list, "ARRAY")) {
           push @{$used_list}, $path;
         } else {
-          tree_set($fragment_to_page, $thissearch, [$path]);
+          tree_set($file_to_page, $thissearch, [$path]);
         }
       }
       last;
     }
     last if $#search == -1;
   }
-  warn("Cannot find `$fragment' while building `" . catfile(@{$path}) ."'\n") unless $contents;
+  warn("Cannot find `$file' while building `" . catfile(@{$path}) ."'\n") unless $contents;
   return \@foundpath, $contents;
 }
 
 # Process a command; if the command is undefined, replace it, uppercased
-sub doMacro {
+sub do_macro {
   my ($macro, $arg, %macros) = @_;
   if (defined($macros{$macro})) {
     my @arg = split /(?<!\\),/, ($arg || "");
@@ -174,82 +147,41 @@ sub doMacro {
 }
 
 # Process commands in some text
-sub doMacros {
+sub do_macros {
   my ($text, %macros) = @_;
-  1 while $text =~ s/\$([[:lower:]]+){(((?:(?!(?<!\\)[{}])).)*?)(?<!\\)}/doMacro($1, $2, %macros)/ge;
+  1 while $text =~ s/\$([[:lower:]]+){(((?:(?!(?<!\\)[{}])).)*?)(?<!\\)}/do_macro($1, $2, %macros)/ge;
   return $text;
 }
 
 # Expand commands in some text
 #   $text - text to expand
 #   $path - leaf directory to make into a page
-#   $fragments - tree of fragments
 # returns expanded text
 sub expand {
-  my ($text, $path);
-  ($text, $path, $fragments) = @_;
+  my ($text, $path) = @_;
   my %macros = (
     root => sub {
       return join "/", (("..") x $#{$path}) if $#{$path} > 0;
       return ".";
     },
     include => sub {
-      my ($fragment) = @_;
-      my ($fragpath, $contents) = findFragment($path, $fragment);
+      my ($file) = @_;
+      my ($fragpath, $contents) = inherit_file($path, $file);
       return $contents if $fragpath;
       return "";
     },
     run => sub {
       my ($prog) = shift;
-      my ($fragpath, $contents) = findFragment($path, $prog);
+      my ($fragpath, $contents) = inherit_file($path, $prog);
       return &{eval(untaint($contents))}(@_, $path) if $fragpath;
       return "";
     },
   );
-  $text = doMacros($text, %macros);
+  $text = do_macros($text, %macros);
   # Convert $Macro back to $macro
   $text =~ s/(?!<\\)(?<=\$)([[:upper:]])(?=[[:lower:]]*{)/lc($1)/ge;
 
   return $text;
-}
-
-# Read a directory tree into a tree
-sub read_tree {
-  my ($obj) = @_;
-  return if basename($obj) =~ m/^\./; # Ignore hidden objects
-  if (-f $obj) {
-    return $obj;
-  } elsif (-d $obj) {
-    my %dir = ();
-    opendir(DIR, $obj);
-    my @files = readdir(DIR);
-    foreach my $file (@files) {
-      next if $file eq "." or $file eq "..";
-      my $val = read_tree(catfile($obj, $file));
-      $dir{$file} = $val if defined($val);
-    }
-    return \%dir;
-  }
-  # If not a file or directory, return nothing
-}
-
-# Construct file tree from multiple source trees, masking out empty
-# files and directories
-sub find {
-  my @roots = reverse @_;
-  my $out = {};
-  foreach my $root (@roots) {
-    $out = tree_merge($out, read_tree($root));
-  }
-  # Get rid of empty files and directories
-  foreach my $path (@{tree_iterate_preorder($out, [], undef)}) {
-    my $node = tree_get($out, $path);
-    if ((tree_isleaf($node) && -z $node) ||
-          (!tree_isleaf($node) && scalar keys %{$node} == 0)) {
-      tree_delete($out, $path);
-    }
-  }
-  return $out;
 }
 
 # Write $tree to a file hierarchy based at $root
@@ -269,20 +201,55 @@ sub write_tree {
   }
 }
 
+# File file object in multiple source trees, masking out empty files
+# and directories
+sub find {
+  my ($path) = @_;
+  my $obj;
+  foreach my $root (reverse @{$roots}) {
+    my $filename = catfile($root, @{$path});
+    if (-f $filename) {
+      $obj = $filename;
+      undef $obj if -z $filename;
+    } elsif (-d $filename) {
+      my @path = @{$path};
+      while ($#path >= 0) {
+        pop @path;
+        $obj = catfile($root, @path);
+        if (-d $obj) {
+          opendir(my $dh, $obj) || die "cannot opendir $obj: $!";
+          my @dots = grep {/^\./} readdir($dh);
+          closedir $dh;
+          if ($#dots == -1) {
+            undef $obj;
+            last;
+          }
+        }
+      }
+    }
+  }
+  return $obj;
+}
+
 # Find a file name in the tree given a search position and relative path
 # Return tree path and file name
-sub find_file {
+sub get_file {
   my ($path, @search) = @_;
   my @filepath = make_relative_path($path, @search);
-  my $node = tree_get($fragments, \@filepath);
+  # FIXME: Implement stat caching for persistent use
+  my $node = tree_get($files, \@filepath);
+  if (!$node) {
+    $node = find(\@filepath);
+    tree_set($files, \@filepath, $node);
+  }
   return \@filepath, $node;
 }
 
-# Find a file name with find_file and slurp it if it exists
+# Find a file name with get_file and slurp it if it exists
 # Return tree path, contents and file name
 sub slurp_file {
   my ($path, @search) = @_;
-  my ($filepath, $node) = find_file($path, @search);
+  my ($filepath, $node) = get_file($path, @search);
   my $contents;
   $contents = slurp($node)
     if defined($node) && tree_isleaf($node); # We have a file, not a directory
@@ -298,14 +265,14 @@ sub add_output {
 
 # Expand a file system object, recursively expanding links
 sub expand_page {
-  my ($tree, $path, $template) = @_;
+  my ($path, $template) = @_;
   # Don't expand the same node twice
   if (!defined(tree_get($output, $path))) {
-    my $node = tree_get($tree, $path);
+    my $node = get_file(catfile(@{$path}));
     # If we are looking at a non-leaf node, expand it
-    if ($#$path != -1 && defined($node) && !tree_isleaf($node)) {
+    if ($#$path != -1 && defined($node) && -d $node) {
       print STDERR catfile(@{$path}) . ":\n" if $list_files_flag;
-      my $out = expand("\$include{$template}", $path, $tree);
+      my $out = expand("\$include{$template}", $path);
       print STDERR "\n" if $list_files_flag;
       tree_set($output, $path, $out);
 
@@ -317,11 +284,11 @@ sub expand_page {
         # Remove current directory, which represents a page
         my @pagepath = make_relative_path($link, @{$path}[0..$#{$path} - 1]);
         no warnings qw(recursion); # We may recurse deeply.
-        my $node = tree_get($fragments, \@pagepath);
+        my $node = get_file(catfile(@pagepath));
         if (!defined($node)) {
           print STDERR "Broken link from `" . catfile(@{$path}) . "' to `" . catfile(@pagepath) . "'\n";
         } else {
-          expand_page($fragments, \@pagepath, $template);
+          expand_page(\@pagepath, $template);
         }
       }
     } else {
@@ -332,22 +299,21 @@ sub expand_page {
 
 # Macro expand a tree
 sub expand_tree {
-  my ($sourceTree, $start, $template);
-  ($sourceTree, $template, $start, $warn_flag, $list_files_flag) = @_;
+  my ($template, $start);
+  ($roots, $template, $start, $warn_flag, $list_files_flag) = @_;
 
-  $fragment_to_page = {};
+  $files = {};
+  $file_to_page = {};
   $output = {};
-  expand_page($sourceTree, [$start], $template);
+  expand_page([$start], $template);
 
   # Analyse generated pages to print warnings if desired
   if ($warn_flag) {
-    # Check for unused fragments and fragments all of whose uses have a
-    # common prefix that the fragment does not share.
-    foreach my $path (@{tree_iterate_preorder($sourceTree, [], undef)}) {
-      my $node = tree_get($fragment_to_page, $path);
-      if (!$node) {
-        print STDERR "`" . catfile(@{$path}) . "' is unused\n";
-      } elsif (tree_isleaf($node) && UNIVERSAL::isa($node, "ARRAY")) {
+    # Check for files all of whose uses are in a sub-directory of the
+    # file's parent directory.
+    foreach my $path (@{tree_iterate_preorder($files, [], undef)}) {
+      my $node = tree_get($file_to_page, $path);
+      if (tree_isleaf($node) && UNIVERSAL::isa($node, "ARRAY")) {
         my $prefix = $#{@{$node}[0]};
         foreach my $page (@{$node}) {
           for (; $prefix >= 0 && !(@{$page}[0..$prefix] ~~ @{@{$node}[0]}[0..$prefix]);
@@ -355,7 +321,7 @@ sub expand_tree {
         }
         my @dir = @{@{$node}[0]}[0..$prefix];
         print STDERR "`" . catfile(@{$path}) . "' could be moved into `" . catfile(@dir) . "'\n"
-          if defined(tree_get($sourceTree, \@dir)) && $#{$path} <= $prefix && !(@dir ~~ @{$path});
+          if defined(tree_get($files, \@dir)) && $#{$path} <= $prefix && !(@dir ~~ @{$path});
       }
     }
   }

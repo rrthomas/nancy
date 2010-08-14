@@ -51,7 +51,7 @@ sub Die {
 }
 
 # FIXME: Move source and destination validation into Nancy.pm
-Die("No source tree given") unless $ARGV[0];
+Die("no source trees given") unless $ARGV[0];
 my @sourceRoot = split /$Config{path_sep}/, $ARGV[0];
 for (my $i = 0; $i <= $#sourceRoot; $i++) {
   $sourceRoot[$i] =~ s|/+$||;
@@ -66,4 +66,4 @@ my $template = $ARGV[2] or Die("no template given");
 my $start = $ARGV[3] or Die("no start page given");
 
 # Process source directories
-WWW::Nancy::write_tree(WWW::Nancy::expand_tree(WWW::Nancy::find(@sourceRoot), $template, $start, $warn_flag, $list_files_flag), $destRoot);
+WWW::Nancy::write_tree(WWW::Nancy::expand_tree(\@sourceRoot, $template, $start, $warn_flag, $list_files_flag), $destRoot);
