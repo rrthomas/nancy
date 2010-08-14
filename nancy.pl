@@ -29,8 +29,8 @@ my $opts = GetOptions(
   "help" => \$help_flag,
  );
 die $version if $version_flag;
-die <<END if !$opts || $#ARGV != 3;
-Usage: $prog SOURCES DESTINATION TEMPLATE HOME
+die <<END if !$opts || $#ARGV < 2 || $#ARGV > 3;
+Usage: $prog SOURCES DESTINATION TEMPLATE [HOME]
 The lazy web site maker
 
   --list-files, -l  list files read (on standard error)
@@ -40,7 +40,7 @@ The lazy web site maker
   SOURCES is the source directory trees
   DESTINATION is the directory to which the output is written
   TEMPLATE is the name of the template fragment
-  HOME is the home page of the site
+  HOME is the home page of the site [default `index.html']
 END
 
 # FIXME: Use a module to add the boilerplate to the messages
@@ -57,7 +57,7 @@ $dest_root =~ s|/+$||;
 Die("`$dest_root' is not a directory")
   if -e $dest_root && !-d $dest_root;
 my $template = $ARGV[2] or Die("no template given");
-my $start = $ARGV[3] or Die("no start page given");
+my $start = $ARGV[3] || "index.html";
 
 
 # Expand source trees to the destination tree
