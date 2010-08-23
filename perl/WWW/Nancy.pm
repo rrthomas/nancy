@@ -99,6 +99,7 @@ sub do_macros {
 # Expand commands in some text
 #   $text - text to expand
 #   $path - leaf directory to make into a page
+#   @roots - list of roots of trees to scan
 # returns expanded text
 sub expand {
   my ($text, $path, @roots) = @_;
