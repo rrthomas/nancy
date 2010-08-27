@@ -13,7 +13,7 @@
 \begin{document}
 
 \title{Nancy, the lazy web site maker\\User’s guide}
-\date{14th August 2010}
+\date{26th August 2010}
 \author{Reuben Thomas}
 \maketitle
 % FIXME: Add logo
@@ -93,14 +93,11 @@ Only one guarantee is made about the order in which commands are processed: if o
 
 To find the file \verb|FILE| specified by a \verb|$include| or \verb|$run| command, Nancy proceeds thus:
 
-\begin{itemize}
-\item Consider the source trees in right-to-left order. For each tree:
 \begin{enumerate}
-\item See whether \verb|SOURCE/PAGE_PATH/FILE| exists. If the file exists but is empty, or any directory in \verb|FILE|’s path is empty, consider \verb|FILE| not to have been found.
+\item See whether \verb|SOURCE/PAGE_PATH/FILE| exists in any source tree, trying the trees in left-to-right order.
 \item If the file is not found, remove the last directory from \verb|PAGE_PATH| and try again, until \verb|PAGE_PATH| is empty.
 \item Finally, try looking in \verb|SOURCE/FILE|.
 \end{enumerate}
-\end{itemize}
 
 For example, if \verb|SOURCES| is \verb|/dir| and \verb|FILE| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
 

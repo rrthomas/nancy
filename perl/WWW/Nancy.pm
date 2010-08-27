@@ -32,34 +32,15 @@ sub normalize_path {
   return @out_path;
 }
 
-# File file in multiple source trees, masking out empty files and
-# directories
+# File file in multiple source trees
 sub find_in_trees {
   my ($path, @roots) = @_;
   my @norm_path = normalize_path(@{$path});
-  my $found;
-  foreach my $root (reverse @roots) {
+  foreach my $root (@roots) {
     my $obj = catfile($root, @norm_path);
-    if (-e $obj) {
-      $found = $obj;
-      undef $found if -f $obj && -z $obj;
-    } else {
-      for (my @path = @norm_path; $#path >= 0;) {
-        pop @path;
-        my $dir = catfile($root, @path);
-        if (-d $dir) {
-          opendir(my $dh, $dir) || die "cannot opendir `$dir': $!";
-          my @dots = grep {/^\./} readdir($dh);
-          closedir $dh;
-          if ($#dots == -1) {
-            undef $found;
-            last;
-          }
-        }
-      }
-    }
+    return $obj if -e $obj;
   }
-  return $found;
+  return undef;
 }
 
 # Search for file starting at the given path; if found return its
