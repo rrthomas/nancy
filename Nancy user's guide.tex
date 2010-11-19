@@ -13,7 +13,7 @@
 \begin{document}
 
 \title{Nancy, the lazy web site maker\\User’s guide}
-\date{26th August 2010}
+\date{27th August 2010}
 \author{Reuben Thomas}
 \maketitle
 % FIXME: Add logo
@@ -30,10 +30,10 @@ Nancy has a command-line tool to build a static site and a CGI script to generat
 Nancy takes four arguments:
 
 \begin{verbatim}
-nancy.pl [OPTIONS] SOURCES DESTINATION TEMPLATE [HOME]
+nancy [OPTIONS] SOURCES DESTINATION [TEMPLATE [HOME]]
 \end{verbatim}
 
-\noindent where \verb|SOURCES| is a list of directories that contain the source (separated by the system directory separator, usually a colon), \verb|DESTINATION| is the directory to which the resulting files will be written, \verb|TEMPLATE| is the name of the template file, and \verb|HOME| gives the home page of the site, which defaults to \verb|index.html|.
+\noindent where \verb|SOURCES| is a list of directories that contain the source (separated by the system directory separator, usually a colon), \verb|DESTINATION| is the directory to which the resulting files will be written, \verb|TEMPLATE| is the name of the template file, which defaults to \verb|template.html|, and \verb|HOME| gives the home page of the site, which defaults to \verb|index.html|.
 
 The following command-line options may be given:
 
@@ -228,7 +228,7 @@ Note that there is only one menu fragment (the main menu is the same for every p
 To build the site, Nancy is invoked as:
 
 \begin{verbatim}
-nancy.pl source template.html dest
+nancy source template.html dest
 \end{verbatim}
 
 Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, Nancy will look first for files in \verb|source/places/vladivostok.html|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
