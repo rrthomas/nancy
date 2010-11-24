@@ -1,0 +1,21 @@
+Caching
+
+No point caching dir information as we always need to recheck.
+Cache only file stat and (where read) contents.
+
+When we finish lazy tree merging, we can check against a cache; *any* difference means a change (a ‘new’ file can be older than existing files).
+
+
+Whole volume sites
+
+1. Rewrite anchors and links to anchors to be unique per-page, i.e. names and ids.
+
+2. Rewrite all site-local links as intralinks.
+
+3. Use a template which expands only the page body & puts it in <div class="page">
+
+4. After nancy.pl, gather up HTML files in breadth-first order & put them into a new template (another call to expand; see 6.).
+
+5. Output to index.html & remove empty dirs.
+
+6. Adapt old page framework to do whole-volume pages.
