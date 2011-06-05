@@ -53,7 +53,7 @@ sub find_on_path {
     my $node = find_in_trees($thissearch, @roots);
     if (defined($node)) {
       my $contents = slurp($node);
-      print STDERR "  " . catfile(@{$thissearch}) . "\n" if $list_files_flag;
+      print STDERR "  $node\n" if $list_files_flag;
       return $thissearch, $contents if $contents;
     }
     last if $#search == -1;
