@@ -80,7 +80,7 @@ sub expand_page {
     my $node = WWW::Nancy::find_in_trees($path, @roots);
     # If we are looking at a non-leaf node, expand it
     if ($#$path != -1 && defined($node) && -d $node) {
-      print STDERR catfile(@{$path}) . ":\n" if $WWW::Nancy::list_files_flag;
+      print STDERR catfile(@{$path}) . "\n" if $WWW::Nancy::list_files_flag;
       my $out = WWW::Nancy::expand("\$include{$template}", $path, @roots);
       print STDERR "\n" if $WWW::Nancy::list_files_flag;
       write_file($path, $out);
