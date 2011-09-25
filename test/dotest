@@ -3,11 +3,11 @@
 
 # One-tree test
 rm -rf dest
-#perl -wMDevel::SimpleTrace ../nancy.pl --list-files --warn src dest template.html
-../nancy.pl --list-files --warn src dest template.html index.html
+#perl -wMDevel::SimpleTrace ../nancy --list-files --warn src dest template.html
+../nancy --list-files --warn src dest template.html index.html
 diff -Nur -x ".svn" dest expected
 
 # Two-tree test
 rm -rf dest2
-../nancy.pl src2:src dest2 template.html index.html
+../nancy src2:src dest2 template.html index.html
 diff -Nur -x ".svn" dest2 expected2
