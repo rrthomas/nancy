@@ -2,11 +2,10 @@ Caching
 
 No point caching dir information as we always need to recheck.
 Cache only file stat and (where read) contents.
+*Any* difference means a change (a ‘new’ file can be older than existing files).
 
-When we finish lazy tree merging, we can check against a cache; *any* difference means a change (a ‘new’ file can be older than existing files).
 
-
-Whole volume sites
+Whole volume pages
 
 1. Rewrite anchors and links to anchors to be unique per-page, i.e. names and ids.
 
