@@ -14,6 +14,7 @@ use Config;
 use File::Spec::Functions qw(catfile);
 use File::Basename;
 use File::Path;
+use File::stat;
 use Getopt::Long;
 
 use File::Slurp qw(slurp);
@@ -46,6 +47,8 @@ END
 # FIXME: Use a module to add the boilerplate to the messages
 sub Die { die "$prog: $_[0]\n"; }
 
+my $start_time = time;
+
 Die("no source trees given") unless $ARGV[0];
 my @roots = split /$Config{path_sep}/, $ARGV[0];
 foreach (@roots) {
@@ -76,7 +79,8 @@ sub write_file {
 sub expand_page {
   my ($path) = @_;
   # Don't expand the same node twice
-  if (!stat(catfile($dest_root, @{$path}))) {
+  my $st = stat(catfile($dest_root, @{$path}));
+  if (!$st || $st->mtime < $start_time) {
     my $node = WWW::Nancy::find_in_trees($path, @roots);
     # If we are looking at a non-leaf node, expand it
     if ($#$path != -1 && defined($node) && -d $node) {
