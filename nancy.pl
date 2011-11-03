@@ -144,4 +144,4 @@ if ($node) {
 
 # Output page
 print STDERR catfile(@path) . "\n" if $list_files; # implement via environment variable
-print header() . expand("\$include{$Template$ext}", \@path, @source_roots);
+print header(-type => "application/xhtml+xml") . expand("\$include{$Template$ext}", \@path, @source_roots);
