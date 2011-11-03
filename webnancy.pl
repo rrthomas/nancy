@@ -17,14 +17,16 @@ my $BaseUrl = "/";
 # Root of source files
 my $DocumentRoot = "/var/www";
 # Template
-my $Template = "template.html";
+my $Template = "template";
 
 # Extract file name from URL
 my $page = unescape(url(-absolute => 1));
 $page =~ s|^$BaseUrl/?||;
 $page = "index.html" if $page eq "";
+$page =~ m/\.[^.]*$/;
+my $ext = $_;
 # FIXME: Look in the tree to check 404
-$Template = "404.html" if !-d catfile($DocumentRoot, $page);
+($Template, $ext) = ("404", "html") if !-d catfile($DocumentRoot, $page);
 
 # Output page
-print header() . WWW::Nancy::expand("\$include{$Template}", $page, $DocumentRoot);
+print header() . WWW::Nancy::expand("\$include{$Template$ext}", $page, $DocumentRoot);

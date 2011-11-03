@@ -33,7 +33,7 @@ Nancy takes four arguments:
 nancy [OPTIONS] SOURCES DESTINATION [TEMPLATE [HOME]]
 \end{verbatim}
 
-\noindent where \verb|SOURCES| is a list of directories that contain the source (separated by the system directory separator, usually a colon), \verb|DESTINATION| is the directory to which the resulting files will be written, \verb|TEMPLATE| is the name of the template file, which defaults to \verb|template.html|, and \verb|HOME| gives the home page of the site, which defaults to \verb|index.html|.
+\noindent where \verb|SOURCES| is a list of directories that contain the source (separated by the system directory separator, usually a colon), \verb|DESTINATION| is the directory to which the resulting files will be written, \verb|TEMPLATE| is the template name, which defaults to \verb|template|, and \verb|HOME| gives the home page of the site, which defaults to \verb|index.html|.
 
 The following command-line options may be given:
 
@@ -55,12 +55,12 @@ Nancy produces the site according to the following algorithm:
 
 \begin{enumerate}
 \item Start with the \verb|HOME|.
-\item For the current object:
+\item For the current object, with base name \verb|foo.bar|:
 \begin{enumerate}
 \item If it is a file, copy it to the output.
 \item Otherwise, assuming it is a directory:
 \begin{enumerate}
-\item Set the initial text to \verb|$include{TEMPLATE}|.
+\item Set the initial text to \verb|$include{TEMPLATE.bar}|.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
 \item Find all the \verb|href| and \verb|src| links in the text, and process each as the current object.
 \item Write the resultant text to a file: for each directory \verb|SOURCE/PATH| the output file is \verb|DESTINATION/PATH|.
@@ -228,7 +228,7 @@ Note that there is only one menu fragment (the main menu is the same for every p
 To build the site, Nancy is invoked as:
 
 \begin{verbatim}
-nancy source template.html dest
+nancy source dest
 \end{verbatim}
 
 Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, Nancy will look first for files in \verb|source/places/vladivostok.html|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
