@@ -13,7 +13,7 @@
 \begin{document}
 
 \title{Nancy, the lazy web site maker\\User’s guide}
-\date{29th September 2011}
+\date{19th October 2011}
 \author{Reuben Thomas}
 \maketitle
 % FIXME: Add logo
@@ -22,31 +22,22 @@
 
 Nancy is a simple web site maker that glues together HTML fragments and other files to make pages, and finds all the pages and files that make up a site. Files can be generated programmatically, and specialized for particular pages.
 
-Nancy has a command-line tool to build a static site and a CGI script to generate pages on the fly.
-% FIXME: Document webnancy
+Nancy is a CGI program which generates pages on the fly.
 
 \section{Invocation}
 
-Nancy takes four arguments:
-
-\begin{verbatim}
-nancy [OPTIONS] SOURCES DESTINATION [TEMPLATE [HOME]]
-\end{verbatim}
-
-\noindent where \verb|SOURCES| is a list of directories that contain the source (separated by the system directory separator, usually a colon), \verb|DESTINATION| is the directory to which the resulting files will be written, \verb|TEMPLATE| is the template name, which defaults to \verb|template|, and \verb|HOME| gives the home page of the site, which defaults to \verb|index.html|.
-
-The following command-line options may be given:
+Nancy is configured via environment variables:
 
 \begin{description}
-\SaveVerb{listfiles}|--list-files|
+\SaveVerb{sources}|NANCY_SOURCES|
+\item[\UseVerb{sources}]a list of directories that contain the source (separated by the system directory separator, usually a colon)
+\SaveVerb{template}|NANCY_TEMPLATE|
+\item[\UseVerb{template}]the template name, which defaults to \verb|template|
+\SaveVerb{home}|NANCY_HOME|
+\item[\UseVerb{home}]gives the home page of the site, which defaults to \verb|index.html|
+\SaveVerb{listfiles}|NANCY_LIST_FILES|
 \item[\UseVerb{listfiles}]List on standard error the files used to make each page.
-\SaveVerb{version}|--version|
-\item[\UseVerb{version}]Print the version number of Nancy.
-\SaveVerb{help}|--help|
-\item[\UseVerb{help}]Print usage information for Nancy.
 \end{description}
-
-The options may be abbreviated to any unambiguous prefix.
 
 \section{Operation}
 \label{operation}

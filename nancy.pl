@@ -1,22 +1,40 @@
-# Nancy.pm $Revision$ ($Date$)
-# (c) 2002-2010 Reuben Thomas (rrt@sc3d.org; http://rrt.sc3d.org/)
-# Distributed under the GNU General Public License version 3, or (at
-# your option) any later version. There is no warranty.
-
-# FIXME: Write proper API documentation in POD
-
-package WWW::Nancy;
+#!/usr/bin/perl
+# Web wrapper for Nancy
+# (c) 2002-2011 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
+# Distributed under the GNU General Public License
 
 use strict;
 use warnings;
 
-use File::Spec::Functions qw(catfile);
+use File::Spec::Functions qw(splitdir catfile);
+use File::Glob qw(:glob);
+use CGI qw(:standard);
+use CGI::Util qw(unescape);
 
-use File::Slurp qw(slurp); # Also used in $run scripts
-use RRT::Misc qw(untaint);
+use File::Slurp qw(slurp);
+use File::MimeInfo;
 
-our ($list_files_flag);
+# Configuration variables
+my $BaseUrl = "/" . $ENV{NANCY_WEB_ROOT};
+my $BaseDir = bsd_glob($ENV{NANCY_WEB_ROOT}, GLOB_TILDE);
+my $Template = $ENV{NANCY_TEMPLATE} || "template";
+my $Home = $ENV{NANCY_HOME} || "index.html";
+my $list_files = $ENV{NANCY_LIST_FILES};
 
+# Extract file name from URL
+my $page = unescape(url(-absolute => 1));
+$page =~ s|^$BaseUrl||;
+
+# Extract site name and page name to calculate source roots
+$page =~ s|/$||;
+my @path = splitdir($page);
+my $site = shift @path || "";
+
+# Read source roots
+my $site_root = catfile($BaseDir, $site);
+opendir(my $dh, $site_root) || die "cannot read `$site_root': $!";
+my @source_roots = map { catfile($site_root, $_) } sort (grep {/^[^.]/} readdir($dh));
+closedir $dh;
 
 # Remove `..' and `.' components from a path
 sub normalize_path {
@@ -53,7 +71,7 @@ sub find_on_path {
     my $node = find_in_trees($thissearch, @roots);
     if (defined($node)) {
       my $contents = slurp($node);
-      print STDERR "  $node\n" if $list_files_flag;
+      print STDERR "  $node\n" if $list_files;
       return $thissearch, $contents if $contents;
     }
     last if $#search == -1;
@@ -97,7 +115,7 @@ sub expand {
     run => sub {
       my ($prog) = shift;
       my ($file, $contents) = find_on_path($path, $prog, @roots);
-      return $file ? &{eval(untaint($contents))}(@_, $path, @roots) : "";
+      return $file ? &{eval($contents)}(@_, $path, @roots) : "";
     },
   );
   $text = do_macros($text, %macros);
@@ -107,5 +125,23 @@ sub expand {
   return $text;
 }
 
+# Process request
+$path[$#path] =~ m/(\.[^.]*)$/;
+my $ext = $1 || "";
+my $node = find_in_trees(\@path, @source_roots);
+if ($node) {
+  if (-f $node) { # If a file, serve it
+    print header(-type => mimetype($page)) . slurp($node);
+    exit;
+  } elsif (-d $node && $ext eq "") {
+    push @path, $Home;
+    print redirect("$BaseUrl$site/" . (join "/", @path));
+    exit;
+  }
+} else { # If not found, give a 404
+  ($Template, $ext) = ("404", ".html");
+}
 
-return 1;
+# Output page
+print STDERR catfile(@path) . "\n" if $list_files; # implement via environment variable
+print header() . expand("\$include{$Template$ext}", \@path, @source_roots);
