@@ -33,7 +33,7 @@ my $site = shift @path || "";
 # Read source roots
 my $site_root = catfile($BaseDir, $site);
 opendir(my $dh, $site_root) || die "cannot read `$site_root': $!";
-my @source_roots = map { catfile($site_root, $_) } sort (grep {/^[^.]/} readdir($dh));
+my @source_roots = map { catfile($site_root, $_) } sort {$b cmp $a} (grep {/^[^.]/} readdir($dh));
 closedir $dh;
 
 # Remove `..' and `.' components from a path
