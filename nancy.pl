@@ -18,7 +18,7 @@ use File::MimeInfo;
 my $BaseUrl = "/" . $ENV{NANCY_WEB_ROOT};
 my $BaseDir = bsd_glob($ENV{NANCY_WEB_ROOT}, GLOB_TILDE);
 my $Template = $ENV{NANCY_TEMPLATE} || "template";
-my $Home = $ENV{NANCY_HOME} || "index.html";
+my $Index = $ENV{NANCY_INDEX} || "index.html";
 my $list_files = $ENV{NANCY_LIST_FILES};
 
 # Extract file name from URL
@@ -97,7 +97,7 @@ sub do_macros {
 
 # Expand commands in some text
 #   $text - text to expand
-#   $path - leaf directory to make into a page
+#   $path - directory to make into a page
 #   @roots - list of roots of trees to scan
 # returns expanded text
 sub expand {
@@ -126,7 +126,7 @@ sub expand {
 }
 
 # Process request
-$path[$#path] =~ m/(\.[^.]*)$/;
+$path[$#path] =~ m/(\.\w+)$/;
 my $ext = $1 || "";
 my $node = find_in_trees(\@path, @source_roots);
 if ($node) {
@@ -134,7 +134,7 @@ if ($node) {
     print header(-type => mimetype($page)) . slurp($node);
     exit;
   } elsif (-d $node && $ext eq "") {
-    push @path, $Home;
+    push @path, $Index;
     print redirect("$BaseUrl$site/" . (join "/", @path));
     exit;
   }
