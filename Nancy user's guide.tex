@@ -13,7 +13,7 @@
 \begin{document}
 
 \title{Nancy, the lazy web site maker\\User’s guide}
-\date{19th October 2011}
+\date{4th November 2011}
 \author{Reuben Thomas}
 \maketitle
 % FIXME: Add logo
@@ -215,12 +215,6 @@ The corresponding source files will be laid out as follows. This may look a litt
 \end{itemize}
 
 Note that there is only one menu fragment (the main menu is the same for every page), while each section has its own breadcrumb trail (\verb|breadcrumb.html|), and each page has its own content (\verb|main.html|).
-
-To build the site, Nancy is invoked as:
-
-\begin{verbatim}
-nancy source dest
-\end{verbatim}
 
 Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in Section~\ref{operation}, Nancy will look first for files in \verb|source/places/vladivostok.html|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
 
