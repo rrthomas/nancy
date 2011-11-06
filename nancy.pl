@@ -126,6 +126,7 @@ sub expand {
 }
 
 # Process request
+my $headers = {-type => "application/xhtml+xml", -charset => "utf-8"};
 $path[$#path] =~ m/(\.\w+)$/;
 my $ext = $1 || "";
 my $node = find_in_trees(\@path, @source_roots);
@@ -140,8 +141,10 @@ if ($node) {
   }
 } else { # If not found, give a 404
   ($Template, $ext) = ("404", ".html");
+  $headers->{"-status"} = 404;
 }
 
 # Output page
 print STDERR catfile(@path) . "\n" if $list_files; # implement via environment variable
-print header(-type => "application/xhtml+xml") . expand("\$include{$Template$ext}", \@path, @source_roots);
+binmode(STDOUT, ":utf8");
+print STDOUT header($headers) . expand("\$include{$Template$ext}", \@path, @source_roots);
