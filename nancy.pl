@@ -19,7 +19,7 @@ my $BaseUrl = "/" . $ENV{NANCY_WEB_ROOT};
 my $BaseDir = bsd_glob($ENV{NANCY_WEB_ROOT}, GLOB_TILDE);
 my $Template = $ENV{NANCY_TEMPLATE} || "template";
 my $Index = $ENV{NANCY_INDEX} || "index.html";
-my $list_files = $ENV{NANCY_LIST_FILES};
+my $ListFiles = $ENV{NANCY_LIST_FILES};
 
 # Extract file name from URL
 my $page = unescape(url(-absolute => 1));
@@ -36,26 +36,11 @@ opendir(my $dh, $site_root) || die "cannot read `$site_root': $!";
 my @source_roots = map { catfile($site_root, $_) } sort {$b cmp $a} (grep {/^[^.]/} readdir($dh));
 closedir $dh;
 
-# Remove `..' and `.' components from a path
-sub normalize_path {
-  my @in_path = @_;
-  my @out_path = ();
-  foreach my $elem (@in_path) {
-    if ($elem eq "..") {
-      pop @out_path;
-    } elsif ($elem ne ".") {
-      push @out_path, $elem;
-    }
-  }
-  return @out_path;
-}
-
 # File file in multiple source trees
 sub find_in_trees {
   my ($path, @roots) = @_;
-  my @norm_path = normalize_path(@{$path});
   foreach my $root (@roots) {
-    my $obj = catfile($root, @norm_path);
+    my $obj = catfile($root, @{$path});
     return $obj if -e $obj;
   }
   return undef;
@@ -70,9 +55,8 @@ sub find_on_path {
     my $thissearch = [@search, split "/", $link];
     my $node = find_in_trees($thissearch, @roots);
     if (defined($node)) {
-      my $contents = slurp($node);
-      print STDERR "  $node\n" if $list_files;
-      return $thissearch, $contents if $contents;
+      print STDERR "  $node\n" if $ListFiles;
+      return $thissearch, slurp($node);
     }
     last if $#search == -1;
   }
@@ -145,6 +129,6 @@ if ($node) {
 }
 
 # Output page
-print STDERR catfile(@path) . "\n" if $list_files; # implement via environment variable
+print STDERR catfile(@path) . "\n" if $ListFiles;
 binmode(STDOUT, ":utf8");
 print STDOUT header($headers) . expand("\$include{$Template$ext}", \@path, @source_roots);
