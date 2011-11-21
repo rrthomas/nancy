@@ -36,7 +36,8 @@ opendir(my $dh, $site_root) || die "cannot read `$site_root': $!";
 my @source_roots = map { catfile($site_root, $_) } sort {$b cmp $a} (grep {/^[^.]/} readdir($dh));
 closedir $dh;
 
-# File file in multiple source trees
+# File object in multiple source trees
+# FIXME: Allow test to be specified (sometimes want -e, sometimes -f).
 sub find_in_trees {
   my ($path, @roots) = @_;
   foreach my $root (@roots) {
@@ -56,7 +57,7 @@ sub find_on_path {
     my $node = find_in_trees($thissearch, @roots);
     if (defined($node)) {
       print STDERR "  $node\n" if $ListFiles;
-      return $thissearch, slurp($node);
+      return $thissearch, scalar(slurp($node));
     }
     last if $#search == -1;
   }
