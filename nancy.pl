@@ -117,6 +117,10 @@ my $ext = $1 || "";
 my $node = find_in_trees(\@path, @source_roots);
 if ($node) {
   if (-f $node) { # If a file, serve it
+    if (-x $node) {
+      system $node;
+      exit;
+    }
     print header(-type => mimetype($page)) . slurp($node);
     exit;
   } elsif (-d $node && $ext eq "") {
