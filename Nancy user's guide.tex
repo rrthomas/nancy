@@ -8,12 +8,12 @@
 \frenchspacing
 
 % New commands
-\renewcommand{\copyrightyear}{2002--2011}
+\renewcommand{\copyrightyear}{2002--2012}
 
 \begin{document}
 
 \title{Nancy, the lazy web site maker\\User’s guide}
-\date{4th November 2011}
+\date{28th February 2012}
 \author{Reuben Thomas}
 \maketitle
 % FIXME: Add logo
@@ -31,8 +31,6 @@ Nancy is configured via environment variables:
 \begin{description}
 \SaveVerb{webroot}|NANCY_WEB_ROOT|
 \item[\UseVerb{webroot}]the URL of the root of the site
-\SaveVerb{sources}|NANCY_SOURCES|
-\item[\UseVerb{sources}]a list of directories that contain the source (separated by the system directory separator, usually a colon)
 \SaveVerb{template}|NANCY_TEMPLATE|
 \item[\UseVerb{template}]the template name, which defaults to \verb|template|
 \SaveVerb{index}|NANCY_INDEX|
@@ -59,11 +57,12 @@ Nancy serves a URL as follows:
 \end{enumerate}
 \item Otherwise, try to serve the URL obtained by concatenating the directory separator followed by \verb|NANCY_INDEX| to the URL.
 \end{enumerate}
+\end{enumerate}
 
 To look up a path in the sources, Nancy does the following:
 
 \begin{enumerate}
-\item For each directory in \verb|NANCY_SOURCES|, in right-to-left order, prepend it to the path.
+\item For each subdirectory of the directory corresponding to \verb|NANCY_WEB_ROOT|, in right-to-left order, prepend it to the path.
 \item Look up the path; if it yields a file or directory, stop, with that as the result (symbolic links are dereferenced).
 \item If no file or directory is found, fail.
 \end{enumerate}
