@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # Web wrapper for Nancy
-# (c) 2002-2011 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
+# (c) 2002-2012 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
 # Distributed under the GNU General Public License
 
 use strict;
@@ -37,12 +37,12 @@ my @source_roots = map { catfile($site_root, $_) } sort {$b cmp $a} (grep {/^[^.
 closedir $dh;
 
 # File object in multiple source trees
-# FIXME: Allow test to be specified (sometimes want -e, sometimes -f).
 sub find_in_trees {
-  my ($path, @roots) = @_;
-  foreach my $root (@roots) {
+  my ($path, $roots, $test) = @_;
+  $test ||= sub { return -f shift; };
+  foreach my $root (@{$roots}) {
     my $obj = catfile($root, @{$path});
-    return $obj if -e $obj;
+    return $obj if &{$test}($obj);
   }
   return undef;
 }
@@ -52,9 +52,15 @@ sub find_in_trees {
 # undef.
 sub find_on_path {
   my ($path, $link, @roots) = @_;
-  for (my @search = @{$path}; 1; pop @search) {
-    my $thissearch = [@search, split "/", $link];
-    my $node = find_in_trees($thissearch, @roots);
+  my @link = (split "/", $link);
+  my @search = @{$path};
+  while ($link[0] eq "..") {
+    shift @link;
+    pop @search;
+  }
+  for (;; pop @search) {
+    my $thissearch = [@search, @link];
+    my $node = find_in_trees($thissearch, \@roots);
     if (defined($node)) {
       print STDERR "  $node\n" if $ListFiles;
       return $thissearch, scalar(slurp($node));
@@ -114,7 +120,7 @@ sub expand {
 my $headers = {-type => "application/xhtml+xml", -charset => "utf-8"};
 $path[$#path] =~ m/(\.\w+)$/;
 my $ext = $1 || "";
-my $node = find_in_trees(\@path, @source_roots);
+my $node = find_in_trees(\@path, \@source_roots, sub { return -e shift; });
 if ($node) {
   if (-f $node) { # If a file, serve it
     print header(-type => mimetype($page)) . slurp($node);
