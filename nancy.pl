@@ -15,8 +15,9 @@ use File::Slurp qw(slurp);
 use File::MimeInfo;
 
 # Configuration variables
-my $BaseUrl = "/" . $ENV{NANCY_WEB_ROOT};
-my $BaseDir = bsd_glob($ENV{NANCY_WEB_ROOT}, GLOB_TILDE);
+my $BaseUrl = $ENV{NANCY_WEB_ROOT};
+$BaseUrl = "/$BaseUrl" unless $BaseUrl =~ m|^/|;
+my $BaseDir = bsd_glob($ENV{NANCY_FILE_ROOT});
 my $Template = $ENV{NANCY_TEMPLATE} || "template";
 my $Index = $ENV{NANCY_INDEX} || "index.html";
 my $ListFiles = $ENV{NANCY_LIST_FILES};

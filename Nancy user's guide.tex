@@ -13,7 +13,7 @@
 \begin{document}
 
 \title{Nancy, the lazy web site maker\\User’s guide}
-\date{28th February 2012}
+\date{26th March 2012}
 \author{Reuben Thomas}
 \maketitle
 % FIXME: Add logo
@@ -31,6 +31,8 @@ Nancy is configured via environment variables:
 \begin{description}
 \SaveVerb{webroot}|NANCY_WEB_ROOT|
 \item[\UseVerb{webroot}]the URL of the root of the site
+\SaveVerb{webroot}|NANCY_FILE_ROOT|
+\item[\UseVerb{webroot}]the root directory of the site
 \SaveVerb{template}|NANCY_TEMPLATE|
 \item[\UseVerb{template}]the template name, which defaults to \verb|template|
 \SaveVerb{index}|NANCY_INDEX|
@@ -45,7 +47,7 @@ Nancy is configured via environment variables:
 Nancy serves a URL as follows:
 
 \begin{enumerate}
-\item Remove the \verb|NANCY_WEB_ROOT| prefix from the URL, convert the rest of the URL to a file path and look up the path in the sources.
+\item Replace the \verb|NANCY_WEB_ROOT| prefix of the URL by \verb|NANCY_FILE_ROOT| and look up the path in the sources.
 \item If it is a file, output it.
 \item Otherwise, assuming it is a directory \verb|foo|:
 \begin{enumerate}
@@ -62,7 +64,7 @@ Nancy serves a URL as follows:
 To look up a path in the sources, Nancy does the following:
 
 \begin{enumerate}
-\item For each subdirectory of the directory corresponding to \verb|NANCY_WEB_ROOT|, in right-to-left order, prepend it to the path.
+\item For each subdirectory of  \verb|NANCY_FILE_ROOT|, in right-to-left order, prepend it to the path.
 \item Look up the path; if it yields a file or directory, stop, with that as the result (symbolic links are dereferenced).
 \item If no file or directory is found, fail.
 \end{enumerate}
