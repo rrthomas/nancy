@@ -6,6 +6,7 @@
 use strict;
 use warnings;
 
+use Encode;
 use File::Spec::Functions qw(splitdir catfile);
 use File::Glob qw(:glob);
 use CGI qw(:standard);
@@ -64,7 +65,7 @@ sub find_on_path {
     my $node = find_in_trees($thissearch, \@roots);
     if (defined($node)) {
       print STDERR "  $node\n" if $ListFiles;
-      return $thissearch, scalar(slurp($node));
+      return $thissearch, scalar(decode_utf8(slurp($node)));
     }
     last if $#search == -1;
   }
