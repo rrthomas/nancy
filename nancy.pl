@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Web wrapper for Nancy
+# Lazy person's web site generator
 # (c) 2002-2012 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
 # Distributed under the GNU General Public License
 
