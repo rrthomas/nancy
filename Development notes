@@ -1,8 +1,10 @@
 Remove $root{}; instead, have links starting ./ for page-relative; otherwise, assume root-relative.
 
-Remove $run{}; instead, decide whether to run according to the execute permission of the included file.
+Remove $run{}; instead, decide whether to run according to the execute permission of the included file. (See r1571/r1576: this can be done, but doesn’t work on Windows.)
 
 For the one remaining command, use XML syntax: <[nancy:]include file="" />
+
+Two split into two scripts, one to work on the file system, one to be a CGI wrapper, need to extract find_in_trees into a library (or just use union FS).
 
 
 Caching
