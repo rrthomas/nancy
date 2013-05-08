@@ -49,9 +49,8 @@ sub find_in_trees {
   return undef;
 }
 
-# Search for file starting at the given path; if found return its
-# path, contents and file name; if not, print a warning and return
-# undef.
+# Search for file starting at the given path; if found return its path
+# and contents; if not, print a warning and return undef.
 sub find_on_path {
   my ($path, $link, @roots) = @_;
   my @link = (split "/", $link);
