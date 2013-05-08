@@ -53,15 +53,15 @@ sub find_in_trees {
 # Search for file starting at the given path; if found return its file
 # name and contents; if not, print a warning and return undef.
 sub find_on_path {
-  my ($path, $link, @roots) = @_;
-  my @link = (split "/", $link);
+  my ($path, $file, @roots) = @_;
+  my @file = (split "/", $file);
   my @search = @{$path};
-  while ($link[0] eq "..") {
-    shift @link;
+  while ($file[0] eq "..") {
+    shift @file;
     pop @search;
   }
   for (;; pop @search) {
-    my $thissearch = [@search, @link];
+    my $thissearch = [@search, @file];
     my $node = find_in_trees($thissearch, \@roots);
     if (defined($node)) {
       print STDERR "  $node\n" if $ListFiles;
@@ -69,7 +69,7 @@ sub find_on_path {
     }
     last if $#search == -1;
   }
-  warn "Cannot find `$link' while building `" . catfile(@{$path}) ."'\n";
+  warn "Cannot find `$file' while building `" . catfile(@{$path}) ."'\n";
 }
 
 # Process a command; if the command is undefined, replace it, uppercased
@@ -101,8 +101,8 @@ sub expand {
       return ".";
     },
     include => sub {
-      my ($link) = @_;
-      my ($file, $contents) = find_on_path($path, $link, @roots);
+      my ($leaf) = @_;
+      my ($file, $contents) = find_on_path($path, $leaf, @roots);
       return $file ? $contents : "";
     },
     run => sub {
