@@ -133,7 +133,7 @@ if ($node) {
     exit;
   }
 } else { # If not found, give a 404
-  ($Template, $ext) = ("404", ".html");
+  ($Template, $ext) = ("404", ".xhtml");
   $headers->{"-status"} = 404;
 }
 
