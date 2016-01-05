@@ -1,6 +1,6 @@
 # Nancy
 
-![logo](logo/nancy-small.png) _picture by Silvia Polverini_
+![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
 © 2002–2013 Reuben Thomas <rrt@sc3d.org>  
 https://github.com/rrthomas/nancy
