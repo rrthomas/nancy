@@ -65,7 +65,7 @@ sub find_on_path {
     my $node = find_in_trees($thissearch, \@roots);
     if (defined($node)) {
       print STDERR "  $node\n" if $ListFiles;
-      return $thissearch, scalar(decode_utf8(slurp($node)));
+      return $thissearch, scalar(slurp($node, {binmode => ':raw'}));
     }
     last if $#search == -1;
   }
@@ -139,5 +139,5 @@ if ($node) {
 
 # Output page
 print STDERR catfile(@path) . "\n" if $ListFiles;
-binmode(STDOUT, ":utf8");
+binmode(STDOUT, ":raw");
 print STDOUT header($headers) . expand("\$include{$Template$ext}", \@path, @source_roots);
