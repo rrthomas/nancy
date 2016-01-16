@@ -9,7 +9,7 @@ use warnings;
 
 use Encode;
 use File::Spec::Functions qw(splitdir catfile);
-use File::Glob qw(:glob);
+use File::Glob qw(:bsd_glob);
 use CGI qw(:standard);
 use CGI::Util qw(unescape);
 
