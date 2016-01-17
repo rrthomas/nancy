@@ -32,10 +32,10 @@ $page =~ s|/$||;
 my @path = splitdir($page);
 my $site = shift @path || "";
 
-# Read source roots
-my $site_root = catfile($BaseDir, $site);
-opendir(my $dh, $site_root) || die "cannot read `$site_root': $!";
-my @source_roots = map { catfile($site_root, $_) } sort {$b cmp $a} (grep {/^[^.]/} readdir($dh));
+# Read source roots, and sort lexically
+my $root = catfile($BaseDir, $site);
+opendir(my $dh, $root) || die "cannot read `$root': $!";
+my @source_roots = map { catfile($root, $_) } sort {$b cmp $a} (grep {/^[^.]/} readdir($dh));
 closedir $dh;
 
 # File object in multiple source trees
