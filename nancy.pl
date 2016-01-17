@@ -1,58 +1,72 @@
 #!/usr/bin/perl
-# Lazy person's web site generator
-# (c) 2002-2013 Reuben Thomas (rrt@sc3d.org, http://rrt.sc3d.org)
-# Distributed under the GNU General Public License version 3, or (at
-# your option) any later version. There is no warranty.
+my $version = <<'END';
+nancy $Revision$ ($Date$)
+(c) 2002-2016 Reuben Thomas <rrt@sc3d.org>
+https://github.com/rrthomas/nancy/
+Distributed under the GNU General Public License version 3, or (at
+your option) any later version. There is no warranty.
+END
 
+use 5.10.0;
 use strict;
 use warnings;
 
 use File::Spec::Functions qw(splitdir catfile);
-use File::Glob qw(:bsd_glob);
-use CGI qw(:standard);
-use CGI::Util qw(unescape);
+use File::Basename;
+use Getopt::Long;
+use Cwd;
 
 use File::Slurp qw(slurp);
-use File::MimeInfo;
 
-# Configuration variables
-my $BaseUrl = $ENV{NANCY_WEB_ROOT};
-$BaseUrl = "/$BaseUrl" unless $BaseUrl =~ m|^/|;
-my $BaseDir = bsd_glob($ENV{NANCY_FILE_ROOT});
-my $Template = $ENV{NANCY_TEMPLATE} || "template";
-my $Index = $ENV{NANCY_INDEX} || "index.html";
-my $ListFiles = $ENV{NANCY_LIST_FILES};
+# Get arguments
+my ($list_files_flag, $root, $version_flag, $help_flag);
+my $prog = basename($0);
+my $opts = GetOptions(
+  "list-files" => \$list_files_flag,
+  "root=s" => \$root,
+  "version" => \$version_flag,
+  "help" => \$help_flag,
+ );
+die $version if $version_flag;
+die <<END if !$opts || $#ARGV != 1;
+Usage: $prog [OPTION...] PATH TEMPLATE
+The lazy web site maker
 
-# Extract file name from URL
-my $page = unescape(url(-absolute => 1));
-$page =~ s|^$BaseUrl||;
+  --list-files, -l  list files read (on standard error)
+  --root, -r        source root directory [default is current directory]
+  --version, -v     show program version
+  --help, -h        show this help
 
-# Extract site name and page name to calculate source roots
-$page =~ s|/$||;
-my @path = splitdir($page);
-my $site = shift @path || "";
+  PATH is the desired path to weave
+  TEMPLATE is the template file
+END
 
-# Read source roots, and sort lexically
-my $root = catfile($BaseDir, $site);
-opendir(my $dh, $root) || die "cannot read `$root': $!";
-my @source_roots = map { catfile($root, $_) } sort {$b cmp $a} (grep {/^[^.]/} readdir($dh));
-closedir $dh;
+# FIXME: Use a module to add the boilerplate to the messages
+sub Die {
+  my ($message, $code) = @_;
+  print STDERR "$prog: $message\n";
+  exit $code || 1;
+}
 
-# File object in multiple source trees
-sub find_in_trees {
-  my ($path, $roots, $test) = @_;
+# Get file and template, and compute root and object
+my $path = $ARGV[0];
+my $template = $ARGV[1];
+my @path = splitdir($path);
+$root ||= cwd();
+
+# Find object in a source tree
+sub find_in_tree {
+  my ($path, $root, $test) = @_;
   $test ||= sub { return -f shift; };
-  foreach my $root (@{$roots}) {
-    my $obj = catfile($root, @{$path});
-    return $obj if &{$test}($obj);
-  }
+  my $obj = catfile($root, @{$path});
+  return $obj if &{$test}($obj);
   return undef;
 }
 
 # Search for file starting at the given path; if found return its file
 # name and contents; if not, print a warning and return undef.
 sub find_on_path {
-  my ($path, $file, @roots) = @_;
+  my ($path, $file, $root) = @_;
   my @file = (split "/", $file);
   my @search = @{$path};
   while ($file[0] eq "..") {
@@ -61,10 +75,10 @@ sub find_on_path {
   }
   for (;; pop @search) {
     my $thissearch = [@search, @file];
-    my $node = find_in_trees($thissearch, \@roots);
-    if (defined($node)) {
-      print STDERR "  $node\n" if $ListFiles;
-      return $thissearch, scalar(slurp($node, {binmode => ':raw'}));
+    my $obj = find_in_tree($thissearch, $root);
+    if (defined($obj)) {
+      print STDERR "  $obj\n" if $list_files_flag;
+      return scalar(slurp($obj, {binmode => ':raw'}));
     }
     last if $#search == -1;
   }
@@ -90,10 +104,10 @@ sub do_macros {
 # Expand commands in some text
 #   $text - text to expand
 #   $path - directory to make into a page
-#   @roots - list of roots of trees to scan
+#   $root - root of tree to scan
 # returns expanded text
 sub expand {
-  my ($text, $path, @roots) = @_;
+  my ($text, $path, $root) = @_;
   my %macros = (
     root => sub {
       return join "/", (("..") x $#{$path}) if $#{$path} > 0;
@@ -101,13 +115,12 @@ sub expand {
     },
     include => sub {
       my ($leaf) = @_;
-      my ($file, $contents) = find_on_path($path, $leaf, @roots);
-      return $file ? $contents : "";
+      return find_on_path($path, $leaf, $root) || "";
     },
     run => sub {
       my ($prog) = shift;
-      my ($file, $contents) = find_on_path($path, $prog, @roots);
-      return $file ? &{eval($contents)}(@_, $path, @roots) : "";
+      my ($contents) = find_on_path($path, $prog, $root);
+      return $contents ? &{eval($contents)}(@_, $path, $root) : "";
     },
   );
   $text = do_macros($text, %macros);
@@ -117,26 +130,7 @@ sub expand {
   return $text;
 }
 
-# Process request
-my $headers = {-type => "application/xhtml+xml", -charset => "utf-8"};
-$path[$#path] =~ m/(\.\w+)$/;
-my $ext = $1 || "";
-my $node = find_in_trees(\@path, \@source_roots, sub { return -e shift; });
-if ($node) {
-  if (-f $node) { # If a file, serve it
-    print header(-type => mimetype($page)) . slurp($node);
-    exit;
-  } elsif (-d $node && $ext eq "") {
-    push @path, $Index;
-    print redirect("$BaseUrl$site/" . (join "/", @path));
-    exit;
-  }
-} else { # If not found, give a 404
-  ($Template, $ext) = ("404", ".xhtml");
-  $headers->{"-status"} = 404;
-}
-
-# Output page
-print STDERR catfile(@path) . "\n" if $ListFiles;
-binmode(STDOUT, ":raw");
-print STDOUT header($headers) . expand("\$include{$Template$ext}", \@path, @source_roots);
+# Process file
+my $obj = find_in_tree(\@path, $root, sub { return -e shift; })
+  or Die("`$path' not found");
+print STDOUT expand("\$include{$template}", \@path, $root);
