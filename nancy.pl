@@ -54,15 +54,6 @@ my $template = $ARGV[1];
 my @path = splitdir($path);
 $root ||= cwd();
 
-# Find object in a source tree
-sub find_in_tree {
-  my ($path, $root, $test) = @_;
-  $test ||= sub { return -f shift; };
-  my $obj = catfile($root, @{$path});
-  return $obj if &{$test}($obj);
-  return undef;
-}
-
 # Search for file starting at the given path; if found return its file
 # name and contents; if not, print a warning and return undef.
 sub find_on_path {
@@ -75,10 +66,10 @@ sub find_on_path {
   }
   for (;; pop @search) {
     my $thissearch = [@search, @file];
-    my $obj = find_in_tree($thissearch, $root);
-    if (defined($obj)) {
+    my $obj = catfile($root, @{$thissearch});
+    if (-f $obj) {
       print STDERR "  $obj\n" if $list_files_flag;
-      return scalar(slurp($obj, {binmode => ':raw'}));
+      return $obj;
     }
     last if $#search == -1;
   }
@@ -130,7 +121,5 @@ sub expand {
   return $text;
 }
 
-# Process file
-my $obj = find_in_tree(\@path, $root, sub { return -e shift; })
-  or Die("`$path' not found");
-print STDOUT expand("\$include{$template}", \@path, $root);
+# Weave path
+print STDOUT expand("\$include{$template}", \%macros);
