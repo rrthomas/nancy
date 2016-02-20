@@ -18,6 +18,8 @@ use Cwd;
 
 use File::Slurp qw(slurp);
 
+use RRT::Macro;
+
 # Get arguments
 my ($list_files_flag, $root, $version_flag, $help_flag);
 my $prog = basename($0);
@@ -53,7 +55,7 @@ my @path = splitdir($path);
 $root ||= cwd();
 
 # Search for file starting at the given path; if found return its file
-# name and contents; if not, print a warning and return undef.
+# name and contents; if not, die.
 sub find_on_path {
   my ($path, $file, $root) = @_;
   my @file = (split "/", $file);
@@ -71,53 +73,27 @@ sub find_on_path {
     }
     last if $#search == -1;
   }
-  warn "Cannot find `$file' while building `" . catfile(@{$path}) ."'\n";
+  Die("Cannot find `$file' while building `" . catfile(@{$path}) ."'");
 }
 
-# Process a command; if the command is undefined, replace it, uppercased
-sub do_macro {
-  my ($macro, $arg, %macros) = @_;
-  return $macros{$macro}(split /(?<!\\),/, ($arg || ""))
-    if defined($macros{$macro});
-  $macro =~ s/^(.)/\u$1/;
-  return "\$$macro\{$arg}";
-}
-
-# Process commands in some text
-sub do_macros {
-  my ($text, %macros) = @_;
-  1 while $text =~ s/\$([[:lower:]]+){(((?:(?!(?<!\\)[{}])).)*?)(?<!\\)}/do_macro($1, $2, %macros)/ge;
-  return $text;
-}
-
-# Expand commands in some text
-#   $text - text to expand
-#   $path - directory to make into a page
-#   $root - root of tree to scan
-# returns expanded text
-sub expand {
-  my ($text, $path, $root) = @_;
-  my %macros = (
-    root => sub {
-      return join "/", (("..") x $#{$path}) if $#{$path} > 0;
-      return ".";
-    },
-    include => sub {
-      my ($leaf) = @_;
-      return find_on_path($path, $leaf, $root) || "";
-    },
-    run => sub {
-      my ($prog) = shift;
-      my ($contents) = find_on_path($path, $prog, $root);
-      return $contents ? &{eval($contents)}(@_, $path, $root) : "";
-    },
-  );
-  $text = do_macros($text, %macros);
-  # Convert `$Macro' back to `$macro'
-  $text =~ s/(?!<\\)(?<=\$)([[:upper:]])(?=[[:lower:]]*{)/lc($1)/ge;
-
-  return $text;
-}
+my %macros = (
+  path => sub { $path; },
+  root => sub { $root; },
+  template => sub { $template; },
+  include => sub {
+    my ($leaf) = @_;
+    my $file = find_on_path(\@path, $leaf, $root);
+    if (defined($file)) {
+      if (-x $file) {
+        open(READER, "-|", $file, @_);
+      } else {
+        open(READER, $file);
+      }
+      binmode(READER, ':raw');
+      return scalar(slurp(\*READER));
+    }
+  }
+);
 
 # Weave path
 print STDOUT expand("\$include{$template}", \%macros);
