@@ -32,10 +32,10 @@ die <<END if !$opts || $#ARGV != 1;
 Usage: $prog [OPTION...] PATH TEMPLATE
 The lazy web site maker
 
-  --list-files, -l  list files read (on standard error)
-  --root, -r        source root directory [default is current directory]
-  --version, -v     show program version
-  --help, -h        show this help
+  --list-files      list files read (on standard error)
+  --root DIRECTORY  source root directory [default is current directory]
+  --version         show program version
+  --help            show this help
 
   PATH is the desired path to weave
   TEMPLATE is the template file
