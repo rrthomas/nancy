@@ -43,9 +43,7 @@ END
 
 # FIXME: Use a module to add the boilerplate to the messages
 sub Die {
-  my ($message, $code) = @_;
-  print STDERR "$prog: $message\n";
-  exit $code || 1;
+  die "$prog: $_[0]\n";
 }
 
 # Get file and template, and compute root and object
