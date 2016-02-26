@@ -32,10 +32,10 @@ my $opts = GetOptions(
 die $version if $version_flag;
 die <<END if !$opts || $#ARGV != 1;
 Usage: $prog [OPTION...] PATH TEMPLATE
-The lazy web site maker
+The lazy weaver
 
-  --list-files      list files read (on standard error)
   --root DIRECTORY  source root directory [default is current directory]
+  --list-files      list files read (on standard error)
   --version         show program version
   --help            show this help
 
@@ -73,7 +73,7 @@ sub find_on_path {
     }
     last if $#search == -1;
   }
-  Die("Cannot find `$file' while building `" . catfile(@{$path}) ."'");
+  Die("Cannot find `$file' while building `" . catfile(@{$path}) . "'");
 }
 
 my %macros = (

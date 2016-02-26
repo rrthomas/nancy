@@ -1,106 +1,89 @@
 % Nancy User’s Guide
 
-\documentclass[english]{scrartcl}
-\usepackage{babel,a4,newlfont,fancyvrb,copyrght}
+\documentclass[a4paper,english]{scrartcl}
+\usepackage{babel,a4,newlfont,fancyvrb,copyrght,graphicx}
 \usepackage[utf8]{inputenc}
 
-% Alter some default parameters for general typesetting
-\frenchspacing
-
 % New commands
-\renewcommand{\copyrightyear}{2002--2012}
+\renewcommand{\copyrightyear}{2002--2016}
 
 \begin{document}
 
-\title{Nancy, the lazy web site maker\\User’s guide}
-\date{26th March 2012}
+\title{Nancy, the lazy weaver\\\includegraphics[scale=0.45]{logo/nancy.png}
+\\User’s guide}
+\date{21st February 2016}
 \author{Reuben Thomas}
 \maketitle
-% FIXME: Add logo
 
 \section{Introduction}
 
-Nancy is a simple web site maker that finds and glues together HTML fragments and other files to make pages, and serves them and all the static files (CSS, images, etc.) that make up the site. Files can be generated programmatically, and specialized for particular pages.
-
-Nancy is run as a CGI program by a web server.
+Nancy is a simple macro processor that weaves files together out of other files. File content can be generated programmatically.
 
 \section{Invocation}
 
-Nancy is configured via environment variables:
+Nancy takes two arguments:
+
+\begin{verbatim}
+nancy [OPTION...] PATH TEMPLATE
+\end{verbatim}
+
+\noindent where \verb|PATH| is the path of the file or directory to weave, and \verb|TEMPLATE| is name of the template file.
+
+The following command-line \verb|OPTION|s may be given:
 
 \begin{description}
-\SaveVerb{webroot}|NANCY_WEB_ROOT|
-\item[\UseVerb{webroot}]the URL of the root of the site
-\SaveVerb{webroot}|NANCY_FILE_ROOT|
-\item[\UseVerb{webroot}]the root directory of the site
-\SaveVerb{template}|NANCY_TEMPLATE|
-\item[\UseVerb{template}]the template name, which defaults to \verb|template|
-\SaveVerb{index}|NANCY_INDEX|
-\item[\UseVerb{index}]the index page, which defaults to \verb|index.html|
-\SaveVerb{listfiles}|NANCY_LIST_FILES|
-\item[\UseVerb{listfiles}]if defined, make Nancy list on standard error the files used to make each page
+\SaveVerb{root}|--root DIRECTORY|
+\item[\UseVerb{root}]Set the source root directory (the default is the current directory).
+\SaveVerb{listfiles}|--list-files|
+\item[\UseVerb{listfiles}]List on standard error the files used to make each page.
+\SaveVerb{version}|--version|
+\item[\UseVerb{version}]Show the version number of Nancy.
+\SaveVerb{help}|--help|
+\item[\UseVerb{help}]Show help on how to run Nancy.
 \end{description}
+
+The options may be abbreviated to any unambiguous prefix.
 
 \section{Operation}
 \label{operation}
 
-Nancy serves a URL as follows:
+Nancy weaves a path given a template as follows:
 
 \begin{enumerate}
-\item Replace the \verb|NANCY_WEB_ROOT| prefix of the URL by \verb|NANCY_FILE_ROOT| and look up the path in the sources.
-\item If it is a file, output it.
-\item Otherwise, assuming it is a directory \verb|foo|:
-\begin{enumerate}
-\item If the directory’s name ends in an extension \verb|.bar|, that is, a period followed by one or more word characters:
-\begin{enumerate}
-\item Set the initial text to \verb|$include{TEMPLATE.bar}|.
+\item Set the initial text to \verb|$include{TEMPLATE}|.
 \item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
 \item Output the resultant text.
 \end{enumerate}
-\item Otherwise, try to serve the URL obtained by concatenating the directory separator followed by \verb|NANCY_INDEX| to the URL.
-\end{enumerate}
-\end{enumerate}
 
-To look up a path in the sources, Nancy does the following:
-
-\begin{enumerate}
-\item For each subdirectory of  \verb|NANCY_FILE_ROOT|, in right-to-left order, prepend it to the path.
-\item Look up the path; if it yields a file or directory, stop, with that as the result (symbolic links are dereferenced).
-\item If no file or directory is found, fail.
-\end{enumerate}
-
-In general, only leaf directories, that is, directories that only contain files, should correspond to pages: this is to ensure that each page can be specialised without affecting any other page. It is advisable to ensure that every non-leaf directory has a sub-directory whose name is the value of \verb|NANCY_INDEX|, so that there are no valid URLs in the resulting site that do not correspond to a page.
-
-A command takes the form
-
-\begin{verbatim}
-$COMMAND{ARGUMENT, ...}
-\end{verbatim}
+A command takes the form \verb|$COMMAND| or \verb|$COMMAND{ARGUMENT, ...}|.
 
 Nancy recognises these commands:
 
 \begin{description}
-\SaveVerb{include}|$include{FILE}|
-\item[\UseVerb{include}]Replace the command with the contents of the given file.
-\SaveVerb{root}|$root{}|
-\SaveVerb{rellink}|<a href="$root{}/path/to/page.html">|
-\item[\UseVerb{root}]Replace the command with the relative URL to the root of the site from the page under construction. This means that every link in a site can be written relative to the current page, either explicitly (which is a good way to link to pages related to the current page, as such links do not need to be rewritten if the related pages are moved together within the site), or implicitly as \UseVerb{rellink}. Hence the site’s root URL can be changed without needing to change any intra-site links, and the site need not be at the root of its host (as would be necessary with a link starting with a forward slash).
-\SaveVerb{run}|$run{FILE[, ARGUMENT, ...]}|
-\item[\UseVerb{run}]Replace the command with the output of the given
-file evaluated as a Perl expression, which is expected to produce a subroutine, which is then called with the given arguments, followed by the path of the page currently being expanded, represented as a reference to an array of path components, left-to-right, and a list of the source tree roots, each represented in the same way, one extra argument per root.
+\SaveVerb{include}|$include{FILE, ARGUMENT, ...}|
+\item[\UseVerb{include}]Look up the given file. If it is executable, run it as a command with the given arguments and replace the command with the output of the command. Otherwise, replace the command with the contents of the given file.
+\SaveVerb{path}|$path|
+\item[\UseVerb{path}]Replace the command with the \verb|PATH| argument.
+\SaveVerb{path}|$root|
+\item[\UseVerb{path}]Replace the command with the root directory.
+\SaveVerb{path}|$template|
+\item[\UseVerb{path}]Replace the command with the \verb|TEMPLATE| argument.
 \end{description}
 
-Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for \verb|$run| commands; if you nest them, you have to deal with this potential pitfall.)
+The last three commands are mostly useful as arguments to \verb|$include|.
 
-To find the file \verb|FILE| specified by a \verb|$include| or \verb|$run| command, Nancy proceeds thus:
+Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for \verb|$include| commands that run executables; if you nest them, you have to deal with this potential pitfall.)
+
+To find the file \verb|FILE| specified by a \verb|$include| command, Nancy proceeds thus:
 
 \begin{enumerate}
-\item Look up \verb|PAGE_PATH/FILE| in the sources.
-\item If the file is not found, remove the last directory from \verb|PAGE_PATH| and try again, until \verb|PAGE_PATH| is empty.
+\item See whether \verb|ROOT/PATH/FILE| is a file (or a symbolic link to a file). If so, return the file path.
+\item If not, remove the last directory from \verb|PATH| and try again, until \verb|PATH| is empty.
 \item Finally, try looking for \verb|FILE|.
+\item If no file is found, Nancy stops with an error message.
 \end{enumerate}
 
-For example, if \verb|SOURCES| is \verb|/dir| and \verb|FILE| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following directories, in order:
+For example, if the root directory is \verb|/dir|, \verb|PATH| is \verb|foo/bar/baz|, and Nancy is trying to find \verb|file.html|, it will try the following , in order:
 
 \begin{enumerate}
 \item \verb|/dir/foo/bar/baz/file.html|
@@ -109,10 +92,8 @@ For example, if \verb|SOURCES| is \verb|/dir| and \verb|FILE| is \verb|foo/bar/b
 \item \verb|/dir/file.html|
 \end{enumerate}
 
-\section{Example}
-% FIXME: add example use of $root{}: a link from a Person to a Place
-% FIXME: add example use of $run{}
-% FIXME: illustrate the use of multiple source trees (based on the tests)
+\section{Example: generating a web site}
+% FIXME: add example use of an executable fragment (date)
 % FIXME: the examples are unclear; really ought to be actual web pages with some sort of structure diagrams automatically generated
 
 Suppose a web site has the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
@@ -235,6 +216,8 @@ Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. Acc
 \end{itemize}
 
 For the site’s index page, the file \verb|index.html/logo.html| will be used for the logo fragment, which can refer to the larger graphic desired.
+
+% FIXME: explain how to build the web site statically, or serve it dynamically.
 
 This scheme, though simple, is surprisingly flexible; this simple example has covered all the standard techniques for Nancy’s use.
 
