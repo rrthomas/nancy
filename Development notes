@@ -1,3 +1,1 @@
 Allow syntax to be redefined; e.g. use XML syntax: <[nancy:]include file="" />
-
-Split into two scripts, one to work on the file system, one to be a CGI wrapper.
