@@ -1,1 +1,6 @@
 Allow syntax to be redefined; e.g. use XML syntax: <[nancy:]include file="" />
+
+Rewrite manual: put man-page-ish documentation into README.md, and the
+example into a tutorial.
+
+Add an example about uniquely numbered invoices (also see FIXMEs in manual).
