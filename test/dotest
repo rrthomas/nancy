@@ -4,6 +4,8 @@
 
 set -e
 
+# FIXME: Common up the two tests
+
 # One-tree test
 rm -rf dest
 NANCY_CMD="../nancy --verbose --root src template.html"
