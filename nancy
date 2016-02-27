@@ -31,7 +31,7 @@ my $opts = GetOptions(
  );
 die $version if $version_flag;
 die <<END if !$opts || $#ARGV != 1;
-Usage: $prog [OPTION...] PATH TEMPLATE
+Usage: $prog [OPTION...] TEMPLATE PATH
 The lazy weaver
 
   --root DIRECTORY  source root directory [default is current directory]
@@ -48,9 +48,9 @@ sub Die {
   die "$prog: $_[0]\n";
 }
 
-# Get file and template, and compute root and object
-my $path = $ARGV[0];
-my $template = $ARGV[1];
+# Get command-line arguments
+my $template = $ARGV[0];
+my $path = $ARGV[1];
 my @path = splitdir($path);
 $root ||= cwd();
 
