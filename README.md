@@ -19,6 +19,10 @@ See [the user guide](Nancy user's guide.pdf) for instructions and examples.
 Please send questions, comments, and bug reports to the maintainer, or
 report them on the project’s web page (see above for addresses).
 
+## Development
+
+After checkout, run `./setup-git-config` to wire up writing version numbers into scripts.
+
 ## History
 
 I gave a talk about an early version of Nancy at the

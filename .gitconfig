@@ -1,0 +1,3 @@
+[filter "versioner"]
+	smudge = perl -pe \"s/^nancy \\\\@Version@/nancy `git describe`/\"
+	clean = perl -pe \"s/^nancy .*/nancy \\\\@Version@/\"
