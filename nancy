@@ -39,8 +39,8 @@ The lazy weaver
   --version         show program version
   --help            show this help
 
-  PATH is the desired path to weave
   TEMPLATE is the template file
+  PATH is the desired path to weave
 END
 my $template = $ARGV[0];
 my $path = $ARGV[1];
