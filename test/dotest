@@ -6,23 +6,22 @@ set -e
 # Run a test
 function test() {
     local SRC=$1
-    local DIRS=$2
+    local TEMPLATE=$2
     local PAGES=$3
     local EXPECTED=$4
     rm -rf dest
-    NANCY_CMD="perl -wMDevel::SimpleTrace ../nancy --verbose --root $SRC template.html"
-    for dir in $DIRS; do
-        mkdir $dir
-    done
+    NANCY_CMD="../nancy --verbose --root $SRC $TEMPLATE"
+    #NANCY_CMD="perl -wMDevel::SimpleTrace ../nancy --verbose --root $SRC $TEMPLATE"
     for page in $PAGES; do
-        $NANCY_CMD $page > dest/$page
+        mkdir -p "`dirname \"dest/$page\"`"
+        $NANCY_CMD $page > dest/$page || return 1
     done
-    diff -Nur $EXPECTED dest || ( echo "Test in `$SRC' failed" && exit 1 )
+    diff -Nur $EXPECTED dest || ( printf "Test in \`$SRC' failed" && return 1 )
 }
 
 # One-tree test
 test src \
-     "dest dest/people" \
+     "template.html" \
      "index.html people/index.html people/adam.html people/eve.html" \
      expected
 
@@ -31,6 +30,23 @@ rm -rf src-merged
 mkdir src-merged
 ./mergetrees src2:src src-merged
 test src-merged \
-     "dest dest/animals" \
+     "template.html" \
      "index.html animals/index.html animals/adam.html animals/eve.html" \
      expected2
+
+# Failing executable test
+rm -f false
+ln -s `which false` false
+( test . \
+     "false.txt" \
+     "false" \
+     expected3 && \
+    printf "Test succeeded unexpectedly" ) || true
+
+# Passing executable test
+rm -f true
+ln -s `which true` true
+test . \
+     "true.txt" \
+     "true" \
+     expected4
