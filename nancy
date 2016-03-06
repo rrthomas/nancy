@@ -69,7 +69,7 @@ sub find_on_path {
     my $thissearch = [@search, @file];
     my $obj = catfile($root, @{$thissearch});
     if (-f $obj) {
-      say STDERR "  $obj" if $verbose_flag;
+      say STDERR "  $obj" . (-x $obj ? "*" : "") if $verbose_flag;
       return $obj;
     }
     last if $#search == -1;
