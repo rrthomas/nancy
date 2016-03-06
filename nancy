@@ -83,7 +83,7 @@ my %macros = (
   root => sub { $root; },
   template => sub { $template; },
   include => sub {
-    my ($leaf) = @_;
+    my $leaf = shift;
     my $file = find_on_path(\@path, $leaf, $root);
     if (defined($file)) {
       if (-x $file) {
