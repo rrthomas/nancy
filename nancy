@@ -86,13 +86,16 @@ my %macros = (
     my $leaf = shift;
     my $file = find_on_path(\@path, $leaf, $root);
     if (defined($file)) {
+      my $reader;
       if (-x $file) {
-        open(READER, "-|", $file, @_);
+        open($reader, "-|", $file, @_) or Die("error starting `$file'");
       } else {
-        open(READER, $file);
+        open($reader, $file);
       }
-      binmode(READER, ':raw');
-      return scalar(slurp(\*READER));
+      binmode($reader, ':raw');
+      my $output = scalar(slurp($reader));
+      close($reader) or Die("error reading `$file'");
+      return $output;
     }
   }
 );
