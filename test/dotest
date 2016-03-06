@@ -1,31 +1,36 @@
 #!/bin/bash
 # Tests for Nancy
-# FIXME: add failure message
 
 set -e
 
-# FIXME: Common up the two tests
+# Run a test
+function test() {
+    local SRC=$1
+    local DIRS=$2
+    local PAGES=$3
+    local EXPECTED=$4
+    rm -rf dest
+    NANCY_CMD="perl -wMDevel::SimpleTrace ../nancy --verbose --root $SRC template.html"
+    for dir in $DIRS; do
+        mkdir $dir
+    done
+    for page in $PAGES; do
+        $NANCY_CMD $page > dest/$page
+    done
+    diff -Nur $EXPECTED dest || ( echo "Test in `$SRC' failed" && exit 1 )
+}
 
 # One-tree test
-rm -rf dest
-NANCY_CMD="../nancy --verbose --root src template.html"
-#NANCY_CMD="perl -wMDevel::SimpleTrace ../nancy --verbose --root src template.html"
-mkdir dest
-mkdir dest/people
-for page in index.html people/index.html people/adam.html people/eve.html; do
-    $NANCY_CMD $page > dest/$page
-done
-diff -Nur expected dest
+test src \
+     "dest dest/people" \
+     "index.html people/index.html people/adam.html people/eve.html" \
+     expected
 
 # Two-tree test
-rm -rf dest2
 rm -rf src-merged
 mkdir src-merged
 ./mergetrees src2:src src-merged
-NANCY_CMD="../nancy --verbose --root src-merged template.html"
-mkdir dest2
-mkdir dest2/animals
-for page in index.html animals/index.html animals/adam.html animals/eve.html; do
-    $NANCY_CMD $page > dest2/$page
-done
-diff -Nur dest2 expected2
+test src-merged \
+     "dest dest/animals" \
+     "index.html animals/index.html animals/adam.html animals/eve.html" \
+     expected2
