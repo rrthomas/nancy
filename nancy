@@ -74,7 +74,7 @@ sub find_on_path {
     }
     last if $#search == -1;
   }
-  Die("Cannot find `$file' while building `" . catfile(@{$path}) . "'");
+  Die("cannot find `$file' while building `" . catfile(@{$path}) . "'");
 }
 
 # Set up macros
