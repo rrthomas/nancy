@@ -34,8 +34,8 @@ die <<END if !$opts || $#ARGV != 1;
 Usage: $prog [OPTION...] TEMPLATE PATH
 The lazy weaver
 
-  --root DIRECTORY  source root directory [default is current directory]
-  --verbose         show file woven and files included (on standard error)
+  --root DIRECTORY  source root [default is current directory]
+  --verbose         show files woven and included (on standard error)
   --version         show program version
   --help            show this help
 
