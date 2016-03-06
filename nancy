@@ -90,7 +90,7 @@ my %macros = (
       if (-x $file) {
         open($reader, "-|", $file, @_) or Die("error starting `$file'");
       } else {
-        open($reader, $file);
+        open($reader, $file) or Die("cannot open `$file'");
       }
       binmode($reader, ':raw');
       my $output = scalar(slurp($reader));
