@@ -79,7 +79,7 @@ To find the file \verb|FILE| specified by a \verb|$include| command, Nancy proce
 \begin{enumerate}
 \item See whether \verb|ROOT/PATH/FILE| is a file (or a symbolic link to a file). If so, return the file path.
 \item If not, remove the last directory from \verb|PATH| and try again, until \verb|PATH| is empty.
-\item Finally, try looking for \verb|FILE|.
+\item Finally, try looking for \verb|ROOT/FILE|.
 \item If no file is found, Nancy stops with an error message.
 \end{enumerate}
 
