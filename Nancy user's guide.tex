@@ -11,13 +11,13 @@
 
 \title{Nancy, the lazy weaver\\\includegraphics[scale=0.45]{logo/nancy.png}
 \\User’s guide}
-\date{28th February 2016} % FIXME: have this date automatically filled in by git
+\date{6th March 2016} % FIXME: have this date automatically filled in by git
 \author{Reuben Thomas}
 \maketitle
 
 \section{Introduction}
 
-Nancy is a simple macro processor that weaves files together out of other files. File content can be generated programmatically.
+Nancy is a simple macro processor that weaves files together from other files and the output of programs.
 
 \section{Invocation}
 
@@ -51,7 +51,7 @@ Nancy weaves a path given a template as follows:
 
 \begin{enumerate}
 \item Set the initial text to \verb|$include{TEMPLATE}|.
-\item Repeatedly scan the text for a command and replace it by its output, until no more commands are found.
+\item Scan the text for commands. Run each command, recursively weave its output, and replace the command by the result.
 \item Output the resultant text.
 \end{enumerate}
 
@@ -61,13 +61,13 @@ Nancy recognises these commands:
 
 \begin{description}
 \SaveVerb{include}|$include{FILE, ARGUMENT, ...}|
-\item[\UseVerb{include}]Look up the given file. If it is executable, run it as a command with the given arguments and replace the command with the output of the command. Otherwise, replace the command with the contents of the given file.
+\item[\UseVerb{include}]Look up the given file. If it is executable, run it as a command with the given arguments and return the output. Otherwise, return the contents of the given file.
 \SaveVerb{path}|$path|
-\item[\UseVerb{path}]Replace the command with the \verb|PATH| argument.
+\item[\UseVerb{path}]Return the \verb|PATH| argument.
 \SaveVerb{path}|$root|
-\item[\UseVerb{path}]Replace the command with the root directory.
+\item[\UseVerb{path}]Return the root directory.
 \SaveVerb{path}|$template|
-\item[\UseVerb{path}]Replace the command with the \verb|TEMPLATE| argument.
+\item[\UseVerb{path}]Return the \verb|TEMPLATE| argument.
 \end{description}
 
 The last three commands are mostly useful as arguments to \verb|$include|.
