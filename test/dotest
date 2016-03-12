@@ -39,7 +39,7 @@ rm -f false
 ln -s `which false` false
 ( test . \
      "false.txt" \
-     "false" \
+     "dummy" \
      expected3 && \
     printf "Test succeeded unexpectedly" ) || true
 
