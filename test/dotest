@@ -50,3 +50,9 @@ test . \
      "true.txt" \
      "true" \
      expected4
+
+# Ensure that macros aren't expanded in Nancy's argument macros
+test . \
+     "path.txt" \
+     '$path.txt' \
+     expected5

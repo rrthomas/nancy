@@ -18,7 +18,7 @@ use Cwd;
 
 use File::Slurp qw(slurp);
 
-use RRT::Macro;
+use RRT::Macro 2.00;
 
 # Process command line
 my ($root, $verbose_flag, $version_flag, $help_flag);
@@ -79,9 +79,9 @@ sub find_on_path {
 
 # Set up macros
 my %macros = (
-  path => sub { $path; },
-  root => sub { $root; },
-  template => sub { $template; },
+  path => sub { return ($path, 1); },
+  root => sub { return ($root, 1); },
+  template => sub { return ($template, 1); },
   include => sub {
     my $leaf = shift;
     my $file = find_on_path(\@path, $leaf, $root);

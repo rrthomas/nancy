@@ -11,7 +11,7 @@
 
 \title{Nancy, the lazy weaver\\\includegraphics[scale=0.45]{logo/nancy.png}
 \\User’s guide}
-\date{6th March 2016} % FIXME: have this date automatically filled in by git
+\date{12th March 2016} % FIXME: have this date automatically filled in by git
 \author{Reuben Thomas}
 \maketitle
 
@@ -51,7 +51,7 @@ Nancy weaves a path given a template as follows:
 
 \begin{enumerate}
 \item Set the initial text to \verb|$include{TEMPLATE}|.
-\item Scan the text for commands. Run each command, recursively weave its output, and replace the command by the result.
+\item Scan the text for commands. Weave any arguments to the command, run each command, and replace the command by the result.
 \item Output the resultant text.
 \end{enumerate}
 
@@ -61,7 +61,7 @@ Nancy recognises these commands:
 
 \begin{description}
 \SaveVerb{include}|$include{FILE, ARGUMENT, ...}|
-\item[\UseVerb{include}]Look up the given file. If it is executable, run it as a command with the given arguments and return the output. Otherwise, return the contents of the given file.
+\item[\UseVerb{include}]Look up the given file. If it is executable, run it as a command with the given arguments and collect the output. Otherwise, read the contents of the given file. Weave and return the result.
 \SaveVerb{path}|$path|
 \item[\UseVerb{path}]Return the \verb|PATH| argument.
 \SaveVerb{path}|$root|
