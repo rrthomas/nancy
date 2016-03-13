@@ -11,7 +11,7 @@
 
 \title{Nancy, the lazy weaver\\\includegraphics[scale=0.45]{logo/nancy.png}
 \\User’s guide}
-\date{12th March 2016} % FIXME: have this date automatically filled in by git
+\date{13th March 2016} % FIXME: have this date automatically filled in by git
 \author{Reuben Thomas}
 \maketitle
 
@@ -66,6 +66,8 @@ Nancy recognises these commands:
 \begin{description}
 \SaveVerb{include}|$include{FILE, ARGUMENT, ...}|
 \item[\UseVerb{include}]Look up the given file. If it is executable, run it as a command with the given arguments and collect the output. Otherwise, read the contents of the given file. Weave and return the result.
+\SaveVerb{paste}|$paste{FILE, ARGUMENT, …}|
+\item[\UseVerb{paste}]Like \verb|$include|, but does not weave its result before returning it.
 \SaveVerb{path}|$path|
 \item[\UseVerb{path}]Return the \verb|PATH| argument.
 \SaveVerb{path}|$root|

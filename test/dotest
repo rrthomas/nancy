@@ -56,3 +56,9 @@ test . \
      "path.txt" \
      '$path.txt' \
      expected5
+
+# Test that $paste doesn't expand macros
+test src6 \
+     "paste.txt" \
+     "paste" \
+     expected6

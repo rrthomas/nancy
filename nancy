@@ -77,27 +77,31 @@ sub find_on_path {
   Die("cannot find `$file' while building `" . catfile(@{$path}) . "'");
 }
 
+# Get a file or program output to include or paste
+sub get_include {
+  my $leaf = shift;
+  my $file = find_on_path(\@path, $leaf, $root);
+  if (defined($file)) {
+    my $reader;
+    if (-x $file) {
+      open($reader, "-|", $file, @_) or Die("error starting `$file'");
+    } else {
+      open($reader, $file) or Die("cannot open `$file'");
+    }
+    binmode($reader, ':raw');
+    my $output = scalar(slurp($reader));
+    close($reader) or Die("error reading `$file'");
+    return $output;
+  }
+}
+
 # Set up macros
 my %macros = (
   path => sub { $path; },
   root => sub { $root; },
   template => sub { $template; },
-  include => sub {
-    my $leaf = shift;
-    my $file = find_on_path(\@path, $leaf, $root);
-    if (defined($file)) {
-      my $reader;
-      if (-x $file) {
-        open($reader, "-|", $file, @_) or Die("error starting `$file'");
-      } else {
-        open($reader, $file) or Die("cannot open `$file'");
-      }
-      binmode($reader, ':raw');
-      my $output = scalar(slurp($reader));
-      close($reader) or Die("error reading `$file'");
-      return ($output, 1);
-    }
-  }
+  include => sub { return get_include(@_), 1; },
+  paste => sub { return get_include(@_); },
 );
 
 # Weave path
