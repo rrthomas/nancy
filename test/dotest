@@ -20,19 +20,19 @@ function test() {
 }
 
 # One-tree test
-test src \
+test webpage-src \
      "template.html" \
      "index.html people/index.html people/adam.html people/eve.html" \
-     expected
+     webpage-expected
 
 # Two-tree test
 rm -rf src-merged
 mkdir src-merged
-./mergetrees src2:src src-merged
+./mergetrees mergetrees-src:webpage-src src-merged
 test src-merged \
      "template.html" \
      "index.html animals/index.html animals/adam.html animals/eve.html" \
-     expected2
+     mergetrees-expected
 
 # Failing executable test
 rm -f false
@@ -40,7 +40,7 @@ ln -s `which false` false
 ( test . \
      "false.txt" \
      "dummy" \
-     expected3 && \
+     false-expected && \
     printf "Test succeeded unexpectedly" ) || true
 
 # Passing executable test
@@ -49,16 +49,16 @@ ln -s `which true` true
 test . \
      "true.txt" \
      "true" \
-     expected4
+     true-expected
 
 # Ensure that macros aren't expanded in Nancy's argument macros
 test . \
      "path.txt" \
      '$path.txt' \
-     expected5
+     dollar-path-expected
 
 # Test that $paste doesn't expand macros
-test src6 \
+test paste-src \
      "paste.txt" \
      "paste" \
-     expected6
+     paste-expected
