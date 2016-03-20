@@ -9,12 +9,16 @@ function test() {
     local TEMPLATE=$2
     local PAGES=$3
     local EXPECTED=$4
+    local STDIN_TEMPLATE=$5
+    if [ -z "$5" ]; then
+        STDIN_TEMPLATE="&1"
+    fi
     rm -rf dest
-    NANCY_CMD="../nancy --verbose --root $SRC $TEMPLATE"
-    #NANCY_CMD="perl -wMDevel::SimpleTrace ../nancy --verbose --root $SRC $TEMPLATE"
+    NANCY_CMD=(../nancy --verbose --root "$SRC" "$TEMPLATE")
+    #NANCY_CMD=(perl -wMDevel::SimpleTrace ../nancy --verbose --root "$SRC" "$TEMPLATE")
     for page in $PAGES; do
         mkdir -p "`dirname \"dest/$page\"`"
-        $NANCY_CMD $page > dest/$page || return 1
+        eval '"${NANCY_CMD[@]}"' '$page' "<$STDIN_TEMPLATE" > dest/$page || return 1
     done
     diff -Nur $EXPECTED dest || ( printf "Test in \`$SRC' failed" && return 1 )
 }
@@ -24,6 +28,13 @@ test webpage-src \
      "template.html" \
      "index.html people/index.html people/adam.html people/eve.html" \
      webpage-expected
+
+# Test with template on stdin
+test webpage-src \
+     - \
+     "index.html people/index.html people/adam.html people/eve.html" \
+     webpage-expected \
+     webpage-src/template.html
 
 # Two-tree test
 rm -rf src-merged

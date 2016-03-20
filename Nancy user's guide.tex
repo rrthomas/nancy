@@ -11,7 +11,7 @@
 
 \title{Nancy, the lazy weaver\\\includegraphics[scale=0.45]{logo/nancy.png}
 \\User’s guide}
-\date{13th March 2016} % FIXME: have this date automatically filled in by git
+\date{20th March 2016} % FIXME: have this date automatically filled in by git
 \author{Reuben Thomas}
 \maketitle
 
@@ -54,7 +54,7 @@ The options may be abbreviated to any unambiguous prefix.
 Nancy weaves a path given a template as follows:
 
 \begin{enumerate}
-\item Set the initial text to \verb|$include{TEMPLATE}|.
+\item Set the initial text to \verb|$include{TEMPLATE}|, unless \verb|TEMPLATE| is \verb|-|, in which case set the initial text to the contents of standard input.
 \item Scan the text for commands. Weave any arguments to the command, run each command, and replace the command by the result.
 \item Output the resultant text.
 \end{enumerate}

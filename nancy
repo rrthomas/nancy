@@ -39,7 +39,7 @@ The lazy weaver
   --version         show program version
   --help            show this help
 
-  TEMPLATE is the template file
+  TEMPLATE is the template file name, or `-' to use standard input
   PATH is the desired path to weave
 END
 my $template = $ARGV[0];
@@ -105,4 +105,4 @@ my %macros = (
 );
 
 # Weave path
-print STDOUT expand("\$include{$template}", \%macros);
+print STDOUT expand($template eq "-" ? scalar(slurp(\*STDIN)) : "\$include{$template}", \%macros);
