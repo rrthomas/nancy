@@ -18,7 +18,7 @@ use Cwd;
 
 use File::Slurp qw(slurp);
 
-use RRT::Macro 3.00;
+use RRT::Macro 3.10;
 
 # Process command line
 my ($root, $verbose_flag, $version_flag, $help_flag);
@@ -96,11 +96,12 @@ sub get_include {
 }
 
 # Set up macros
-my %macros = (
+my %macros;
+%macros = (
   path => sub { $path; },
   root => sub { $root; },
   template => sub { $template; },
-  include => sub { return get_include(@_), 1; },
+  include => sub { expand(get_include(@_), \%macros); },
   paste => sub { return get_include(@_); },
 );
 
