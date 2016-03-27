@@ -102,7 +102,7 @@ my %macros;
   root => sub { $root; },
   template => sub { $template; },
   include => sub { expand(get_include(@_), \%macros); },
-  paste => sub { return get_include(@_); },
+  paste => sub { get_include(@_); },
 );
 
 # Weave path
