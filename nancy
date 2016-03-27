@@ -19,6 +19,7 @@ use Cwd;
 use File::Slurp qw(slurp);
 
 use RRT::Macro 3.10;
+use RRT::Misc;
 
 # Process command line
 my ($root, $verbose_flag, $version_flag, $help_flag);
@@ -74,13 +75,13 @@ sub find_on_path {
     }
     last if $#search == -1;
   }
-  Die("cannot find `$file' while building `" . catfile(@{$path}) . "'");
 }
 
 # Get a file or program output to include or paste
 sub get_include {
   my $leaf = shift;
-  my $file = find_on_path(\@path, $leaf, $root);
+  my $file = find_on_path(\@path, $leaf, $root) || which($leaf) ||
+    Die("cannot find `$leaf' while building `" . catfile(@path) . "'");
   if (defined($file)) {
     my $reader;
     if (-x $file) {

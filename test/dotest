@@ -20,7 +20,7 @@ function test() {
         mkdir -p "`dirname \"dest/$page\"`"
         eval '"${NANCY_CMD[@]}"' '$page' "<$STDIN_TEMPLATE" > dest/$page || return 1
     done
-    diff -Nur $EXPECTED dest || ( printf "Test in \`$SRC' failed" && return 1 )
+    diff -Nur $EXPECTED dest || ( printf "Test in \`$SRC' failed\n" && return 1 )
 }
 
 # One-tree test
@@ -46,8 +46,6 @@ test src-merged \
      mergetrees-expected
 
 # Failing executable test
-rm -f false
-ln -s `which false` false
 ( test . \
      "false.txt" \
      "dummy" \
@@ -55,8 +53,6 @@ ln -s `which false` false
     printf "Test succeeded unexpectedly" ) || true
 
 # Passing executable test
-rm -f true
-ln -s `which true` true
 test . \
      "true.txt" \
      "true" \
