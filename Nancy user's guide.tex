@@ -1,17 +1,14 @@
 % Nancy User’s Guide
 
 \documentclass[a4paper,english]{scrartcl}
-\usepackage{babel,a4,newlfont,fancyvrb,copyrght,graphicx,url}
+\usepackage{babel,a4,newlfont,fancyvrb,graphicx,url}
 \usepackage[utf8]{inputenc}
-
-% New commands
-\renewcommand{\copyrightyear}{2002--2016}
 
 \begin{document}
 
 \title{Nancy, the lazy weaver\\\includegraphics[scale=0.45]{logo/nancy.png}
 \\User’s guide}
-\date{27th March 2016} % FIXME: have this date automatically filled in by git
+\date{2nd April 2016\\\copyright\ 2002--2016} % FIXME: have this date automatically filled in by git
 \author{Reuben Thomas}
 \maketitle
 
@@ -21,7 +18,7 @@ Nancy is a simple macro processor that weaves files together from other files an
 
 \section{Installation}
 
-Nancy is written in Perl, and requires version 5.10 or later, and the \verb|RRT::Macro| module version 3 or later (available from \url{https://github.com/rrthomas/perl}.
+Nancy is written in Perl, and requires version 5.10 or later, the \verb|File::Slurp| module, and the \verb|RRT| modules (available from \url{https://github.com/rrthomas/perl}.
 
 \section{Invocation}
 
@@ -56,7 +53,7 @@ Nancy weaves a path given a template as follows:
 \begin{enumerate}
 \item Set the initial text to \verb|$include{TEMPLATE}|, unless \verb|TEMPLATE| is \verb|-|, in which case set the initial text to the contents of standard input.
 \item Scan the text for commands. Weave any arguments to the command, run each command, and replace the command by the result.
-\item Output the resultant text.
+\item Output the resultant text, eliding any final newline. (This last part may look tricky, but it almost always does what you want, and makes \verb|$include| behave better in various contexts.)
 \end{enumerate}
 
 A command takes the form \verb|$COMMAND| or \verb|$COMMAND{ARGUMENT, ...}|.

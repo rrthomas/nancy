@@ -78,20 +78,20 @@ sub find_on_path {
 # Get a file or program output to include or paste
 sub get_include {
   my $leaf = shift;
-  my $file = find_on_path(\@path, $leaf, $root) || which($leaf) ||
+  my ($file, $reader);
+  if ($leaf eq "-") {
+    $reader = \*STDIN;
+  } elsif ($file = find_on_path(\@path, $leaf, $root)) {
+    open($reader, $file) || Die("cannot open `$file'");
+  } elsif ($file = which($leaf)) {
+    open($reader, "-|", $file, @_) or Die("error starting `$file'");
+  } else {
     Die("cannot find `$leaf' while building `" . catfile(@path) . "'");
-  if (defined($file)) {
-    my $reader;
-    if (-x $file) {
-      open($reader, "-|", $file, @_) or Die("error starting `$file'");
-    } else {
-      open($reader, $file) or Die("cannot open `$file'");
-    }
-    binmode($reader, ':raw');
-    my $output = scalar(slurp($reader));
-    close($reader) or Die("error reading `$file'");
-    return $output;
   }
+  binmode($reader, ':raw');
+  chomp(my $output = scalar(slurp($reader)));
+  close($reader) or Die("error reading `$file'");
+  return $output;
 }
 
 # Set up macros
@@ -105,4 +105,4 @@ my %macros;
 );
 
 # Weave path
-print STDOUT expand($template eq "-" ? scalar(slurp(\*STDIN)) : "\$include{$template}", \%macros);
+print STDOUT expand("\$include{$template}", \%macros);
