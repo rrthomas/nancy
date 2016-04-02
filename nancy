@@ -47,9 +47,7 @@ my $template = $ARGV[0];
 my $path = $ARGV[1];
 my @path = splitdir($path);
 $root ||= cwd();
-if ($verbose_flag) {
-  say STDERR "$path:";
-}
+say STDERR "$path:" if $verbose_flag;
 
 # FIXME: Use a module to add the boilerplate to the messages
 sub Die {
