@@ -1,0 +1,21 @@
+#!/bin/bash
+# Run a test for Nancy
+
+set -e
+
+SRC=$1
+TEMPLATE=$2
+PAGES=$3
+EXPECTED=$4
+STDIN_TEMPLATE=$5
+if [ -z "$5" ]; then
+    STDIN_TEMPLATE="&1"
+fi
+rm -rf dest
+NANCY_CMD=(../nancy --verbose --root "$SRC" "$TEMPLATE")
+#NANCY_CMD=(perl -wMDevel::SimpleTrace ../nancy --verbose --root "$SRC" "$TEMPLATE")
+for page in $PAGES; do
+    mkdir -p "`dirname \"dest/$page\"`"
+    eval '"${NANCY_CMD[@]}"' '$page' "<$STDIN_TEMPLATE" > dest/$page || ( printf "Test in \`$SRC' failed to run\n" && exit 1 )
+done
+diff -Nur $EXPECTED dest || ( printf "Test in \`$SRC' produced incorrect output\n" && exit 1 )

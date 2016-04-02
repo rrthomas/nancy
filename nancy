@@ -18,7 +18,7 @@ use Cwd;
 
 use File::Slurp qw(slurp);
 
-use RRT::Macro 3.10;
+use RRT::Macro 3.12;
 use RRT::Misc;
 
 # Process command line

@@ -3,69 +3,57 @@
 
 set -e
 
-# Run a test
-function test() {
-    local SRC=$1
-    local TEMPLATE=$2
-    local PAGES=$3
-    local EXPECTED=$4
-    local STDIN_TEMPLATE=$5
-    if [ -z "$5" ]; then
-        STDIN_TEMPLATE="&1"
-    fi
-    rm -rf dest
-    NANCY_CMD=(../nancy --verbose --root "$SRC" "$TEMPLATE")
-    #NANCY_CMD=(perl -wMDevel::SimpleTrace ../nancy --verbose --root "$SRC" "$TEMPLATE")
-    for page in $PAGES; do
-        mkdir -p "`dirname \"dest/$page\"`"
-        eval '"${NANCY_CMD[@]}"' '$page' "<$STDIN_TEMPLATE" > dest/$page || return 1
-    done
-    diff -Nur $EXPECTED dest || ( printf "Test in \`$SRC' failed\n" && return 1 )
-}
+TEST=./nancy-test
 
 # One-tree test
-test webpage-src \
-     "template.html" \
+${TEST} webpage-src \
+     template.html \
      "index.html people/index.html people/adam.html people/eve.html" \
      webpage-expected
 
 # Test with template on stdin
-test webpage-src \
+${TEST} webpage-src \
      - \
      "index.html people/index.html people/adam.html people/eve.html" \
      webpage-expected \
      webpage-src/template.html
 
+# Test nested macro invocations
+${TEST} nested-macro-src \
+     template.txt \
+     nested.txt \
+     nested-macro-expected
+
 # Two-tree test
 rm -rf src-merged
 mkdir src-merged
 ./mergetrees mergetrees-src:webpage-src src-merged
-test src-merged \
-     "template.html" \
+${TEST} src-merged \
+     template.html \
      "index.html animals/index.html animals/adam.html animals/eve.html" \
      mergetrees-expected
 
 # Failing executable test
 ( test . \
-     "false.txt" \
-     "dummy" \
+     false.txt \
+     dummy \
      false-expected && \
     printf "Test succeeded unexpectedly" ) || true
 
 # Passing executable test
-test . \
-     "true.txt" \
-     "true" \
+${TEST} . \
+     true.txt \
+     true \
      true-expected
 
 # Ensure that macros aren't expanded in Nancy's argument macros
-test . \
-     "path.txt" \
+${TEST} . \
+     path.txt \
      '$path.txt' \
      dollar-path-expected
 
 # Test that $paste doesn't expand macros
-test paste-src \
-     "paste.txt" \
-     "paste" \
+${TEST} paste-src \
+     paste.txt \
+     paste \
      paste-expected
