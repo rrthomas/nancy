@@ -1,1 +1,1 @@
-$include{$root}
+$include{$include{$root}}
