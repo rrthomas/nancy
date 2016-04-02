@@ -34,7 +34,7 @@ ${TEST} src-merged \
      mergetrees-expected
 
 # Failing executable test
-( test . \
+( ${TEST} . \
      false.txt \
      dummy \
      false-expected && \
