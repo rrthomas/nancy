@@ -88,7 +88,7 @@ sub get_include {
   } else {
     Die("cannot find `$leaf' while building `" . catfile(@path) . "'");
   }
-  binmode($reader, ':raw');
+  binmode($reader);
   chomp(my $output = scalar(slurp($reader)));
   close($reader) or Die("error reading `$file'");
   return $output;
