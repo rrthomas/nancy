@@ -6,15 +6,15 @@
 
 \begin{document}
 
-\title{Nancy, the lazy weaver\\\includegraphics[scale=0.45]{logo/nancy.png}
+\title{Nancy, the simple macro processor\\\includegraphics[scale=0.45]{logo/nancy.png}
 \\User’s guide}
-\date{2nd April 2016\\\copyright\ 2002--2016} % FIXME: have this date automatically filled in by git
+\date{13th September 2016\\\copyright\ 2002--2016} % FIXME: have this date automatically filled in by git
 \author{Reuben Thomas}
 \maketitle
 
 \section{Introduction}
 
-Nancy is a simple macro processor that weaves files together from other files and the output of programs.
+Nancy is a simple macro processor that fills in a template from other files and the output of programs.
 
 \section{Installation}
 
@@ -28,13 +28,13 @@ Nancy takes two arguments:
 nancy [OPTION...] TEMPLATE PATH
 \end{verbatim}
 
-\noindent where \verb|TEMPLATE| is name of the template file, and \verb|PATH| is the path of the file or directory to weave.
+\noindent where \verb|TEMPLATE| is name of the template file, and \verb|PATH| is the path of the file or directory to build. There is nothing special about the template file, it is just the source file with which Nancy starts.
 
 The following command-line \verb|OPTION|s may be given:
 
 \begin{description}
 \SaveVerb{root}|--root DIRECTORY|
-\item[\UseVerb{root}]Set the source root directory (the default is the current directory).
+\item[\UseVerb{root}]Set the root source directory (the default is the current directory). This is the directory that Nancy will search for source files.
 \SaveVerb{verbose}|--verbose|
 \item[\UseVerb{verbose}]Print to standard error the name of the file being generated, and the files used to make it.
 \SaveVerb{version}|--version|
@@ -48,11 +48,11 @@ The options may be abbreviated to any unambiguous prefix.
 \section{Operation}
 \label{operation}
 
-Nancy weaves a path given a template as follows:
+Nancy builds a path given a template as follows:
 
 \begin{enumerate}
 \item Set the initial text to \verb|$include{TEMPLATE}|, unless \verb|TEMPLATE| is \verb|-|, in which case set the initial text to the contents of standard input.
-\item Scan the text for commands. Weave any arguments to the command, run each command, and replace the command by the result.
+\item Scan the text for commands. Expand any arguments to the command, run each command, and replace the command by the result.
 \item Output the resultant text, eliding any final newline. (This last part may look tricky, but it almost always does what you want, and makes \verb|$include| behave better in various contexts.)
 \end{enumerate}
 
@@ -62,28 +62,28 @@ Nancy recognises these commands:
 
 \begin{description}
 \SaveVerb{include}|$include{FILE, ARGUMENT, ...}|
-\item[\UseVerb{include}]Look up the given file. If it is executable, run it as a command with the given arguments and collect the output. Otherwise, read the contents of the given file. Weave and return the result.
+\item[\UseVerb{include}]Look up the given source file. If it is executable, run it as a command with the given arguments and collect the output. Otherwise, read the contents of the given file. Expand and return the result.
 \SaveVerb{paste}|$paste{FILE, ARGUMENT, …}|
-\item[\UseVerb{paste}]Like \verb|$include|, but does not weave its result before returning it.
+\item[\UseVerb{paste}]Like \verb|$include|, but does not expand its result before returning it.
 \SaveVerb{path}|$path|
 \item[\UseVerb{path}]Return the \verb|PATH| argument.
-\SaveVerb{path}|$root|
-\item[\UseVerb{path}]Return the root directory.
-\SaveVerb{path}|$template|
-\item[\UseVerb{path}]Return the \verb|TEMPLATE| argument.
+\SaveVerb{root}|$root|
+\item[\UseVerb{root}]Return the root directory.
+\SaveVerb{template}|$template|
+\item[\UseVerb{template}]Return the \verb|TEMPLATE| argument.
 \end{description}
 
 The last three commands are mostly useful as arguments to \verb|$include|.
 
 Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for \verb|$include| commands that run executables; if you nest them, you have to deal with this potential pitfall.)
 
-To find the file \verb|FILE| specified by a \verb|$include| command, Nancy proceeds thus:
+To find the source file \verb|FILE| specified by a \verb|$include| command, Nancy proceeds thus:
 
 \begin{enumerate}
 \item See whether \verb|ROOT/PATH/FILE| is a file (or a symbolic link to a file). If so, return the file path.
 \item If not, remove the last directory from \verb|PATH| and try again, until \verb|PATH| is empty.
 \item Try looking for \verb|ROOT/FILE|.
-\item Try looking for file on the user’s \verb|PATH| (the list of directories specified by the \verb|PATH| environment variable).
+\item Try looking for the file on the user’s \verb|PATH| (the list of directories specified by the \verb|PATH| environment variable).
 \item If no file is found, Nancy stops with an error message.
 \end{enumerate}
 

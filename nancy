@@ -33,15 +33,16 @@ my $opts = GetOptions(
 die $version if $version_flag;
 die <<END if !$opts || $#ARGV != 1;
 Usage: $prog [OPTION...] TEMPLATE PATH
-The lazy weaver
+A simple macro processor.
 
   --root DIRECTORY  source root [default is current directory]
-  --verbose         show files woven and included (on standard error)
+  --verbose         show on standard error the path being built, and
+                    the names of files built, included and pasted
   --version         show program version
   --help            show this help
 
   TEMPLATE is the template file name, or `-' to use standard input
-  PATH is the desired path to weave
+  PATH is the desired path to build
 END
 my $template = $ARGV[0];
 my $path = $ARGV[1];
@@ -104,5 +105,5 @@ my %macros;
   paste => sub { get_include(@_); },
 );
 
-# Weave path
+# Build path
 print STDOUT expand("\$include{$template}", \%macros);
