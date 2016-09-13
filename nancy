@@ -82,10 +82,12 @@ sub get_include {
   my ($file, $reader);
   if ($leaf eq "-") {
     $reader = \*STDIN;
-  } elsif ($file = find_on_path(\@path, $leaf, $root)) {
-    open($reader, $file) || Die("cannot open `$file'");
-  } elsif ($file = which($leaf)) {
-    open($reader, "-|", $file, @_) or Die("error starting `$file'");
+  } elsif ($file = find_on_path(\@path, $leaf, $root) || which($leaf)) {
+    if (-x $file) {
+      open($reader, "-|", $file, @_) or Die("error starting `$file'");
+    } else {
+      open($reader, $file) or Die("cannot open `$file'");
+    }
   } else {
     Die("cannot find `$leaf' while building `" . catfile(@path) . "'");
   }
