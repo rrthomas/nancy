@@ -17,9 +17,9 @@ use Getopt::Long;
 use Cwd;
 
 use File::Slurp qw(slurp);
+use File::Which;
 
 use RRT::Macro 3.13;
-use RRT::Misc;
 
 # Process command line
 my ($root, $verbose_flag, $version_flag, $help_flag);
