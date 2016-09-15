@@ -76,7 +76,7 @@ The last three commands are mostly useful as arguments to \verb|$include|.
 
 Only one guarantee is made about the order in which commands are processed: if one command is nested inside another, the inner command will be processed first. (The order only matters for \verb|$include| commands that run executables; if you nest them, you have to deal with this potential pitfall.)
 
-To find the source file \verb|FILE| specified by a \verb|$include| command, Nancy proceeds thus:
+To find the source file \verb|FILE| specified by a \verb|$include{FILE, ...}| command, Nancy proceeds thus:
 
 \begin{enumerate}
 \item See whether \verb|ROOT/PATH/FILE| is a file (or a symbolic link to a file). If so, return the file path.
