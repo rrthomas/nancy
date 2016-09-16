@@ -18,6 +18,12 @@ ${TEST} webpage-src \
      webpage-expected \
      webpage-src/template.html
 
+# Test with --output
+${TEST} --output webpage-src \
+     template.html \
+     "index.html people/index.html people/adam.html people/eve.html" \
+     webpage-expected
+
 # Test nested macro invocations
 ${TEST} nested-macro-src \
      template.txt \

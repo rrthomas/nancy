@@ -22,9 +22,10 @@ use File::Which;
 use RRT::Macro 3.13;
 
 # Process command line
-my ($root, $verbose_flag, $version_flag, $help_flag);
+my ($output_file, $root, $verbose_flag, $version_flag, $help_flag);
 my $prog = basename($0);
 my $opts = GetOptions(
+  "output=s" => \$output_file,
   "root=s" => \$root,
   "verbose" => \$verbose_flag,
   "version" => \$version_flag,
@@ -35,14 +36,16 @@ die <<END if !$opts || $#ARGV != 1;
 Usage: $prog [OPTION...] TEMPLATE PATH
 A simple macro processor.
 
+  --output FILE     output file [default is standard output]
   --root DIRECTORY  source root [default is current directory]
   --verbose         show on standard error the path being built, and
                     the names of files built, included and pasted
   --version         show program version
   --help            show this help
 
-  TEMPLATE is the template file name, or `-' to use standard input
+  TEMPLATE is the template file name
   PATH is the desired path to build
+  Use `-' as a file name to indicate standard input or output
 END
 my $template = $ARGV[0];
 my $path = $ARGV[1];
@@ -108,4 +111,6 @@ my %macros;
 );
 
 # Build path
-print STDOUT expand("\$include{$template}", \%macros);
+my $fh = \*STDOUT;
+open($fh, ">", $output_file) if defined($output_file);
+print $fh expand("\$include{$template}", \%macros);
