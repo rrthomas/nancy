@@ -2,7 +2,7 @@
 package main;
 
 my $version = <<'END';
-nancy 6.0-29-gfe21b1e
+nancy @Version@
 (c) 2002-2016 Reuben Thomas <rrt@sc3d.org>
 https://github.com/rrthomas/nancy/
 Distributed under the GNU General Public License version 3, or (at
