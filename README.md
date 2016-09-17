@@ -21,7 +21,15 @@ report them on the project’s web page (see above for addresses).
 
 ## Development
 
+Check out the git repository with:
+
+    git clone --recursive https://github.com/rrthomas/nancy
+
 After checkout, run `./setup-git-config` to wire up writing version numbers into scripts.
+
+To build Nancy and run its tests:
+
+    make check
 
 ## History
 
