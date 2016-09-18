@@ -52,6 +52,12 @@ ${TEST} . \
      true \
      true-expected
 
+# Executable test with in-tree executable
+${TEST} . \
+     true-nancy.txt \
+     true \
+     true-expected
+
 # Ensure that macros aren't expanded in Nancy's argument macros
 ${TEST} . \
      path.txt \
