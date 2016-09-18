@@ -1,5 +1,3 @@
-Package properly.
-
 Allow syntax to be redefined; e.g. use XML syntax: <[nancy:]include file="" />
 
 Rewrite manual: put man-page-ish documentation into README.md, and the
