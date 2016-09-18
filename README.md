@@ -30,13 +30,3 @@ After checkout, run `./setup-git-config` to wire up writing version numbers into
 To build Nancy and run its tests:
 
     make check
-
-## History
-
-I gave a talk about an early version of Nancy at the
-[Lua Workshop 2006](https://www.lua.org/wshop06.html). (Back then it was
-written in Lua!)
-
-* [PDF slides](Lua Workshop 2006.pdf)
-* [OpenOffice Impress presentation](Lua Workshop 2006.odp)
-* [Video](https://youtube.com/watch?v=-QDRQXK9VFE)
