@@ -1,0 +1,145 @@
+\documentclass[a4paper,english]{scrartcl}
+\usepackage{babel,a4,newlfont,fancyvrb,graphicx,url}
+\usepackage[utf8]{inputenc}
+
+\begin{document}
+
+\title{Nancy, the simple macro processor\\{\large\copyright\ 2002--2016}\\\includegraphics[scale=0.45]{logo/nancy.png}
+\\Cookbook}
+\author{Reuben Thomas}
+\maketitle
+
+\section{Introduction}
+
+See the instructions in \verb|README.md| for installation and usage. The rest of this document shows examples of its use.
+
+\section{Generating a web site}
+% FIXME: add example use of an executable fragment (date)
+% FIXME: the web page examples are unclear; really ought to be actual web pages with some sort of structure diagrams automatically generated
+
+Suppose a web site has the following page design, from top to bottom: logo, navigation menu, breadcrumb trail, page body.
+
+Most of the elements are the same on each page, but the breadcrumb trail has to show the canonical path to each page, and the logo is bigger on the home page, which is the default \verb|index.html|.
+
+Suppose further that the web site has the following structure, where each line corresponds to a page:
+
+\begin{itemize}
+\item Home page
+\item People
+  \begin{itemize}
+  \item Jo Bloggs
+  \item Hilary Pilary
+  \item \dots
+  \end{itemize}
+\item Places
+  \begin{itemize}
+  \item Vladivostok
+  \item Timbuktu
+  \item \dots
+  \end{itemize}
+\end{itemize}
+
+The basic page template looks something like this:
+
+\begin{verbatim}
+<html>
+  <link href="style.css" rel="stylesheet" type="text/css">
+  <title>$include{title}</title>
+  <body>
+    <div class="logo">$include{logo.html}</div>
+    <div class="menu">$include{menu.html}</div>
+    <div class="breadcrumb">$include{breadcrumb.html}</div>
+    <div class="main">$include{main.html}</div>
+  </body>
+</html>
+\end{verbatim}
+
+Making the menu an included file is not strictly necessary, but makes the template easier to read. The pages will be laid out as follows:
+
+\begin{itemize}
+\item \verb|/|
+  \begin{itemize}
+  \item \verb|index.html|
+  \item \verb|people/|
+    \begin{itemize}
+    \item \verb|index.html|
+    \item \verb|jo_bloggs.html|
+    \item \verb|hilary_pilary.html|
+    \end{itemize}
+  \item \verb|places/|
+    \begin{itemize}
+    \item \verb|index.html|
+    \item \verb|vladivostok.html|
+    \item \verb|timbuktu.html|
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+The corresponding source files will be laid out as follows. This may look a little confusing at first, but note the similarity to the HTML pages, and hold on for the explanation!
+
+\begin{itemize}
+\item \verb|source/|
+  \begin{itemize}
+  \item \verb|template.html| (the template shown above)
+  \item \verb|menu.html|
+  \item \verb|logo.html|
+  \item \verb|breadcrumb.html|
+  \item \verb|index.html/|
+    \begin{itemize}
+    \item \verb|main.html|
+    \item \verb|logo.html|
+    \end{itemize}
+  \item \verb|people/|
+    \begin{itemize}
+    \item \verb|breadcrumb.html|
+    \item \verb|index.html/|
+      \begin{itemize}
+      \item \verb|main.html|
+      \end{itemize}
+    \item \verb|jo_bloggs.html/|
+      \begin{itemize}
+      \item \verb|main.html|
+      \end{itemize}
+    \item \verb|hilary_pilary.html/|
+      \begin{itemize}
+      \item \verb|main.html|
+      \end{itemize}
+    \end{itemize}
+  \item \verb|places/|
+    \begin{itemize}
+    \item \verb|breadcrumb.html|
+    \item \verb|index.html/|
+      \begin{itemize}
+      \item \verb|main.html|
+      \end{itemize}
+    \item \verb|vladivostok.html/|
+      \begin{itemize}
+      \item \verb|main.html|
+      \end{itemize}
+    \item \verb|timbuktu.html/|
+      \begin{itemize}
+      \item \verb|main.html|
+      \end{itemize}
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+Note that there is only one menu fragment (the main menu is the same for every page), while each section has its own breadcrumb trail (\verb|breadcrumb.html|), and each page has its own content (\verb|main.html|).
+
+Now consider how Nancy builds the page whose URL is \verb|vladivostok.html|. According to the rules given in the Operation section of \verb|README.md|, Nancy will look first for files in \verb|source/places/vladivostok.html|, then in \verb|source/places|, and finally in \verb|source|. Hence, the actual list of files used to assemble the page is:
+
+\begin{itemize}
+\item \verb|source/template.html|
+\item \verb|source/logo.html|
+\item \verb|source/menu.html|
+\item \verb|source/places/breadcrumb.html|
+\item \verb|source/places/vladivostok.html/main.html|
+\end{itemize}
+
+For the site’s index page, the file \verb|index.html/logo.html| will be used for the logo fragment, which can refer to the larger graphic desired.
+
+% FIXME: explain how to build the web site statically, or serve it dynamically.
+
+This scheme, though simple, is surprisingly flexible; this simple example has covered all the standard techniques for Nancy’s use.
+
+\end{document}

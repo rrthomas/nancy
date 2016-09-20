@@ -15,7 +15,7 @@ check: nancy
 	cd test && ./dotest
 
 dist: check
-	zip -r nancy-$(VERSION).zip nancy README.md logo/nancy-small.png "Development notes" "Nancy user's guide".pdf "Nancy user's guide".tex
+	zip -r nancy-$(VERSION).zip nancy README.md logo/nancy-small.png "Development notes" "Nancy cookbook".pdf "Nancy cookbook".tex
 
 release: dist
 	echo $(VERSION) | grep -v -e - || ( echo "Current version $(VERSION) is not a release version"; exit 1 )
