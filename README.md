@@ -30,3 +30,7 @@ After checkout, run `./setup-git-config` to wire up writing version numbers into
 To build Nancy and run its tests:
 
     make check
+
+To make releases, zip and [woger] are needed.
+
+[woger]: https://github.com/rrthomas/woger
