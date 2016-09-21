@@ -19,6 +19,7 @@ dist: check
 
 release: dist
 	echo $(VERSION) | grep -v -e - || ( echo "Current version $(VERSION) is not a release version"; exit 1 )
+	git diff --exit-code && \
 	woger github \
 		github_user="rrthomas" \
 		github_dist_type="universal-runnable" \
