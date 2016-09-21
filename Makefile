@@ -4,6 +4,7 @@ VERSION=`git describe --tags`
 
 nancy: perl/Macro.pm nancy.in Makefile
 	rm -f $@
+	rm -f nancy.in && git checkout nancy.in # Get correct version number in nancy.in
 	echo '#!/usr/bin/perl' > $@
 	cat perl/Macro.pm >> $@
 	cat nancy.in >> $@
