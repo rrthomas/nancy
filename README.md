@@ -9,12 +9,15 @@ Nancy is a simple macro processor that fills in a template from other files and 
 context-dependent file inclusion. A file can either be included literally,
 or run as a command and its output included.
 
-Nancy was originally designed to build simple static web sites, but can be used for all sorts of other tasks, similar to more complicated systems like [AutoGen](http://autogen.sourceforge.net) and [TXR](http://www.nongnu.org/txr).
+Nancy was originally designed to build simple static web sites, but can be used for all sorts of other tasks, similar to more complicated systems like [AutoGen] and [TXR].
+
+[AutoGen]: http://autogen.sourceforge.net
+[TXR]: http://www.nongnu.org/txr
 
 Nancy is free software, licensed under the GNU GPL version 3 (or, at
 your option, any later version), and written in Perl.
 
-See [the user guide](Nancy user's guide.pdf) for instructions and examples.
+See the [Cookbook](Nancy cookbook.pdf) for instructions and examples.
 
 Please send questions, comments, and bug reports to the maintainer, or
 report them on the project’s web page (see above for addresses).
@@ -61,7 +64,7 @@ A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`.
 Nancy recognises these commands:
 
 * *`$include{FILE, ARGUMENT, ...}`* Look up the given source file. If it is executable, run it as a command with the given arguments and collect the output. Otherwise, read the contents of the given file. Expand and return the result.
-* *`$paste{FILE, ARGUMENT, ...`* Like `$include`, but does not expand its result before returning it.
+* *`$paste{FILE, ARGUMENT, ...}`* Like `$include`, but does not expand its result before returning it.
 * *`$path`* Return the `PATH` argument.
 * *`$root`* Return the root directory.
 * *`$template`* Return the `TEMPLATE` argument.
