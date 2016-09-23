@@ -14,8 +14,15 @@ nancy: perl/Macro.pm nancy.in Makefile
 check: nancy
 	cd test && ./dotest
 
+DIST_FILES = nancy README.md logo/nancy-small.png "Nancy cookbook".pdf "Nancy cookbook".tex
+
 dist: check
-	zip -r nancy-$(VERSION).zip nancy README.md logo/nancy-small.png "Nancy cookbook".pdf "Nancy cookbook".tex
+	rm -f nancy-$(VERSION)
+	ln -s . nancy-$(VERSION)
+	for i in $(DIST_FILES); do \
+		zip nancy-$(VERSION).zip "nancy-$(VERSION)/$$i"; \
+	done
+	rm -f nancy-$(VERSION)
 
 release: dist
 	echo $(VERSION) | grep -v -e - || ( echo "Current version $(VERSION) is not a release version"; exit 1 )
