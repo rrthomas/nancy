@@ -25,7 +25,7 @@ See the [Cookbook](Nancy cookbook.pdf) for instructions and examples.
 Please send questions, comments, and bug reports to the maintainer, or
 report them on the project’s web page (see above for addresses).
 
-# Installation
+## Installation
 
 Download the latest release from ​https://github.com/rrthomas/nancy/releases
 
@@ -40,7 +40,7 @@ following commands, assuming you have Perl:
 To install Nancy, unpack the distribution archive and copy the `nancy`
 script to a directory on your path.
 
-# Invocation
+## Invocation
 
 Nancy takes two arguments:
 
@@ -64,7 +64,7 @@ The following command-line `OPTION`s may be given:
 
 The options may be abbreviated to any unambiguous prefix.
 
-# Operation
+## Operation
 
 Nancy builds a path given a template as follows:
 
