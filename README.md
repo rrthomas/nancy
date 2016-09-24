@@ -20,7 +20,7 @@ used for all sorts of other tasks, similar to more complicated systems like
 Nancy is free software, licensed under the GNU GPL version 3 (or, at your
 option, any later version), and written in Perl.
 
-See the [Cookbook](Nancy cookbook.pdf) for instructions and examples.
+See the [Cookbook](Cookbook.md) for instructions and examples.
 
 Please send questions, comments, and bug reports to the maintainer, or
 report them on the project’s web page (see above for addresses).

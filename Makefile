@@ -14,7 +14,7 @@ nancy: perl/Macro.pm nancy.in Makefile
 check: nancy
 	cd test && ./dotest
 
-DIST_FILES = nancy README.md logo/nancy-small.png "Nancy cookbook".pdf "Nancy cookbook".tex
+DIST_FILES = nancy README.md logo/nancy-small.png Cookbook.md
 
 dist: check
 	rm -f nancy-$(VERSION)
