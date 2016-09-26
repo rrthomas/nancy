@@ -3,7 +3,7 @@
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
 © 2002–2016 Reuben Thomas <rrt@sc3d.org>  
-https://github.com/rrthomas/nancy
+<https://github.com/rrthomas/nancy>
 
 Nancy is a simple macro processor that fills in a template from other files
 and the output of programs. It has just one non-trivial construct:
@@ -27,7 +27,7 @@ report them on the project’s web page (see above for addresses).
 
 ## Installation
 
-Download the latest release from ​https://github.com/rrthomas/nancy/releases
+Download the latest release from ​<https://github.com/rrthomas/nancy/releases>
 
 Nancy is written in Perl, and requires version 5.10 or later, and the
 `File::Slurp` and `File::Which` modules, which can be installed with the
