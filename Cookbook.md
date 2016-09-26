@@ -4,8 +4,9 @@ See the [README](README.md) for installation and usage. The rest of this
 document shows examples of its use.
 
 ## Generating a web site <a name="website-example"></a>
-[comment]: # (FIXME: add example use of an executable fragment (date))
-[comment]: # (FIXME: the web page examples are unclear; really ought to be actual web pages with some sort of structure diagrams automatically generated)
+[FIXME]: # (Add example use of an executable fragment (date))
+[FIXME]: # (Add an example about uniquely numbered invoices)
+[FIXME]: # (The web page examples are unclear; really ought to be actual web pages with some sort of structure diagrams automatically generated)
 
 Suppose a web site has the following page design, from top to bottom: logo,
 navigation menu, breadcrumb trail, page body.
@@ -103,7 +104,7 @@ actual list of files used to assemble the page is:
 For the site’s index page, the file `index.html/logo.html` will be used
 for the logo fragment, which can refer to the larger graphic desired.
 
-[comment]: # (FIXME: explain how to build the web site statically, or serve it dynamically.)
+[FIXME]: # (Explain how to build the web site statically, or serve it dynamically.)
 
 This scheme, though simple, is surprisingly flexible; this simple example
 has covered all the standard techniques for Nancy’s use.

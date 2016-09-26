@@ -144,7 +144,7 @@ For example, to insert the current date:
 
     $paste{date,+%Y-%m-%d}
 
-[comment]: # (FIXME: Insert cross-ref to date example here)
+[FIXME]: # (Insert cross-ref to date example here)
 
 When commands that run programs are nested inside each other, the order in
 which they are run may matter. Nancy only guarantees that if one command is
@@ -152,7 +152,7 @@ nested inside another, the inner command will be processed first. There is
 no guarantee of the order in which commands at the same nesting level are
 run.
 
-[comment]: # (FIXME: Add example where this is significant)
+[FIXME]: # (Add example where this is significant)
 
 ## Development
 
