@@ -138,7 +138,7 @@ Nancy can run a program in two ways:
    since executables don’t normally end in `.html`.)
 
 In either case, arguments may be passed to the program: use `$include{FILE,
-ARGUMENT\_1, ARGUMENT\_2, …}`, or the equivalent for `$paste`.
+ARGUMENT_1, ARGUMENT_2, …}`, or the equivalent for `$paste`.
 
 For example, to insert the current date:
 
