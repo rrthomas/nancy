@@ -76,28 +76,25 @@ Nancy builds a path given a template as follows:
    look tricky, but it almost always does what you want, and makes
    `$include` behave better in various contexts.)
 
-A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`.
+A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`. To prevent
+comma from being interpreted as an argument separator, put a backslash in
+front of it.
 
 Nancy recognises these commands:
 
-* *`$include{FILE, ARGUMENT, ...}`* Look up the given source file. If it is
-  executable, run it as a command with the given arguments and collect the
-  output. Otherwise, read the contents of the given file. Expand and return
-  the result.
-* *`$paste{FILE, ARGUMENT, ...}`* Like `$include`, but does not expand its
-  result before returning it.
+* *`$include{FILE}`* Look up the given source file; read its contents, then
+  expand them (that is, execute any commands found therein) and return the
+  result.
+* *`$paste{FILE}`* Like `$include`, but does not expand its result before
+  returning it.
 * *`$path`* Return the `PATH` argument.
 * *`$root`* Return the root directory.
 * *`$template`* Return the `TEMPLATE` argument.
 
-The last three commands are mostly useful as arguments to `$include`.
+The last three commands are mostly useful as arguments to `$include` and
+`$paste`.
 
-Only one guarantee is made about the order in which commands are processed:
-if one command is nested inside another, the inner command will be processed
-first. (The order only matters for `$include` commands that run executables;
-if you nest them, you have to deal with this potential pitfall.)
-
-To find the source file `FILE` specified by a `$include{FILE, ...}` command,
+To find the source file `FILE` specified by a `$include{FILE}` command,
 Nancy proceeds thus:
 
 1. See whether `ROOT/PATH/FILE` is a file (or a symbolic link to a file). If
@@ -105,9 +102,8 @@ Nancy proceeds thus:
 2. If not, remove the last directory from `PATH` and try again, until `PATH`
    is empty.
 3. Try looking for `ROOT/FILE`.
-4. Try looking for the file on the user’s `PATH` (the list of directories
-   specified by the `PATH` environment variable).
-5. If no file is found, Nancy stops with an error message.
+
+If no file is found, Nancy stops with an error message.
 
 For example, if the root directory is `/dir`, `PATH` is `foo/bar/baz`, and
 Nancy is trying to find `file.html`, it will try the following files, in
@@ -117,8 +113,46 @@ order:
 2. `/dir/foo/bar/file.html`
 3. `/dir/foo/file.html`
 4. `/dir/file.html`
-5. An executable called `file.html` somewhere on the user’s `PATH`. (This is
-   not very likely, since executables don’t normally end in `.html`.)
+
+See the [website example](Cookbook.md#website-example) in the Cookbook for a
+worked example.
+
+### Running other programs
+
+In addition to the rules given above, Nancy also allows `$include` and
+`$paste` to take their input from programs. This can be useful in a variety
+of ways: to insert the current date or time, to make a calculation, or to
+convert a file to a different format.
+
+Nancy can run a program in two ways:
+
+1. If a file found by an `$include` or `$paste` command has the “execute”
+   permission, it is run.
+
+2. If no file of the given name can be found using the rules in the previous
+   section, Nancy looks for an executable file on the user’s `PATH` (the
+   list of directories specified by the `PATH` environment variable), as if
+   with the `which` command. If one is found, it is run. (This possibility
+   was not mentioned in the example above, but it is not very likely that
+   Nancy will find a file called `file.html` somewhere on the user’s `PATH`,
+   since executables don’t normally end in `.html`.)
+
+In either case, arguments may be passed to the program: use `$include{FILE,
+ARGUMENT\_1, ARGUMENT\_2, …}`, or the equivalent for `$paste`.
+
+For example, to insert the current date:
+
+    $paste{date,+%Y-%m-%d}
+
+[comment]: # (FIXME: Insert cross-ref to date example here)
+
+When commands that run programs are nested inside each other, the order in
+which they are run may matter. Nancy only guarantees that if one command is
+nested inside another, the inner command will be processed first. There is
+no guarantee of the order in which commands at the same nesting level are
+run.
+
+[comment]: # (FIXME: Add example where this is significant)
 
 ## Development
 

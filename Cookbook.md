@@ -3,7 +3,7 @@
 See the [README](README.md) for installation and usage. The rest of this
 document shows examples of its use.
 
-## Generating a web site
+## Generating a web site <a name="website-example"></a>
 [comment]: # (FIXME: add example use of an executable fragment (date))
 [comment]: # (FIXME: the web page examples are unclear; really ought to be actual web pages with some sort of structure diagrams automatically generated)
 
