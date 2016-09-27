@@ -90,10 +90,10 @@ every page), while each section has its own breadcrumb trail
 (`main.html`).
 
 Now consider how Nancy builds the page whose URL is `vladivostok.html`.
-According to the rules given in the Operation section of `README.md`,
-Nancy will look first for files in `source/places/vladivostok.html`,
-then in `source/places`, and finally in `source`. Hence, the
-actual list of files used to assemble the page is:
+According to the rules given in the [Operation](README.md#operation) section
+of the manual, Nancy will look first for files in
+`source/places/vladivostok.html`, then in `source/places`, and finally in
+`source`. Hence, the actual list of files used to assemble the page is:
 
 * `source/template.html`
 * `source/logo.html`

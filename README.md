@@ -65,7 +65,7 @@ The following command-line `OPTION`s may be given:
 
 The options may be abbreviated to any unambiguous prefix.
 
-## Operation
+## Operation <a name="operation"></a>
 
 Nancy builds a path given a template as follows:
 
