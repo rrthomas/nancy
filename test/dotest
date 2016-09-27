@@ -44,7 +44,7 @@ ${TEST} src-merged \
      false.txt \
      dummy \
      false-expected && \
-    printf "Test succeeded unexpectedly" ) || true
+    printf "Test succeeded unexpectedly" ) || echo "The above test failed as intended!"
 
 # Passing executable test
 ${TEST} . \
