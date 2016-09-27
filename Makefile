@@ -4,7 +4,6 @@ VERSION=`git describe --tags`
 
 nancy: perl/Macro.pm nancy.in Makefile
 	rm -f $@
-	rm -f nancy.in && git checkout nancy.in # Get correct version number in nancy.in
 	echo '#!/usr/bin/perl' > $@
 	cat perl/Macro.pm >> $@
 	cat nancy.in >> $@
@@ -27,6 +26,7 @@ dist: check
 release: dist
 	echo $(VERSION) | grep -v -e - || ( echo "Current version $(VERSION) is not a release version"; exit 1 )
 	git diff --exit-code && \
+	rm -f nancy.in && git checkout nancy.in && $(MAKE) nancy # Get correct version number in nancy.in
 	woger github \
 		github_user="rrthomas" \
 		github_dist_type="universal-runnable" \
