@@ -1,0 +1,4 @@
+#!/bin/sh
+# Produce pretty plain text directory tree
+
+tree --noreport --dirsfirst "$@" | tail -n +2

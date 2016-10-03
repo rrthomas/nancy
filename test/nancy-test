@@ -1,35 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env perl
 # Run a test for Nancy
 
-set -e
+use 5.10.0;
+use strict;
+use warnings;
+
+use File::Basename;
+use File::Path qw(make_path remove_tree);
+use Text::ParseWords;
 
 # Read and process arguments
-if [ "$1" = "--output" ]; then
-    USE_OUTPUT_FILE=yes
-    shift
-fi
-SRC=$1
-TEMPLATE=$2
-PAGES=$3
-EXPECTED=$4
-STDIN_TEMPLATE=$5
-if [ -z "$5" ]; then
-    STDIN_TEMPLATE="&1"
-fi
+my ($src, $template, $pages, $expected) = @ARGV;
+my @pages = shellwords($pages);
 
 # Run test
-rm -rf dest
-NANCY_CMD=(../nancy --verbose --root "$SRC" "$TEMPLATE")
-#NANCY_CMD=(perl -wMDevel::SimpleTrace ../nancy --verbose --root "$SRC" "$TEMPLATE")
-for page in $PAGES; do
-    STDOUT_ARGUMENT=""
-    NANCY_EXTRA_ARGS=()
-    if [ "$USE_OUTPUT_FILE" = "yes" ]; then
-        NANCY_EXTRA_ARGS=("--output" "dest/$page")
-    else
-        STDOUT_ARGUMENT='>dest/$page'
-    fi
-    mkdir -p "`dirname \"dest/$page\"`"
-    eval '"${NANCY_CMD[@]}"' '"${NANCY_EXTRA_ARGS[@]}"' '$page' "<$STDIN_TEMPLATE" "$STDOUT_ARGUMENT" || ( printf "Test in \`$SRC' failed to run\n" && exit 1 )
-done
-diff -Nur $EXPECTED dest || ( printf "Test in \`$SRC' produced incorrect output\n" && exit 1 )
+my $err;
+remove_tree("dest", {error => \$err});
+die "Error removing dest" if @$err;
+for my $page (@pages) {
+  my @nancy_cmd = ("../nancy", "--verbose", "--root=$src", "--output=dest/$page", $template, $page);
+  #unshift @nancy_cmd, "perl", "-wMDevel::SimpleTrace";
+  my $dir = "dest/$page";
+  make_path(dirname($dir), {error => \$err});
+  die "Error creating `$dir'" if @$err;
+  system(@nancy_cmd) == 0 or die "Test in `$src' failed to run\n";
+}
+system("diff", "-Nur", $expected, "dest") == 0 or die "Test in \`$src' produced incorrect output\n";

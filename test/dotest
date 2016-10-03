@@ -12,17 +12,24 @@ ${TEST} webpage-src \
      webpage-expected
 
 # Test with template on stdin
-${TEST} webpage-src \
+# Can only test one page, as template only supplied once!
+cat webpage-src/template.html | ${TEST} webpage-src \
      - \
-     "index.html people/index.html people/adam.html people/eve.html" \
-     webpage-expected \
-     webpage-src/template.html
+     "index.html" \
+     webpage-stdin-expected
 
-# Test with --output
-${TEST} --output webpage-src \
-     template.html \
-     "index.html people/index.html people/adam.html people/eve.html" \
-     webpage-expected
+# Test with output on stdout
+# Can't use nancy-test, so do it manually
+rm -rf dest &&
+     mkdir dest &&
+     ../nancy --verbose --root=webpage-src --output=- template.html index.html > dest/index.html &&
+     diff -Nur webpage-stdout-expected/index.html dest/index.html
+
+# Test with output on stdout, with no --output argument
+rm -rf dest &&
+     mkdir dest &&
+     ../nancy --verbose --root=webpage-src template.html index.html > dest/index.html &&
+     diff -Nur webpage-stdout-expected/index.html dest/index.html
 
 # Test nested macro invocations
 ${TEST} nested-macro-src \
@@ -61,7 +68,7 @@ ${TEST} . \
 # Ensure that macros aren't expanded in Nancy's argument macros
 ${TEST} . \
      path.txt \
-     '$path.txt' \
+     '\$path.txt' \
      dollar-path-expected
 
 # Test that $paste doesn't expand macros
@@ -69,3 +76,9 @@ ${TEST} paste-src \
      paste.txt \
      paste \
      paste-expected
+
+# Cookbook web site example
+${TEST} cookbook-example-website-src \
+     template.html \
+     "$(find cookbook-example-website-src/ ! -path cookbook-example-website-src/ -type d -name "*.html" -printf "\"%P\" ")" \
+     cookbook-example-website-expected

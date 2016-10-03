@@ -10,6 +10,9 @@ nancy: perl/Macro.pm nancy.in Makefile
 	sed -e "s/use RRT::Macro 3.13;/RRT::Macro->import('expand');/" -i $@
 	chmod +x $@
 
+Cookbook.md: Cookbook.md.in nancy
+	./nancy --output $@ $< $@
+
 check: nancy
 	cd test && ./dotest
 
@@ -33,3 +36,11 @@ release: dist
 		package="nancy" \
 		version=$(VERSION) \
 		dist_type="zip"
+
+website-example: check
+	cd test && \
+	rm -rf dest && \
+	mkdir dest && \
+	cp -a cookbook-example-website-assets/* cookbook-example-website-expected/* dest/ && \
+	cd dest && \
+	python3 -m http.server

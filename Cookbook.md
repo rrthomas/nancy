@@ -6,7 +6,6 @@ document shows examples of its use.
 ## Generating a web site <a name="website-example"></a>
 [FIXME]: # (Add example use of an executable fragment (date))
 [FIXME]: # (Add an example about uniquely numbered invoices)
-[FIXME]: # (The web page examples are unclear; really ought to be actual web pages with some sort of structure diagrams automatically generated)
 
 Suppose a web site has the following page design, from top to bottom: logo,
 navigation menu, breadcrumb trail, page body.
@@ -18,82 +17,106 @@ page, which is the default `index.html`.
 Suppose further that the web site has the following structure, where each
 line corresponds to a page:
 
+    ├── people
+    │   ├── hilary_pilary
+    │   └── jo_bloggs
+    ├── places
+    │   ├── timbuktu
+    │   └── vladivostok
+    └── Home page
+
 * Home page
 * People
     * Jo Bloggs
     * Hilary Pilary
-    * \dots
 * Places
     * Vladivostok
     * Timbuktu
-    * \dots
 
 The basic page template looks something like this:
 
+    <!DOCTYPE html>
     <html>
-      <link href="style.css" rel="stylesheet" type="text/css">
-      <title>$include{title}</title>
+      <head>
+        <link rel="stylesheet" type="text/css" href="/style.css">
+        <title>$include{title.txt}</title>
+      </head>
       <body>
-        <div class="logo">$include{logo.html}</div>
-        <div class="menu">$include{menu.html}</div>
-        <div class="breadcrumb">$include{breadcrumb.html}</div>
-        <div class="main">$include{main.html}</div>
+        <div class="wrapper">
+          <div class="logo">$include{logo.html}</div>
+          <div class="breadcrumb"><div class="breadcrumb-content">$include{breadcrumb.html}</div></div>
+        </div>
+        <div class="wrapper">
+          <div class="menu">$include{menu.html}</div>
+          <div class="main">$include{main.html}</div>
+        </div>
       </body>
     </html>
 
 Making the menu an included file is not strictly necessary, but makes the
 template easier to read. The pages will be laid out as follows:
 
-* `/`
-    * `index.html`
-    * `people/`
-        * `index.html`
-        * `jo_bloggs.html`
-        * `hilary_pilary.html`
-    * `places/`
-        * `index.html`
-        * `vladivostok.html`
-        * `timbuktu.html`
+    ├── people
+    │   ├── hilary_pilary.html
+    │   ├── index.html
+    │   └── jo_bloggs.html
+    ├── places
+    │   ├── index.html
+    │   ├── timbuktu.html
+    │   └── vladivostok.html
+    └── index.html
 
 The corresponding source files will be laid out as follows. This may look a
 little confusing at first, but note the similarity to the HTML pages, and
 hold on for the explanation!
 
-* `source/`
-    * `template.html` (the template shown above)
-    * `menu.html`
-    * `logo.html`
-    * `breadcrumb.html`
-    * `index.html/`
-        * `main.html`
-        * `logo.html`
-    * `people/`
-        * `breadcrumb.html`
-        * `index.html/`
-            * `main.html`
-        * `jo_bloggs.html/`
-            * `main.html`
-        * `hilary_pilary.html/`
-            * `main.html`
-    * `places/`
-        * `breadcrumb.html`
-        * `index.html/`
-            * `main.html`
-        * `vladivostok.html/`
-            * `main.html`
-        * `timbuktu.html/`
-            * `main.html`
+    ├── index.html
+    │   ├── logo.html
+    │   ├── main.html
+    │   └── title.txt
+    ├── People
+    │   ├── Hilary Pilary.html
+    │   │   ├── breadcrumb.html
+    │   │   ├── main.html
+    │   │   └── title.txt
+    │   ├── index.html
+    │   │   ├── main.html
+    │   │   └── title.txt
+    │   ├── Jo Bloggs.html
+    │   │   ├── breadcrumb.html
+    │   │   ├── main.html
+    │   │   └── title.txt
+    │   └── breadcrumb.html
+    ├── Places
+    │   ├── index.html
+    │   │   ├── main.html
+    │   │   └── title.txt
+    │   ├── Timbuktu.html
+    │   │   ├── breadcrumb.html
+    │   │   ├── main.html
+    │   │   └── title.txt
+    │   ├── Vladivostok.html
+    │   │   ├── breadcrumb.html
+    │   │   ├── main.html
+    │   │   └── title.txt
+    │   └── breadcrumb.html
+    ├── breadcrumb.html
+    ├── logo.html
+    ├── menu.html
+    └── template.html
 
 Note that there is only one menu fragment (the main menu is the same for
 every page), while each section has its own breadcrumb trail
 (`breadcrumb.html`), and each page has its own content
 (`main.html`).
 
-Now consider how Nancy builds the page whose URL is `vladivostok.html`.
-According to the rules given in the [Operation](README.md#operation) section
-of the manual, Nancy will look first for files in
-`source/places/vladivostok.html`, then in `source/places`, and finally in
-`source`. Hence, the actual list of files used to assemble the page is:
+Now consider how Nancy builds the page whose URL is
+`places/vladivostok.html`. Assume the source files are in the directory
+`source`. According to the rules given in
+the [Operation](README.md#operation) section of the manual, Nancy will look
+first for files in `source/places/vladivostok.html`, then in
+`source/places`, and finally in `source`. Hence, the actual list of files
+used to assemble the page is:
 
 * `source/template.html`
 * `source/logo.html`
