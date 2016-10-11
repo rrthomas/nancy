@@ -115,5 +115,5 @@ my %macros;
 
 # Build path
 my $fh = \*STDOUT;
-open($fh, ">", $output_file) if defined($output_file);
+open($fh, ">", $output_file) if defined($output_file) && $output_file ne "-";
 print $fh expand("\$include{$template}", \%macros);
