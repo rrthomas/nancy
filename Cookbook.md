@@ -4,11 +4,9 @@ See the [README](README.md) for installation and usage. The rest of this
 document shows examples of its use.
 
 ## Generating a web site <a name="website-example"></a>
-[FIXME]: # (Add example use of an executable fragment (date))
-[FIXME]: # (Add an example about uniquely numbered invoices)
 
-Suppose a web site has the following page design, from top to bottom: logo,
-navigation menu, breadcrumb trail, page body.
+[FIXME]: # (Use a diagram below)
+Suppose a web site has the following page design, from top to bottom: logo, breadcrumb trail, navigation menu, page body.
 
 Most of the elements are the same on each page, but the breadcrumb trail has
 to show the canonical path to each page, and the logo is bigger on the home
@@ -17,12 +15,12 @@ page, which is the default `index.html`.
 Suppose further that the web site has the following structure, where each
 line corresponds to a page:
 
-    ├── people
-    │   ├── hilary_pilary
-    │   └── jo_bloggs
-    ├── places
-    │   ├── timbuktu
-    │   └── vladivostok
+    ├── People
+    │   ├── Hilary Pilary
+    │   └── Jo Bloggs
+    ├── Places
+    │   ├── Timbuktu
+    │   └── Vladivostok
     └── Home page
 
 * Home page
@@ -56,14 +54,14 @@ The basic page template looks something like this:
 Making the menu an included file is not strictly necessary, but makes the
 template easier to read. The pages will be laid out as follows:
 
-    ├── people
-    │   ├── hilary_pilary.html
+    ├── People
+    │   ├── Hilary Pilary.html
     │   ├── index.html
-    │   └── jo_bloggs.html
-    ├── places
+    │   └── Jo Bloggs.html
+    ├── Places
     │   ├── index.html
-    │   ├── timbuktu.html
-    │   └── vladivostok.html
+    │   ├── Timbuktu.html
+    │   └── Vladivostok.html
     └── index.html
 
 The corresponding source files will be laid out as follows. This may look a
@@ -118,10 +116,11 @@ first for files in `source/places/vladivostok.html`, then in
 `source/places`, and finally in `source`. Hence, the actual list of files
 used to assemble the page is:
 
+[FIXME]: # (Generate this list)
 * `source/template.html`
 * `source/logo.html`
-* `source/menu.html`
 * `source/places/breadcrumb.html`
+* `source/menu.html`
 * `source/places/vladivostok.html/main.html`
 
 For the site’s index page, the file `index.html/logo.html` will be used
@@ -131,3 +130,32 @@ for the logo fragment, which can refer to the larger graphic desired.
 
 This scheme, though simple, is surprisingly flexible; this simple example
 has covered all the standard techniques for Nancy’s use.
+
+## Adding a date to a template using a program
+
+Given a simple page template, a timestamp can be added by using the `date` command with `$``paste`:
+
+    # Title
+    
+    Page contents.
+    
+    --
+    
+    Last updated: $paste{date,+%Y-%m-%d}
+
+This gives a result looking something like:
+
+    # Title
+    
+    Page contents.
+    
+    --
+    
+    Last updated: 2016-10-12
+
+## Adding code examples to Markdown
+[FIXME]: # (Explain the techniques)
+
+Look at the [source](Cookbook.md.in) for the Cookbook to see how Nancy is used to include example source code, and the output of other commands, such as directory listings.
+
+[FIXME]: # (Add an example about uniquely numbered invoices)

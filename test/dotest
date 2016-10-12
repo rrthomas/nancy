@@ -60,10 +60,10 @@ ${TEST} . \
      true-expected
 
 # Executable test with in-tree executable
-${TEST} . \
-     true-nancy.txt \
-     true \
-     true-expected
+${TEST} page-template-with-date-src \
+     Page.md \
+     Page.md \
+     page-template-with-date-expected
 
 # Ensure that macros aren't expanded in Nancy's argument macros
 ${TEST} . \
