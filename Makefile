@@ -7,7 +7,7 @@ nancy: perl/Macro.pm nancy.in Makefile
 	echo '#!/usr/bin/perl' > $@
 	cat perl/Macro.pm >> $@
 	cat nancy.in >> $@
-	sed -e "s/use RRT::Macro 3.13;/RRT::Macro->import('expand');/" -i $@
+	sed -e "s/use RRT::Macro 3...;/RRT::Macro->import('expand');/" -i $@
 	chmod +x $@
 
 Cookbook.md: Cookbook.md.in nancy
