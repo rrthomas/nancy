@@ -18,14 +18,6 @@ line corresponds to a page:
 $paste{sh,-c,build-aux/dirtree test/cookbook-example-website-expected | build-aux/indent-preformatted | sed -e 's/\.html//g' | grep -v index}
     └── Home page
 
-* Home page
-* People
-    * Jo Bloggs
-    * Hilary Pilary
-* Places
-    * Vladivostok
-    * Timbuktu
-
 The basic page template looks something like this:
 
 $paste{sh,-c,build-aux/indent-preformatted < test/cookbook-example-website-src/template.html}
