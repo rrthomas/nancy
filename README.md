@@ -34,7 +34,7 @@ Nancy is written in Perl, and requires version 5.10 or later, and the
 `File::Slurp` and `File::Which` modules, which can be installed with the
 following commands, assuming you have Perl:
 
-    cpan File::Slurp cpan File::Which
+    cpan File::Slurp File::Which
 
 (Many GNU/Linux systems package these modules natively.)
 
