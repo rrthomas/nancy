@@ -10,6 +10,16 @@ nancy: perl/Macro.pm nancy.in Makefile
 	sed -e "s/use RRT::Macro 3...;/RRT::Macro->import('expand');/" -i $@
 	chmod +x $@
 
+%.md-html: %.md
+	markdown $< > $@
+
+%.html: %.md-html nancy
+	./nancy build-aux/markdown-html-template.html $< > $@
+
+# Try to be helpful if user did not git clone correctly
+perl/Macro.pm:
+	@test -d .git && ( test -d perl || ( echo "Cannot find perl modules: did you git clone --recursive?"; exit 1 ) )
+
 Cookbook.md: Cookbook.md.in nancy
 	./nancy --output $@ $< $@
 
