@@ -16,7 +16,7 @@ Cookbook.md: Cookbook.md.in nancy
 check: nancy
 	cd test && ./dotest
 
-DIST_FILES = nancy README.md logo/nancy-small.png Cookbook.md
+DIST_FILES = nancy README.md logo/nancy-small.png Cookbook.md Cookbook.md.in
 
 dist: check
 	rm -f nancy-$(VERSION)
