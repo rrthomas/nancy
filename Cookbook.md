@@ -23,14 +23,6 @@ line corresponds to a page:
     │   └── Vladivostok
     └── Home page
 
-* Home page
-* People
-    * Jo Bloggs
-    * Hilary Pilary
-* Places
-    * Vladivostok
-    * Timbuktu
-
 The basic page template looks something like this:
 
     <!DOCTYPE html>
