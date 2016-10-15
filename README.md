@@ -78,8 +78,14 @@ Nancy builds a path given a template as follows:
    `$include` behave better in various contexts.)
 
 A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`. To prevent
-comma from being interpreted as an argument separator, put a backslash in
-front of it.
+a comma from being interpreted as an argument separator, put a backslash in
+front of it:
+
+    $include{cat,I\,Robot.txt,3 Rules of Robotics.txt}
+
+Similarly, a command can be treated as literal text by putting a backslash in front of it:
+
+    Now I can talk about \$paste.
 
 Nancy recognises these commands:
 

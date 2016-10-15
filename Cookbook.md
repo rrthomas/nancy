@@ -125,7 +125,7 @@ has covered all the standard techniques for Nancy’s use.
 
 ## Adding a date to a template using a program
 
-Given a simple page template, a timestamp can be added by using the `date` command with `$``paste`:
+Given a simple page template, a timestamp can be added by using the `date` command with `$paste`:
 
     # Title
     
