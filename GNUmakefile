@@ -2,7 +2,7 @@
 
 VERSION=`git describe --tags`
 
-nancy: perl/Macro.pm nancy.in Makefile
+nancy: perl/Macro.pm nancy.in GNUmakefile
 	rm -f $@
 	echo '#!/usr/bin/perl' > $@
 	cat perl/Macro.pm >> $@
