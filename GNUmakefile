@@ -2,6 +2,8 @@
 
 VERSION=`git describe --tags`
 
+all: nancy Cookbook.md
+
 nancy: perl/Macro.pm nancy.in GNUmakefile
 	rm -f $@
 	echo '#!/usr/bin/perl' > $@
