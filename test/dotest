@@ -8,15 +8,15 @@ TEST=./nancy-test
 # One-tree test
 ${TEST} webpage-src \
      template.html \
-     "index.html people/index.html people/adam.html people/eve.html" \
-     webpage-expected
+     webpage-expected \
+     "index.html people/index.html people/adam.html people/eve.html"
 
 # Test with template on stdin
 # Can only test one page, as template only supplied once!
 cat webpage-src/template.html | ${TEST} webpage-src \
      - \
-     "index.html" \
-     webpage-stdin-expected
+     webpage-stdin-expected \
+     "index.html"
 
 # Test with output on stdout
 # Can't use nancy-test, so do it manually
@@ -34,8 +34,8 @@ rm -rf dest &&
 # Test nested macro invocations
 ${TEST} nested-macro-src \
      template.txt \
-     nested.txt \
-     nested-macro-expected
+     nested-macro-expected \
+     nested.txt
 
 # Two-tree test
 rm -rf src-merged
@@ -43,42 +43,41 @@ mkdir src-merged
 ./mergetrees mergetrees-src:webpage-src src-merged
 ${TEST} src-merged \
      template.html \
-     "index.html animals/index.html animals/adam.html animals/eve.html" \
-     mergetrees-expected
+     mergetrees-expected \
+     "index.html animals/index.html animals/adam.html animals/eve.html"
 
 # Failing executable test
 ( ${TEST} . \
      false.txt \
-     dummy \
-     false-expected && \
+     false-expected \
+     dummy && \
     printf "Test succeeded unexpectedly" ) || echo "The above test failed as intended!"
 
 # Passing executable test
 ${TEST} . \
      true.txt \
-     true \
-     true-expected
+     true-expected \
+     true
 
 # Executable test with in-tree executable
 ${TEST} page-template-with-date-src \
      Page.md \
-     Page.md \
-     page-template-with-date-expected
+     page-template-with-date-expected \
+     Page.md
 
 # Ensure that macros aren't expanded in Nancy's argument macros
 ${TEST} . \
      path.txt \
-     '\$path.txt' \
-     dollar-path-expected
+     dollar-path-expected \
+     '\$path.txt'
 
 # Test that $paste doesn't expand macros
 ${TEST} paste-src \
      paste.txt \
-     paste \
-     paste-expected
+     paste-expected \
+     paste
 
 # Cookbook web site example
 ${TEST} cookbook-example-website-src \
      template.html \
-     "$(find cookbook-example-website-src/ ! -path cookbook-example-website-src/ -type d -name "*.html" -printf "\"%P\" ")" \
      cookbook-example-website-expected

@@ -71,6 +71,15 @@ above it in the source tree.
 This scheme, though simple, is surprisingly flexible; this simple example
 has covered all the standard techniques for Nancy’s use.
 
+### Building the site
+
+The site is built by running Nancy on each page; see
+[test/build-tree](test/build-tree) and
+[test/build-things](test/build-things) for ways to do this. After building
+the pages, static assets are copied into the built site.
+
+[FIXME]: # (Explain how to serve the web site dynamically.)
+
 ## Adding a date to a template using a program
 
 Given a simple page template, a timestamp can be added by using the `date`

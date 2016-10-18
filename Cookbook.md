@@ -6,7 +6,8 @@ document shows examples of its use.
 ## Generating a web site <a name="website-example"></a>
 
 [FIXME]: # (Use a diagram below)
-Suppose a web site has the following page design, from top to bottom: logo, breadcrumb trail, navigation menu, page body.
+Suppose a web site has the following page design, from top to bottom: logo,
+breadcrumb trail, navigation menu, page body.
 
 Most of the elements are the same on each page, but the breadcrumb trail has
 to show the canonical path to each page, and the logo is bigger on the home
@@ -28,7 +29,7 @@ The basic page template looks something like this:
     <!DOCTYPE html>
     <html>
       <head>
-        <link rel="stylesheet" type="text/css" href="/style.css">
+        <link rel="stylesheet" type="text/css" href="$paste{path-to-root.sh,$path}/style.css">
         <title>$include{title.txt}</title>
       </head>
       <body>
@@ -93,6 +94,7 @@ hold on for the explanation!
     ├── breadcrumb.html
     ├── logo.html
     ├── menu.html
+    ├── path-to-root.sh
     └── template.html
 
 Note that there is only one menu fragment (the main menu is the same for
@@ -102,8 +104,8 @@ every page), while each section has its own breadcrumb trail
 
 Now consider how Nancy builds the page whose URL is
 `places/vladivostok.html`. Assume the source files are in the directory
-`source`. According to the rules given in
-the [Operation](README.md#operation) section of the manual, Nancy will look
+`source`. According to the rules given in the
+[Operation](README.md#operation) section of the manual, Nancy will look
 first for files in `source/places/vladivostok.html`, then in
 `source/places`, and finally in `source`. Hence, the actual list of files
 used to assemble the page is:
@@ -118,14 +120,33 @@ used to assemble the page is:
 For the site’s index page, the file `index.html/logo.html` will be used
 for the logo fragment, which can refer to the larger graphic desired.
 
-[FIXME]: # (Explain how to build the web site statically, or serve it dynamically.)
+The `breadcrumb.html` fragments, except for the top-level one, contain the
+command
+
+    $include{breadcrumb.html}
+    
+This makes Nancy start at the next directory up from the fragment. So for
+example, when expanding `source/places/breadcrumb.html`, it starts looking
+at `source/breadcrumb.html`. This means that the breadcrumb trail can be
+defined recursively: each `breadcrumb.html` fragment includes all those
+above it in the source tree.
 
 This scheme, though simple, is surprisingly flexible; this simple example
 has covered all the standard techniques for Nancy’s use.
 
+### Building the site
+
+The site is built by running Nancy on each page; see
+[test/build-tree](test/build-tree) and
+[test/build-things](test/build-things) for ways to do this. After building
+the pages, static assets are copied into the built site.
+
+[FIXME]: # (Explain how to serve the web site dynamically.)
+
 ## Adding a date to a template using a program
 
-Given a simple page template, a timestamp can be added by using the `date` command with `$paste`:
+Given a simple page template, a timestamp can be added by using the `date`
+command with `$paste`:
 
     # Title
     
@@ -148,6 +169,8 @@ This gives a result looking something like:
 ## Adding code examples to Markdown
 [FIXME]: # (Explain the techniques)
 
-Look at the [source](Cookbook.md.in) for the Cookbook to see how Nancy is used to include example source code, and the output of other commands, such as directory listings.
+Look at the [source](Cookbook.md.in) for the Cookbook to see how Nancy is
+used to include example source code, and the output of other commands, such
+as directory listings.
 
 [FIXME]: # (Add an example about uniquely numbered invoices)

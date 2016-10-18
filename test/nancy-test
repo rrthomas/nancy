@@ -5,24 +5,17 @@ use 5.10.0;
 use strict;
 use warnings;
 
-use File::Basename;
-use File::Path qw(make_path remove_tree);
-use Text::ParseWords;
+use File::Path qw(remove_tree);
 
 # Read and process arguments
-my ($src, $template, $pages, $expected) = @ARGV;
-my @pages = shellwords($pages);
+my ($src, $template, $expected, $pages) = @ARGV;
 
 # Run test
 my $err;
 remove_tree("dest", {error => \$err});
 die "Error removing dest" if @$err;
-for my $page (@pages) {
-  my @nancy_cmd = ("../nancy", "--verbose", "--root=$src", "--output=dest/$page", $template, $page);
-  #unshift @nancy_cmd, "perl", "-wMDevel::SimpleTrace";
-  my $dir = "dest/$page";
-  make_path(dirname($dir), {error => \$err});
-  die "Error creating `$dir'" if @$err;
-  system(@nancy_cmd) == 0 or die "Test in `$src' failed to run\n";
-}
+my @cmd;
+@cmd = defined($pages) ? ("./build-things", $src, $template, $pages)
+  : ("./build-tree", $src, $template, "dest");
+system(@cmd) == 0 or die "Test in `$src' failed to run\n";
 system("diff", "-Nur", $expected, "dest") == 0 or die "Test in \`$src' produced incorrect output\n";
