@@ -47,10 +47,8 @@ release: dist
 		version=$(VERSION) \
 		dist_type="zip"
 
-website-example: check
+website-example:
 	cd test && \
-	rm -rf dest && \
-	mkdir dest && \
-	cp -a cookbook-example-website-assets/* cookbook-example-website-expected/* dest/ && \
-	cd dest && \
-	python3 -m http.server
+	mkdir website-example && \
+	cp -a cookbook-example-website-assets/* cookbook-example-website-expected/* website-example/ && \
+	xdg-open file://`pwd`/website-example/index.html
