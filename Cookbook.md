@@ -143,7 +143,7 @@ the pages, static assets are copied into the built site.
 
 [FIXME]: # (Explain how to serve the web site dynamically.)
 
-## Adding a date to a template using a program
+## Adding a date to a template using a program <a name="date-example"></a>
 
 Given a simple page template, a timestamp can be added by using the `date`
 command with `$paste`:

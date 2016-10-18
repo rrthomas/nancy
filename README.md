@@ -121,7 +121,9 @@ order:
 3. `/dir/foo/file.html`
 4. `/dir/file.html`
 
-There is one exception to this rule: if the file being searched for has the same name as the file currently being expanded, then the search starts at the next directory up. This avoids an endless loop, and can also be useful.
+There is one exception to this rule: if the file being searched for has the
+same name as the file currently being expanded, then the search starts at
+the next directory up. This avoids an endless loop, and can also be useful.
 
 See the [website example](Cookbook.md#website-example) in the Cookbook for a
 worked example.
@@ -153,7 +155,8 @@ For example, to insert the current date:
 
     $paste{date,+%Y-%m-%d}
 
-[FIXME]: # (Insert cross-ref to date example here)
+See the [date example](Cookbook.md#date-example) in the Cookbook for more
+detail.
 
 When commands that run programs are nested inside each other, the order in
 which they are run may matter. Nancy only guarantees that if one command is
