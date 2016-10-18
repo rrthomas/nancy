@@ -56,6 +56,12 @@ used to assemble the page is:
 For the site’s index page, the file `index.html/logo.html` will be used
 for the logo fragment, which can refer to the larger graphic desired.
 
+The `breadcrumb.html` fragments, except for the top-level one, contain the command
+
+    \$include{breadcrumb.html}
+    
+This makes Nancy start at the next directory up from the fragment. So for example, when expanding `source/places/breadcrumb.html`, it starts looking at `source/breadcrumb.html`. This means that the breadcrumb trail can be defined recursively: each `breadcrumb.html` fragment includes all those above it in the source tree.
+
 [FIXME]: # (Explain how to build the web site statically, or serve it dynamically.)
 
 This scheme, though simple, is surprisingly flexible; this simple example

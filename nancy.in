@@ -65,7 +65,7 @@ sub Die {
 # name and contents; if not, die.
 sub find_on_path {
   my ($path, $file, $root) = @_;
-  my @file = (split "/", $file);
+  my @file = splitdir($file);
   my @search = @{$path};
   while ($file[0] eq "..") {
     shift @file;
@@ -83,12 +83,18 @@ sub find_on_path {
 }
 
 # Get a file or program output to include or paste
-sub get_include {
+our $file;
+sub get_file {
+  my $start_path = \@path;
+  my $processor = shift;
   my $leaf = shift;
-  my ($file, $reader);
+  $start_path = [splitdir(dirname(dirname($file =~ s|^$root/||r)))]
+    if defined($file) && $leaf eq basename($file);
+  my $reader;
+  local $file;
   if ($leaf eq "-") {
     $reader = \*STDIN;
-  } elsif ($file = find_on_path(\@path, $leaf, $root) || which($leaf)) {
+  } elsif ($file = find_on_path($start_path, $leaf, $root) || which($leaf)) {
     if (-x $file) {
       open($reader, "-|", $file, @_) or Die("error starting `$file'");
     } else {
@@ -100,7 +106,7 @@ sub get_include {
   binmode($reader);
   chomp(my $output = scalar(slurp($reader)));
   close($reader) or Die("error reading `$file'");
-  return $output;
+  return &{$processor}($output);
 }
 
 # Set up macros
@@ -109,8 +115,8 @@ my %macros;
   path => sub { $path; },
   root => sub { $root; },
   template => sub { $template; },
-  include => sub { expand(get_include(@_), \%macros); },
-  paste => sub { get_include(@_); },
+  include => sub { get_file(sub { return expand($_[0], \%macros); }, @_); },
+  paste => sub { get_file(sub { return $_[0]; }, @_); },
 );
 
 # Build path

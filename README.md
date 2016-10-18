@@ -121,6 +121,8 @@ order:
 3. `/dir/foo/file.html`
 4. `/dir/file.html`
 
+There is one exception to this rule: if the file being searched for has the same name as the file currently being expanded, then the search starts at the next directory up. This avoids an endless loop, and can also be useful.
+
 See the [website example](Cookbook.md#website-example) in the Cookbook for a
 worked example.
 
