@@ -28,14 +28,10 @@ Cookbook.md: Cookbook.md.in nancy
 check: nancy
 	cd test && ./dotest
 
-DIST_FILES = nancy README.md logo/nancy-small.png Cookbook.md Cookbook.md.in
-
-dist: check
-	rm -f nancy-$(VERSION)
+dist: all check
+	rm -f nancy-*.zip
 	ln -s . nancy-$(VERSION)
-	for i in $(DIST_FILES); do \
-		zip nancy-$(VERSION).zip "nancy-$(VERSION)/$$i"; \
-	done
+	zip -r nancy-$(VERSION).zip nancy-$(VERSION) --exclude=\*/nancy-$(VERSION)\* --exclude=\*/.\* --exclude=\*/setup-git-config
 	rm -f nancy-$(VERSION)
 
 release: dist
