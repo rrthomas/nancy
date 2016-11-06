@@ -23,9 +23,9 @@ check: nancy
 	cd test && ./dotest
 
 dist: all check
-	rm -f nancy-*.zip
+	rm -f nancy-*.zip nancy-$(VERSION)
 	ln -s . nancy-$(VERSION)
-	zip -r nancy-$(VERSION).zip nancy-$(VERSION) --exclude=\*/nancy-$(VERSION)\* --exclude=\*/.\* --exclude=\*/setup-git-config
+	zip -r nancy-$(VERSION).zip nancy-$(VERSION)/* --symlinks --exclude=nancy-$(VERSION)/nancy-$(VERSION) --exclude=\*/.\* --exclude=\*/setup-git-config
 	rm -f nancy-$(VERSION)
 
 release: dist
