@@ -83,9 +83,17 @@ front of it:
 
     $include{cat,I\,Robot.txt,3 Rules of Robotics.txt}
 
+This will run the command as if it had been typed:
+
+    cat "I, Robot.txt" "3 Rules of Robotics.txt"
+
 Similarly, a command can be treated as literal text by putting a backslash in front of it:
 
     Now I can talk about \$paste.
+
+This will output:
+
+    Now I can talk about $paste.
 
 Nancy recognises these commands:
 
