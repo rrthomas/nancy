@@ -1,0 +1,7 @@
+Look at Leo @clean
+
+Add support for patches with diff. This is an alternative to Nancy syntax for files that can't be edited, and must be used as pristine sources.
+
+Want to use this for "Recalled Home", but that has the files in the wrong structure: the poetry archive is a submodule (hence subdirectory). To fix this, generalize nancy so the path argument is a list of directories which are searched in order, and --root is removed.
+
+Then have a separate utility that takes the old PATH argument and --root option, and outputs suitable arguments for new nancy.
