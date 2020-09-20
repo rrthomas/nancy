@@ -3,7 +3,7 @@ package main;
 
 my $version = <<'END';
 nancy @Version@
-(c) 2002-2016 Reuben Thomas <rrt@sc3d.org>
+(c) 2002-2020 Reuben Thomas <rrt@sc3d.org>
 https://github.com/rrthomas/nancy/
 Distributed under the GNU General Public License version 3, or (at
 your option) any later version. There is no warranty.
