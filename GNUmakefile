@@ -23,6 +23,7 @@ check: nancy
 	cd test && ./dotest
 
 dist: all check
+	rm -f nancy.in && git checkout nancy.in && $(MAKE) nancy # Get correct version number in nancy.in
 	rm -f nancy-*.zip nancy-$(VERSION)
 	ln -s . nancy-$(VERSION)
 	zip -r nancy-$(VERSION).zip nancy-$(VERSION)/* --symlinks --exclude=nancy-$(VERSION)/nancy-$(VERSION) --exclude=\*/.\* --exclude=\*/setup-git-config
@@ -31,7 +32,6 @@ dist: all check
 release: dist
 	echo $(VERSION) | grep -v -e - || ( echo "Current version $(VERSION) is not a release version"; exit 1 )
 	git diff --exit-code && \
-	rm -f nancy.in && git checkout nancy.in && $(MAKE) nancy # Get correct version number in nancy.in
 	woger github \
 		github_user="rrthomas" \
 		github_dist_type="universal-runnable" \
