@@ -2,7 +2,7 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-© 2002–2016 Reuben Thomas <rrt@sc3d.org>  
+© 2002–2020 Reuben Thomas <rrt@sc3d.org>  
 <https://github.com/rrthomas/nancy>
 
 Nancy is a simple macro processor that fills in a template from other files
