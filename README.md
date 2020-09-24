@@ -30,9 +30,8 @@ report them on the project’s web page (see above for addresses).
 Download the latest release from
 ​<https://github.com/rrthomas/nancy/releases>.
 
-Nancy is written in Perl, and requires version 5.10 or later, and the
-`File::Slurp` and `File::Which` modules, which can be installed with the
-following commands, assuming you have Perl:
+Nancy requires Perl version 5.10 or later, and the `File::Slurp` and
+`File::Which` modules, which can be installed with the following command:
 
     cpan File::Slurp File::Which
 
