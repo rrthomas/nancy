@@ -33,7 +33,10 @@ my $opts = GetOptions(
   "version" => \$version_flag,
   "help" => \$help_flag,
  );
-die $version if $version_flag;
+if ($version_flag) {
+  print STDERR $version;
+  exit 0;
+}
 # FIXME: Allow syntax to be redefined (see FIXME in Macro.pm)
 die <<END if !$opts || $#ARGV != 1;
 Usage: $prog [OPTION...] TEMPLATE PATH
