@@ -151,7 +151,7 @@ Nancy can run a program in two ways:
    section, Nancy looks for an executable file on the user’s `PATH` (the
    list of directories specified by the `PATH` environment variable), as if
    with the `which` command. If one is found, it is run. (This possibility
-   was not mentioned in the example above, but it is not very likely that
+   is not mentioned in the Cookbook, but it is not very likely that
    Nancy will find a file called `file.html` somewhere on the user’s `PATH`,
    since executables don’t normally end in `.html`.)
 
