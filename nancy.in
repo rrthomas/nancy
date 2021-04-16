@@ -104,7 +104,7 @@ sub get_file {
       open($reader, $file) or Die("cannot open `$file'");
     }
   } else {
-    Die("cannot find `$leaf' while building `" . catfile(@path) . "'");
+    Die("cannot find `$leaf' while building `$path'");
   }
   binmode($reader);
   chomp(my $output = scalar(slurp($reader)));
