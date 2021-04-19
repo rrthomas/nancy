@@ -40,7 +40,7 @@ my $sources = scanDir($srcRoot);
 foreach my $dir (sort keys %{$sources}) {
   my $dest = catfile($destRoot, $dir);
   if ($sources->{$dir} eq "leaf") { # Process a leaf directory into a page
-    my @nancy_cmd = ("../nancy", "--verbose", "--root=$srcRoot", "--output=$destRoot/$dir", $template, $dir);
+    my @nancy_cmd = ($ENV{NANCY}, "--verbose", "--root=$srcRoot", "--output=$destRoot/$dir", $template, $dir);
     #unshift @nancy_cmd, "perl", "-wMDevel::SimpleTrace";
     system(@nancy_cmd) == 0 or die "Problem building `$dir'\n";
   } else { # Make a non-leaf directory
