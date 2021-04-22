@@ -21,7 +21,7 @@ sub scanDir {
     wanted => sub {
       return if !-d;
       my $pattern = "$root(?:" . catfile("", "") . ")?";
-      my $name = $_ =~ s/$pattern//r;
+      my $name = $_ =~ s/^$pattern//r;
       $list{$name} = "leaf" if !defined($list{$name});
       my $parent = dirname($name);
       $parent = "" if $parent eq ".";
