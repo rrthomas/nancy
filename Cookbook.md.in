@@ -73,9 +73,7 @@ has covered all the standard techniques for Nancy’s use.
 
 ### Building the site
 
-The site is built by running Nancy on each page; see
-[test/build-tree](test/build-tree) and
-[test/build-things](test/build-things) for ways to do this. After building
+The site is built by running Nancy on each page. After building
 the pages, static assets are copied into the built site.
 
 [FIXME]: # (Explain how to serve the web site dynamically.)

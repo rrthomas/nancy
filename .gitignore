@@ -1,3 +1,8 @@
-/*.html
-/nancy
-/nancy*.zip
+*-debug.log
+*-error.log
+/.nyc_output
+/dist
+/lib
+/tmp
+/package-lock.json
+node_modules
