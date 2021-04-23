@@ -2,7 +2,7 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-© 2002–2020 Reuben Thomas <rrt@sc3d.org>  
+© 2002–2021 Reuben Thomas <rrt@sc3d.org>  
 <https://github.com/rrthomas/nancy>
 
 Nancy is a simple macro processor that fills in a template from other files
@@ -18,7 +18,7 @@ used for all sorts of other tasks, similar to more complicated systems like
 [TXR]: http://www.nongnu.org/txr
 
 Nancy is free software, licensed under the GNU GPL version 3 (or, at your
-option, any later version), and written in Perl.
+option, any later version), and written in TypeScript.
 
 See the [Cookbook](Cookbook.md) for instructions and examples.
 
@@ -30,15 +30,13 @@ report them on the project’s web page (see above for addresses).
 Download the latest release from
 ​<https://github.com/rrthomas/nancy/releases>.
 
-Nancy requires Perl version 5.10 or later, and the `File::Slurp` and
-`File::Which` modules, which can be installed with the following command:
+Nancy requires TypeScript version 3.9 or later.
 
-    cpan File::Slurp File::Which
+To install Nancy, unpack the distribution archive and run:
 
-(Many GNU/Linux systems package these modules natively.)
-
-To install Nancy, unpack the distribution archive and copy the `nancy`
-script to a directory on your path.
+```
+$ npm install -g
+```
 
 ## Invocation
 

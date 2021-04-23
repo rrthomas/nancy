@@ -1,5 +1,0 @@
-#!/bin/sh
-# Run this file to set up repository's git config for auto-versioning of scripts
-git config --local include.path '../.gitconfig'
-# Run the filters immediately
-rm -f nancy.in && git checkout nancy.in
