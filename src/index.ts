@@ -9,9 +9,6 @@ import stripFinalNewline = require('strip-final-newline')
 
 const PCRE = PCRE2.PCRE2
 
-type Macro = (...args: string[]) => string
-type Macros = { [key: string]: Macro }
-
 function isExecutable(file: string) {
   try {
     fs.accessSync(file, fs.constants.X_OK)
@@ -22,105 +19,63 @@ function isExecutable(file: string) {
 }
 
 class Expander {
-  template: string
+  constructor(
+    private template: string,
+    private path: string,
+    private root: string,
+    private verbose: boolean,
+  ) {}
 
-  path: string
-
-  root: string
-
-  file: string[] = [] // Stack of file names being considered in getFile
-
-  verbose: boolean
-
-  constructor(template: string, path: string, root: string, verbose: boolean) {
-    this.template = template
-    this.path = path
-    this.root = root
-    this.verbose = verbose
-  }
-
-  // Set up macros
-  macros: Macros = {
-    path: () => this.path,
-    root: () => this.root,
-    template: () => this.template,
-    include: (...args) => this.getFile(text => this.expand(text), args[0], args.slice(1)),
-    paste: (...args) => this.getFile(text => text, args[0], args.slice(1)),
-  }
-
-  doMacro(macro: string, arg?: string) {
-    const args = (arg || '').split(/(?<!\\),/)
-    const expandedArgs: string[] = []
-    for (const arg of args) {
-      const unescapedArg = arg.replace(/\\,/g, ',') // Remove escaping backslashes
-      expandedArgs.push(this.expand(unescapedArg))
-    }
-    if (this.macros[macro]) {
-      return this.macros[macro](...expandedArgs)
-    }
-    // If macro is not found, reconstitute the call
-    let res = `$${macro}`
-    if (arg !== null) {
-      res += `{${arg}}`
-    }
-    return res
-  }
-
-  // FIXME: Allow syntax to be redefined; e.g. use XML syntax: <[namespace:]include file="" />
-  expand(text: string) {
-    const re = new PCRE(String.raw`(?:\\)?\$(\p{L}(?:\p{L}|\p{N}|_)+)(\{((?:[^{}]++|(?2))*)})?`, 'guE')
-    return re.replace(
-      text,
-      (_match: string, name: string, _args: string, args?: string) => this.doMacro(name, args)
-    )
-  }
-
-  // Search for file starting at the given path; if found return its file
-  // name and contents; if not, die.
-  findOnPath(startPath: string, file: string, root: string) {
-    const fileArray = file.split(path.sep)
-    const search = startPath.split(path.sep)
-    while (fileArray[0] === '..') {
-      fileArray.shift()
-      search.pop()
-    }
-    for (;;) {
-      const thisSearch = search.concat(fileArray)
-      const obj = path.join(root, ...thisSearch)
-      if (fs.existsSync(obj)) {
-        if (this.verbose) {
-          console.error(`  ${obj} ${(isExecutable(obj) ? '*' : '')}`)
+  expand(file: string, text: string) {
+    // Search for file starting at the given path; if found return its file
+    // name and contents; if not, die.
+    const findOnPath = (startPath: string, file: string) => {
+      const fileArray = file.split(path.sep)
+      const search = startPath.split(path.sep)
+      while (fileArray[0] === '..') {
+        fileArray.shift()
+        search.pop()
+      }
+      for (;;) {
+        const thisSearch = search.concat(fileArray)
+        const obj = path.join(this.root, ...thisSearch)
+        if (fs.existsSync(obj)) {
+          if (this.verbose) {
+            console.error(`  ${obj} ${(isExecutable(obj) ? '*' : '')}`)
+          }
+          return obj
         }
-        return obj
+        if (search.length === 0) {
+          break
+        }
+        search.pop()
       }
-      if (search.length === 0) {
-        break
-      }
-      search.pop()
+      return null
     }
-    return null
-  }
 
-  // FIXME: de-uglify implementation of startPath
-  getFile(processor: Macro, leaf: string, args: string[]) {
-    let startPath = this.path
-    if (this.file.length > 0 && leaf === path.basename(this.file[0])) {
-      startPath = path.dirname(path.dirname(
-        this.file[0].replace(new RegExp(`^${this.root}/`), '')
-      ))
-    }
-    let output
-    let file
-    if (leaf === '-') {
-      output = fs.readFileSync(process.stdin.fd)
-      file = leaf
-    } else {
-      const fileOrExec = this.findOnPath(startPath, leaf, this.root) || which.sync(leaf, {nothrow: true})
-      if (fileOrExec === null) {
-        throw new Error(`cannot find \`${leaf}' while building \`${this.path}'`)
+    const getFile = (leaf: string) => {
+      let startPath = this.path
+      if (file !== '-' && leaf === path.basename(file)) {
+        startPath = path.dirname(path.dirname(file.replace(new RegExp(`^${this.root}/`), '')))
       }
-      file = fileOrExec
-      if (isExecutable(file)) {
+      let newfile
+      if (leaf === '-') {
+        newfile = leaf
+      } else {
+        const fileOrExec = findOnPath(startPath, leaf) || which.sync(leaf, {nothrow: true})
+        if (fileOrExec === null) {
+          throw new Error(`cannot find \`${leaf}' while building \`${path}'`)
+        }
+        newfile = fileOrExec
+      }
+      return newfile
+    }
+
+    const readFile = (file: string, args: string[]) => {
+      let output
+      if (file === '-') {
+        output = fs.readFileSync(process.stdin.fd)
+      } else if (isExecutable(file)) {
         try {
           output = execa.sync(file, args).stdout
         } catch {
@@ -133,13 +88,53 @@ class Expander {
           throw new Error(`error reading \`${file}'`)
         }
       }
+      return output.toString('utf-8')
     }
-    output = output.toString('utf-8')
 
-    this.file.unshift(file)
-    const res = stripFinalNewline(processor(output))
-    this.file.shift()
-    return res
+    // Set up macros
+    type Macro = (...args: string[]) => string
+    type Macros = { [key: string]: Macro }
+
+    const macros: Macros = {
+      path: () => this.path,
+      root: () => this.root,
+      template: () => this.template,
+      include: (...args) => {
+        const file = getFile(args[0])
+        const output = readFile(file, args.slice(1))
+        return stripFinalNewline(this.expand(file, output))
+      },
+      paste: (...args) => {
+        const file = getFile(args[0])
+        const output = readFile(file, args.slice(1))
+        return stripFinalNewline(output)
+      },
+    }
+
+    const doMacro = (macro: string, arg?: string) => {
+      const args = (arg || '').split(/(?<!\\),/)
+      const expandedArgs: string[] = []
+      for (const arg of args) {
+        const unescapedArg = arg.replace(/\\,/g, ',') // Remove escaping backslashes
+        expandedArgs.push(this.expand(file, unescapedArg))
+      }
+      if (macros[macro]) {
+        return macros[macro](...expandedArgs)
+      }
+      // If macro is not found, reconstitute the call
+      let res = `$${macro}`
+      if (arg !== null) {
+        res += `{${arg}}`
+      }
+      return res
+    }
+
+    // FIXME: Allow syntax to be redefined; e.g. use XML syntax: <[namespace:]include file="" />
+    const re = new PCRE(String.raw`(?:\\)?\$(\p{L}(?:\p{L}|\p{N}|_)+)(\{((?:[^{}]++|(?2))*)})?`, 'guE')
+    return re.replace(
+      text,
+      (_match: string, name: string, _args: string, args?: string) => doMacro(name, args)
+    )
   }
 }
 
@@ -172,9 +167,10 @@ class Nancy extends Command {
       fh = fs.createWriteStream(flags.output)
     }
 
-    const expander = new Expander(args.template, args.path, flags.root, flags.verbose)
-    const expanded = expander.expand('$include{$template}')
-    fh.write(expanded)
+    fh.write(
+      new Expander(args.template, args.path, flags.root, flags.verbose)
+        .expand('-', '$include{$template}')
+    )
   }
 }
 
