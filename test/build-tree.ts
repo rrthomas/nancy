@@ -48,7 +48,7 @@ try {
               throw new Error('Environment variable `NANCY\' not set')
             }
             try {
-              execa.sync(
+              const proc = execa.sync(
                 nancy_cmd,
                 [
                   '--verbose',
@@ -58,6 +58,9 @@ try {
                   dir,
                 ]
               )
+              // Repeat nancy's stdout & stderr so we get them in test logs
+              console.log(proc.stdout)
+              console.error(proc.stderr)
             } catch (error) {
               throw new Error(`Problem building \`${dir}': ${error}`)
             }

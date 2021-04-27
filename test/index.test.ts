@@ -3,11 +3,11 @@ import fs from 'fs'
 import {Writable} from 'stream'
 import path from 'path'
 import execa from 'execa'
+import {ExecaChildProcess} from 'execa'
 import {directory} from 'tempy'
 import dirTree = require('directory-tree')
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import cmd = require('../src')
 
 chai.use(chaiAsPromised)
 const expect = chai.expect
@@ -42,35 +42,47 @@ function dirTreeContents(filepath: string) {
   )
 }
 
-const nancy_cmd = '../bin/run'
+const nancyCmd = '../bin/run'
+
+async function pipeProc(proc: ExecaChildProcess) {
+  // Repeat stdout & stderr so we get them in test logs
+  const {stdout, stderr} = await proc
+  console.log(stdout)
+  console.error(stderr)
+}
 
 async function runNancy(args: string[], inputFile?: string) {
-  const proc = execa(nancy_cmd, args)
+  const proc = execa(nancyCmd, args)
   if (inputFile !== undefined) {
     fs.createReadStream(inputFile).pipe(proc.stdin as Writable)
   }
+
+  // Repeat nancy's stdout & stderr so we get them in test logs
+  await proc
+  pipeProc(proc)
+
   return proc
 }
 
 async function nancyTest(src: string, template: string, pages?: string[], inputFile?: string) {
   const outputDir = directory()
-  const args = [src, template, outputDir]
   if (pages === undefined) {
     const cmd = './build-tree.ts'
     try {
-      process.env.NANCY = nancy_cmd
-      const proc = execa(cmd, args)
+      process.env.NANCY = nancyCmd
+      const proc = execa(cmd, [src, template, outputDir])
       if (inputFile !== undefined) {
         fs.createReadStream(inputFile).pipe(proc.stdin as Writable)
       }
       await proc
+      pipeProc(proc)
     } catch (error) {
       throw new Error(`Test in \`${src}' failed to run: ${error}`)
     }
   } else {
     const results = []
     for (const page of pages) {
-      const dir = path.join(outputDir, page)
+      const dir = path.join(outputDir, page === '' ? 'output.txt' : page)
       fs.mkdirSync(path.dirname(dir), {recursive: true})
       try {
         results.push(runNancy(['--verbose', `--root=${src}`, `--output=${dir}`, template, page], inputFile))
@@ -94,12 +106,12 @@ describe('nancy', function () {
   })
 
   test
-    .stdout()
-    .do(() => cmd.run(['--help']))
-    .exit(0)
-    .it('--help produces output', ctx => {
-      expect(ctx.stdout).to.contain('A simple templating system.')
+    .do(async () => {
+      const proc = runNancy(['--help'])
+      const {stdout} = await proc
+      expect(stdout).to.contain('A simple templating system.')
     })
+    .it('--help produces output')
 
   test
     .do(async () => {
@@ -137,7 +149,7 @@ describe('nancy', function () {
 
   test
     .do(async () => {
-      const output = await nancyTest('nested-macro-src', 'template.txt', ['nested.txt'])
+      const output = await nancyTest('nested-macro-src', 'template.txt', [''])
       expect(output).to.deep.equal(dirTreeContents('nested-macro-expected'))
     })
     .it('Test nested macro invocations')
@@ -163,7 +175,7 @@ describe('nancy', function () {
 
   test
     .do(async () => {
-      const output = await nancyTest('.', 'true.txt', ['true'])
+      const output = await nancyTest('.', 'true.txt', [''])
       expect(output).to.deep.equal(dirTreeContents('true-expected'))
     })
     .it('Passing executable test')
@@ -184,7 +196,7 @@ describe('nancy', function () {
 
   test
     .do(async () => {
-      const output = await nancyTest('paste-src', 'paste.txt', ['paste'])
+      const output = await nancyTest('paste-src', 'paste.txt', ['paste.txt'])
       expect(output).to.deep.equal(dirTreeContents('paste-expected'))
     })
     .it('Test that $paste doesn\'t expand macros')

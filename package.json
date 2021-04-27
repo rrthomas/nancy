@@ -11,24 +11,31 @@
     "@oclif/command": "^1.8.0",
     "@oclif/config": "^1.17.0",
     "@oclif/plugin-help": "^3.2.2",
+    "@types/argparse": "^2.0.5",
+    "@types/jsonpath": "^0.2.0",
     "@types/node": "^14.14.41",
     "@types/which": "^2.0.0",
+    "@types/xmldom": "^0.1.30",
     "@types/yargs": "^16.0.1",
+    "argparse": "^2.0.1",
     "directory-tree": "^2.2.9",
     "execa": "^5.0.0",
+    "fontoxpath": "^3.17.2",
     "pcre2": "file:../../repo/pcre2",
     "strip-final-newline": "^2.0.0",
     "tempy": "^1.0.1",
     "tslib": "^1.14.1",
     "walkdir": "^0.4.1",
+    "xml-formatter": "^2.4.0",
+    "xmldom": "file:../../repo/xmldom",
     "yargs": "^16.2.0"
   },
   "devDependencies": {
-    "@types/chai-as-promised": "^7.1.3",
     "@oclif/dev-cli": "^1.26.0",
     "@oclif/test": "^1.2.8",
     "@tsconfig/node14": "^1.0.0",
     "@types/chai": "^4.2.16",
+    "@types/chai-as-promised": "^7.1.3",
     "@types/mocha": "^5.2.7",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
@@ -36,27 +43,21 @@
     "eslint-config-oclif": "^3.1.0",
     "eslint-config-oclif-typescript": "^0.1.0",
     "mocha": "^5.2.0",
+    "mocha-reporter": "^0.1.1",
     "nyc": "^14.1.1",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.9"
   },
   "engines": {
-    "node": ">=8.0.0"
+    "node": "^14.0.0"
   },
   "files": [
     "/bin",
     "/lib"
   ],
   "homepage": "https://github.com/rrthomas/nancy",
-  "keywords": [
-    "oclif"
-  ],
   "license": "GPL-3.0-or-later",
   "main": "lib/index.js",
-  "oclif": {
-    "bin": "nancy",
-    "helpClass": "./lib/help"
-  },
   "repository": "rrthomas/nancy",
   "scripts": {
     "posttest": "eslint . --ext .ts --config .eslintrc",

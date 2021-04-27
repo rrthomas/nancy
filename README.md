@@ -45,8 +45,8 @@ Nancy takes two arguments:
     nancy [OPTION...] TEMPLATE PATH
 
 where `TEMPLATE` is name of the template file, and `PATH` is the path of the
-file or directory to build. There is nothing special about the template
-file, it is just the source file with which Nancy starts.
+file or directory to build (this must exist). There is nothing special about
+the template file, it is just the source file with which Nancy starts.
 
 The following command-line `OPTION`s may be given:
 
