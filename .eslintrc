@@ -1,13 +1,18 @@
 {
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": ["./tsconfig.json", "test/tsconfig.json"],
+  },
+  "plugins": ["@typescript-eslint"],
   "extends": [
-    "oclif",
-    "oclif-typescript"
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "plugin:@typescript-eslint/eslint-recommended"
   ],
   "rules": {
-    "indent": ['error', 2, {SwitchCase: 0}],
-    "max-params": "off",
     "no-console": "off",
-    "no-useless-constructor": "off",
-    "no-warning-comments": "off"
+    "no-warning-comments": "off",
+    "@typescript-eslint/restrict-template-expressions": "off"
   }
 }

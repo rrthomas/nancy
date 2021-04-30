@@ -2,8 +2,7 @@ import stream from 'stream'
 import fs from 'fs'
 import path from 'path'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
-const packageJson = require('../package.json')
-import dirTree = require('directory-tree')
+import packageJson from '../package.json'
 import {DOMImplementation/* , XMLSerializer */} from 'xmldom'
 // import formatXML from 'xml-formatter'
 import fontoxpath from 'fontoxpath'
@@ -23,39 +22,22 @@ function isExecutable(file: string) {
   }
 }
 
-interface File {
-  name: string;
-  path: string;
-  executable: boolean;
-}
-
-interface FileTree extends File {
-  children?: FileTree[];
-}
-
-function dirTreeContents(filepath: string) {
-  return dirTree(
-    filepath, {normalizePath: true},
-    (item: FileTree, filepath: string) => {
-      item.executable = isExecutable(filepath)
-    },
-  )
-}
-
-function dirTreeToXML(root: string, tree: any) {
+function dirTreeToXML(root: string) {
   const xtree = new DOMImplementation().createDocument(null, 'tree', null)
-  const objToNode = (obj: FileTree) => {
-    const elem = xtree.createElement(obj.children ? 'directory' : 'file')
-    elem.setAttribute('name', obj.name)
-    elem.setAttribute('path', obj.path)
-    if (obj.executable) {
+  const objToNode = (obj: string) => {
+    const stats = fs.statSync(obj)
+    const elem = xtree.createElement(stats.isDirectory() ? 'directory' : 'file')
+    elem.setAttribute('name', path.basename(obj))
+    elem.setAttribute('path', obj)
+    if (isExecutable(obj)) {
       elem.setAttribute('executable', 'true')
     }
-    if (obj.children) {
-      const dirs = obj.children.filter(child => child.children)
-      const files = obj.children.filter(child => !child.children)
-      dirs.forEach((child: FileTree) => elem.appendChild(objToNode(child)))
-      files.forEach((child: FileTree) => elem.appendChild(objToNode(child)))
+    if (stats.isDirectory()) {
+      const dir = fs.readdirSync(obj, {withFileTypes: true})
+      const dirs = dir.filter(dirent => dirent.isDirectory())
+      const files = dir.filter(dirent => !(dirent.isDirectory()))
+      dirs.forEach((dirent) => elem.appendChild(objToNode(path.join(obj, dirent.name))))
+      files.forEach((dirent) => elem.appendChild(objToNode(path.join(obj, dirent.name))))
     }
     return elem
   }
@@ -63,8 +45,7 @@ function dirTreeToXML(root: string, tree: any) {
   // of NodeList are not yet implemented in xmldom.
   // xtree.documentElement.append(...objToNode(tree).childNodes)
   const fragment = xtree.createDocumentFragment()
-  // eslint-disable-next-line unicorn/prefer-spread
-  Array.from(objToNode(tree).childNodes).forEach((node: Node) => fragment.appendChild(node))
+  Array.from(objToNode(root).childNodes).forEach((node: Node) => fragment.appendChild(node))
   xtree.documentElement.appendChild(fragment)
   xtree.documentElement.setAttribute('name', '')
   xtree.documentElement.setAttribute('path', root)
@@ -91,8 +72,6 @@ function filePathToXPath(file: string, leafElement = 'directory', nodeElement = 
 }
 
 class Expander {
-  tree: any
-
   xtree: Document
 
   constructor(
@@ -101,8 +80,7 @@ class Expander {
     private root: string,
     private verbose: boolean,
   ) {
-    this.tree = dirTreeContents(root)
-    this.xtree = dirTreeToXML(this.root, this.tree)
+    this.xtree = dirTreeToXML(this.root)
     // console.error(formatXML(new XMLSerializer().serializeToString(this.xtree)))
   }
 
