@@ -3,10 +3,32 @@ import fs from 'fs'
 import {Writable} from 'stream'
 import path from 'path'
 import execa from 'execa'
+import walk from 'walkdir'
 import {directory} from 'tempy'
 import {compareSync} from 'dir-compare'
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+
+// Turn a directory into a map of subdirectories to 'leaf' | 'node'
+function scanDir(root_: string) {
+  const root = path.resolve(root_)
+  const dirs: {[name: string]: ('leaf' | 'node')} = {}
+  walk.sync(root, {no_return: true}, (objPath, stats) => {
+    if (!stats.isDirectory()) {
+      return
+    }
+    const dir = objPath.replace(new RegExp(`^${root}(?:${path.sep})?`), '')
+    if (dirs[dir] === undefined) {
+      dirs[dir] = 'leaf'
+    }
+    let parent = path.dirname(dir)
+    if (parent === '.') {
+      parent = ''
+    }
+    dirs[parent] = 'node'
+  })
+  return dirs
+}
 
 chai.use(chaiAsPromised)
 const expect = chai.expect
@@ -22,17 +44,37 @@ async function runNancy(args: string[], inputFile?: string) {
   return proc
 }
 
+async function buildTree(srcRoot: string, template: string, destRoot: string, inputFile?: string) {
+  const sources = scanDir(srcRoot)
+  for (const dir of Object.keys(sources).sort()) {
+    const dest = path.join(destRoot, dir)
+    if (sources[dir] === 'leaf') { // Process a leaf directory into a page
+      try {
+        await runNancy([
+          '--verbose',
+          `--root=${srcRoot}`,
+          `--output=${path.join(destRoot, dir)}`,
+          template,
+          dir,
+        ], inputFile)
+      } catch (error) {
+        throw new Error(`Problem building \`${dir}': ${error}`)
+      }
+    } else if (dir !== '') { // Make a non-leaf directory
+      try {
+        fs.mkdirSync(dest)
+      } catch (error) {
+        throw new Error(`Error creating \`${dir}': ${error}`)
+      }
+    }
+  }
+}
+
 async function nancyTest(src: string, expected: string, template: string, pages?: string[], inputFile?: string) {
   const outputDir = directory()
   if (pages === undefined) {
-    const cmd = './build-tree.ts'
     try {
-      process.env.NANCY = nancyCmd
-      const proc = execa(cmd, [src, template, outputDir])
-      if (inputFile !== undefined) {
-        fs.createReadStream(inputFile).pipe(proc.stdin as Writable)
-      }
-      await proc
+      await buildTree(src, template, outputDir, inputFile)
     } catch (error) {
       throw new Error(`Test in \`${src}' failed to run: ${error}`)
     }
