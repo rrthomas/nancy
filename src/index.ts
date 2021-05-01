@@ -227,7 +227,14 @@ https://github.com/rrthomas/nancy/
 Distributed under the GNU General Public License version 3, or (at
 your option) any later version. There is no warranty.`,
 })
-const args = parser.parse_args()
+interface Args {
+  template: string;
+  path: string;
+  output: string;
+  root: string;
+  verbose: boolean;
+}
+const args: Args = parser.parse_args() as Args
 
 if (args.verbose) {
   console.error(`${args.path}:`)
