@@ -10,7 +10,7 @@ import fontoxpath from 'fontoxpath'
 import which from 'which'
 import execa from 'execa'
 import PCRE2 = require('pcre2')
-import stripFinalNewline = require('strip-final-newline')
+import stripFinalNewline from 'strip-final-newline'
 
 const PCRE = PCRE2.PCRE2
 
