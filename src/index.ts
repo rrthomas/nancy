@@ -9,7 +9,7 @@ import {DOMImplementation/* , XMLSerializer */} from 'xmldom'
 import fontoxpath from 'fontoxpath'
 import which from 'which'
 import execa from 'execa'
-import PCRE2 = require('pcre2')
+import PCRE2 from 'pcre2'
 import stripFinalNewline from 'strip-final-newline'
 
 const PCRE = PCRE2.PCRE2
