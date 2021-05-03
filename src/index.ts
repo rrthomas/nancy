@@ -77,8 +77,8 @@ class Expander {
     // console.error(formatXML(slimdom.serializeToWellFormedString(this.xtree)))
   }
 
-  // Search for file starting at the given path; if found return its file
-  // name and contents; if not, die.
+  // Search for file starting at the given path; if found return its
+  // Element; if not, die.
   private findOnPath(startPath: string, file: string) {
     const searchXPath = filePathToXPath(startPath)
     const fileXPath = filePathToXPath(file, 'file', 'directory')
@@ -89,36 +89,35 @@ class Expander {
       if (this.verbose) {
         console.error(`  ${matchPath} ${(match.getAttribute('executable') ? '*' : '')}`)
       }
-      return matchPath
+      return match
     }
     return null
   }
 
-  private readFile(file: string, args: string[]) {
+  private getFile(currentFile: string, leaf: string, args: string[]) {
     let output
-    if (file === '-') {
-      output = fs.readFileSync(process.stdin.fd)
-    } else if (isExecutable(file)) {
-      output = execa.sync(file, args).stdout
-    } else {
-      output = fs.readFileSync(file)
-    }
-    return output.toString('utf-8')
-  }
-
-  private getFile(currentFile: string, leaf: string) {
+    let newFile
     if (leaf === '-') {
-      return leaf
+      output = fs.readFileSync(process.stdin.fd)
+      newFile = '-'
+    } else {
+      let startPath = this.path
+      if (currentFile !== '-' && leaf === path.basename(currentFile)) {
+        startPath = path.dirname(path.dirname(currentFile.replace(new RegExp(`^${this.root}${path.sep}`), '')))
+      }
+      const elem = this.findOnPath(startPath, leaf)
+      if (elem !== null && !elem.getAttribute('executable')) {
+        newFile = elem.getAttribute('path') as string
+        output = fs.readFileSync(newFile)
+      } else {
+        newFile = elem !== null ? elem.getAttribute('path') as string : which.sync(leaf, {nothrow: true})
+        if (newFile === null) {
+          throw new Error(`cannot find \`${leaf}' while building \`${this.path}'`)
+        }
+        output = execa.sync(newFile, args).stdout
+      }
     }
-    let startPath = this.path
-    if (currentFile !== '-' && leaf === path.basename(currentFile)) {
-      startPath = path.dirname(path.dirname(currentFile.replace(new RegExp(`^${this.root}${path.sep}`), '')))
-    }
-    const fileOrExec = this.findOnPath(startPath, leaf) || which.sync(leaf, {nothrow: true})
-    if (fileOrExec === null) {
-      throw new Error(`cannot find \`${leaf}' while building \`${this.path}'`)
-    }
-    return fileOrExec
+    return [newFile, output.toString('utf-8')]
   }
 
   expand(file: string, text: string) {
@@ -131,13 +130,11 @@ class Expander {
       root: () => this.root,
       template: () => this.template,
       include: (...args) => {
-        const newFile = this.getFile(file, args[0])
-        const output = this.readFile(newFile, args.slice(1))
+        const [newFile, output] = this.getFile(file, args[0], args.slice(1))
         return stripFinalNewline(this.expand(newFile, output))
       },
       paste: (...args) => {
-        const newFile = this.getFile(file, args[0])
-        const output = this.readFile(newFile, args.slice(1))
+        const [, output] = this.getFile(file, args[0], args.slice(1))
         return stripFinalNewline(output)
       },
     }
