@@ -5,7 +5,7 @@ import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
 import packageJson from '../package.json'
 import slimdom from 'slimdom'
 // import formatXML from 'xml-formatter'
-import fontoxpath from 'fontoxpath'
+import {evaluateXPathToFirstNode} from 'fontoxpath'
 import which from 'which'
 import execa from 'execa'
 import PCRE2 from 'pcre2'
@@ -79,11 +79,11 @@ class Expander {
 
   // Search for file starting at the given path; if found return its
   // Element; if not, die.
-  private findOnPath(startPath: string, file: string) {
-    const startNode = fontoxpath.evaluateXPathToFirstNode(['*'].concat(filePathToXPath(startPath)).join('/'), this.xtree)
+  private find(startPath: string, file: string) {
+    const startNode = evaluateXPathToFirstNode(['*'].concat(filePathToXPath(startPath)).join('/'), this.xtree)
     const fileXPath = filePathToXPath(file, 'file', 'directory')
     const searchXPath = ['ancestor-or-self::*'].concat(fileXPath).join('/')
-    const match = fontoxpath.evaluateXPathToFirstNode(searchXPath, startNode) as slimdom.Element
+    const match = evaluateXPathToFirstNode(searchXPath, startNode) as slimdom.Element
     if (match !== null) {
       const matchPath = match.getAttribute('path') as string
       if (this.verbose) {
@@ -105,7 +105,7 @@ class Expander {
       if (currentFile !== '-' && leaf === path.basename(currentFile)) {
         startPath = path.dirname(path.dirname(currentFile.replace(new RegExp(`^${this.root}${path.sep}`), '')))
       }
-      const elem = this.findOnPath(startPath, leaf)
+      const elem = this.find(startPath, leaf)
       if (elem !== null && !elem.getAttribute('executable')) {
         newFile = elem.getAttribute('path') as string
         output = fs.readFileSync(newFile)
