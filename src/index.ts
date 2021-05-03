@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
 import packageJson from '../package.json'
-import {DOMImplementation/* , XMLSerializer */} from 'xmldom'
+import slimdom from 'slimdom'
 // import formatXML from 'xml-formatter'
 import fontoxpath from 'fontoxpath'
 import which from 'which'
@@ -23,7 +23,7 @@ function isExecutable(file: string) {
 }
 
 function dirTreeToXML(root: string) {
-  const xtree = new DOMImplementation().createDocument(null, 'tree', null)
+  const xtree = new slimdom.Document()
   const objToNode = (obj: string) => {
     const stats = fs.statSync(obj)
     const elem = xtree.createElement(stats.isDirectory() ? 'directory' : 'file')
@@ -41,14 +41,7 @@ function dirTreeToXML(root: string) {
     }
     return elem
   }
-  // The following should work, but Element.append and spreading/iteration
-  // of NodeList are not yet implemented in xmldom.
-  // xtree.documentElement.append(...objToNode(tree).childNodes)
-  const fragment = xtree.createDocumentFragment()
-  Array.from(objToNode(root).childNodes).forEach((node: Node) => fragment.appendChild(node))
-  xtree.documentElement.appendChild(fragment)
-  xtree.documentElement.setAttribute('name', '')
-  xtree.documentElement.setAttribute('path', root)
+  xtree.appendChild(objToNode(root))
   return xtree
 }
 
@@ -72,7 +65,7 @@ function filePathToXPath(file: string, leafElement = '*', nodeElement = '*') {
 }
 
 class Expander {
-  xtree: Document
+  xtree: slimdom.Document
 
   constructor(
     private template: string,
@@ -81,7 +74,7 @@ class Expander {
     private verbose: boolean,
   ) {
     this.xtree = dirTreeToXML(this.root)
-    // console.error(formatXML(new XMLSerializer().serializeToString(this.xtree)))
+    // console.error(formatXML(slimdom.serializeToWellFormedString(this.xtree)))
   }
 
   // Search for file starting at the given path; if found return its file
@@ -89,8 +82,8 @@ class Expander {
   private findOnPath(startPath: string, file: string) {
     const searchXPath = filePathToXPath(startPath)
     const fileXPath = filePathToXPath(file, 'file', 'directory')
-    const thisSearchXPath = ['tree'].concat(searchXPath, ['ancestor-or-self::*'], fileXPath).join('/')
-    const match = fontoxpath.evaluateXPathToFirstNode(thisSearchXPath, this.xtree) as Element
+    const thisSearchXPath = [`*`].concat(searchXPath, ['ancestor-or-self::*'], fileXPath).join('/')
+    const match = fontoxpath.evaluateXPathToFirstNode(thisSearchXPath, this.xtree) as slimdom.Element
     if (match !== null) {
       const matchPath = match.getAttribute('path') as string
       if (this.verbose) {
