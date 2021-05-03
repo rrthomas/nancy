@@ -59,7 +59,7 @@ function basenameToXPath(basename: string, nodeElement: string) {
   return `${nodeElement}[@name="${basename}"]`
 }
 
-function filePathToXPath(file: string, leafElement = 'directory', nodeElement = 'directory') {
+function filePathToXPath(file: string, leafElement = '*', nodeElement = '*') {
   const fileArray = file === '' ? [] : file.split(path.sep)
   const steps = []
   for (const component of fileArray.slice(0, -1)) {
@@ -87,8 +87,8 @@ class Expander {
   // Search for file starting at the given path; if found return its file
   // name and contents; if not, die.
   private findOnPath(startPath: string, file: string) {
-    const searchXPath = filePathToXPath(startPath, '*', '*')
-    const fileXPath = filePathToXPath(file, 'file')
+    const searchXPath = filePathToXPath(startPath)
+    const fileXPath = filePathToXPath(file, 'file', 'directory')
     const thisSearchXPath = ['tree'].concat(searchXPath, ['ancestor-or-self::*'], fileXPath).join('/')
     const match = fontoxpath.evaluateXPathToFirstNode(thisSearchXPath, this.xtree) as Element
     if (match !== null) {
