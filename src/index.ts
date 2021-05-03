@@ -80,10 +80,10 @@ class Expander {
   // Search for file starting at the given path; if found return its
   // Element; if not, die.
   private findOnPath(startPath: string, file: string) {
-    const searchXPath = filePathToXPath(startPath)
+    const startNode = fontoxpath.evaluateXPathToFirstNode(['*'].concat(filePathToXPath(startPath)).join('/'), this.xtree)
     const fileXPath = filePathToXPath(file, 'file', 'directory')
-    const thisSearchXPath = [`*`].concat(searchXPath, ['ancestor-or-self::*'], fileXPath).join('/')
-    const match = fontoxpath.evaluateXPathToFirstNode(thisSearchXPath, this.xtree) as slimdom.Element
+    const searchXPath = ['ancestor-or-self::*'].concat(fileXPath).join('/')
+    const match = fontoxpath.evaluateXPathToFirstNode(searchXPath, startNode) as slimdom.Element
     if (match !== null) {
       const matchPath = match.getAttribute('path') as string
       if (this.verbose) {
