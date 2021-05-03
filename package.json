@@ -19,12 +19,12 @@
     "execa": "^5.0.0",
     "fontoxpath": "^3.17.2",
     "pcre2": "file:../../repo/pcre2",
+    "slimdom": "^2.3.2",
     "strip-final-newline": "^2.0.0",
     "tempy": "^1.0.1",
     "tslib": "^1.14.1",
     "walkdir": "^0.4.1",
     "xml-formatter": "^2.4.0",
-    "xmldom": "file:../../repo/xmldom",
     "yargs": "^16.2.0"
   },
   "devDependencies": {
