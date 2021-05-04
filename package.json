@@ -55,5 +55,5 @@
     "prepack": "rm -rf lib && tsc -b",
     "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
   },
-  "types": "lib/index.d.ts"
+  "types": "lib/*.d.ts"
 }
