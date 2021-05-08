@@ -21,7 +21,7 @@ use Cwd;
 use File::Slurp qw(slurp);
 use File::Which;
 
-use RRT::Macro 3.16;
+use RRT::Macro 3.19;
 
 # Process command line
 my ($output_file, $root, $verbose_flag, $version_flag, $help_flag);
