@@ -12,7 +12,9 @@ or run as a command and its output included.
 
 Nancy was originally designed to build simple static web sites, but can be
 used for all sorts of other tasks, similar to more complicated systems like
-[AutoGen] and [TXR].
+[AutoGen] and [TXR]. It supports two syntaxes: plain text, which works with
+any text files, and XML, which only works with XML documents, but adds
+XML-based functionality.
 
 [AutoGen]: http://autogen.sourceforge.net
 [TXR]: http://www.nongnu.org/txr
@@ -27,40 +29,15 @@ report them on the project’s web page (see above for addresses).
 
 ## Installation
 
-Download the latest release from
-​<https://github.com/rrthomas/nancy/releases>.
-
-Nancy requires TypeScript version 3.9 or later.
-
-To install Nancy, unpack the distribution archive and run:
+It's easiest to install Nancy with npm:
 
 ```
-$ npm install -g
+$ npm install -g @sc3d/nancy
 ```
 
 ## Invocation
 
-Nancy takes two arguments:
-
-    nancy [OPTION...] TEMPLATE PATH
-
-where `TEMPLATE` is name of the template file, and `PATH` is the path of the
-file or directory to build (this must exist). There is nothing special about
-the template file, it is just the source file with which Nancy starts.
-
-The following command-line `OPTION`s may be given:
-
-* *`--output FILE`* Set the name of the output file (the default is standard
-  output).
-* *`--root DIRECTORY`* Set the root source directory (the default is the
-  current directory). This is the directory that Nancy will search for
-  source files.
-* *`--verbose`* Print to standard error the name of the file being
-  generated, and the files used to make it.
-* *`--version`* Show the version number of Nancy.
-* *`--help`* Show help on how to run Nancy.
-
-The options may be abbreviated to any unambiguous prefix.
+FIXME: add output of --help
 
 ## Operation <a name="operation"></a>
 
@@ -177,13 +154,6 @@ Check out the git repository with:
 
     git clone --recursive https://github.com/rrthomas/nancy
 
-After checkout, run `./setup-git-config` to wire up writing version numbers
-into scripts.
+To run the tests:
 
-To build Nancy and run its tests:
-
-    make check
-
-To make releases, zip and [woger] are needed.
-
-[woger]: https://github.com/rrthomas/woger
+    npm test

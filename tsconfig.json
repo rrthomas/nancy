@@ -1,15 +1,16 @@
 {
   "extends": "@tsconfig/node14/tsconfig.json",
   "compilerOptions": {
+    "composite": true,
     "declaration": true,
     "importHelpers": true,
     "outDir": "lib",
     "resolveJsonModule": true,
-    "rootDir": "src",
+    "rootDir": ".",
     "typeRoots": [
       "./types",
       "./node_modules/@types"
     ]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "package.json"]
 }

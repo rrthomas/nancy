@@ -22,6 +22,9 @@ line corresponds to a page:
     ├── Places
     │   ├── Timbuktu
     │   └── Vladivostok
+    ├── nancy-small.png
+    ├── nancy-tiny.png
+    └── style.css
     └── Home page
 
 The basic page template looks something like this:
@@ -29,17 +32,17 @@ The basic page template looks something like this:
     <!DOCTYPE html>
     <html>
       <head>
-        <link rel="stylesheet" type="text/css" href="$paste{path-to-root.sh,$path}/style.css">
-        <title>$include{title.txt}</title>
+        <link rel="stylesheet" type="text/css" href="$paste{path-to-root.in.sh,$path}/style.css">
+        <title>$include{title.in.txt}</title>
       </head>
       <body>
         <div class="wrapper">
-          <div class="logo">$include{logo.html}</div>
-          <div class="breadcrumb"><div class="breadcrumb-content">$include{breadcrumb.html}</div></div>
+          <div class="logo">$include{logo.in.html}</div>
+          <div class="breadcrumb.in"><div class="breadcrumb.in-content">$include{breadcrumb.in.html}</div></div>
         </div>
         <div class="wrapper">
-          <div class="menu">$include{menu.html}</div>
-          <div class="main">$include{main.html}</div>
+          <div class="menu">$include{menu.in.html}</div>
+          <div class="main">$include{main.in.html}</div>
         </div>
       </body>
     </html>
@@ -47,55 +50,75 @@ The basic page template looks something like this:
 Making the menu an included file is not strictly necessary, but makes the
 template easier to read. The pages will be laid out as follows:
 
+    ├── index
+    │   └── index.html
     ├── People
-    │   ├── Hilary Pilary.html
-    │   ├── index.html
-    │   └── Jo Bloggs.html
+    │   ├── Hilary Pilary
+    │   │   └── index.html
+    │   ├── index
+    │   │   └── index.html
+    │   └── Jo Bloggs
+    │       └── index.html
     ├── Places
-    │   ├── index.html
-    │   ├── Timbuktu.html
-    │   └── Vladivostok.html
-    └── index.html
+    │   ├── index
+    │   │   └── index.html
+    │   ├── Timbuktu
+    │   │   └── index.html
+    │   └── Vladivostok
+    │       └── index.html
+    ├── nancy-small.png
+    ├── nancy-tiny.png
+    └── style.css
 
 The corresponding source files will be laid out as follows. This may look a
 little confusing at first, but note the similarity to the HTML pages, and
 hold on for the explanation!
 
-    ├── index.html
-    │   ├── logo.html
-    │   ├── main.html
-    │   └── title.txt
+    ├── index
+    │   ├── index.nancy.html
+    │   ├── logo.in.html
+    │   ├── main.in.html
+    │   └── title.in.txt
     ├── People
-    │   ├── Hilary Pilary.html
-    │   │   ├── breadcrumb.html
-    │   │   ├── main.html
-    │   │   └── title.txt
-    │   ├── index.html
-    │   │   ├── main.html
-    │   │   └── title.txt
-    │   ├── Jo Bloggs.html
-    │   │   ├── breadcrumb.html
-    │   │   ├── main.html
-    │   │   └── title.txt
-    │   └── breadcrumb.html
+    │   ├── Hilary Pilary
+    │   │   ├── breadcrumb.in.html
+    │   │   ├── index.nancy.html
+    │   │   ├── main.in.html
+    │   │   └── title.in.txt
+    │   ├── index
+    │   │   ├── index.nancy.html
+    │   │   ├── main.in.html
+    │   │   └── title.in.txt
+    │   ├── Jo Bloggs
+    │   │   ├── breadcrumb.in.html
+    │   │   ├── index.nancy.html
+    │   │   ├── main.in.html
+    │   │   └── title.in.txt
+    │   └── breadcrumb.in.html
     ├── Places
-    │   ├── index.html
-    │   │   ├── main.html
-    │   │   └── title.txt
-    │   ├── Timbuktu.html
-    │   │   ├── breadcrumb.html
-    │   │   ├── main.html
-    │   │   └── title.txt
-    │   ├── Vladivostok.html
-    │   │   ├── breadcrumb.html
-    │   │   ├── main.html
-    │   │   └── title.txt
-    │   └── breadcrumb.html
-    ├── breadcrumb.html
-    ├── logo.html
-    ├── menu.html
-    ├── path-to-root.sh
-    └── template.html
+    │   ├── index
+    │   │   ├── index.nancy.html
+    │   │   ├── main.in.html
+    │   │   └── title.in.txt
+    │   ├── Timbuktu
+    │   │   ├── breadcrumb.in.html
+    │   │   ├── index.nancy.html
+    │   │   ├── main.in.html
+    │   │   └── title.in.txt
+    │   ├── Vladivostok
+    │   │   ├── breadcrumb.in.html
+    │   │   ├── index.nancy.html
+    │   │   ├── main.in.html
+    │   │   └── title.in.txt
+    │   └── breadcrumb.in.html
+    ├── breadcrumb.in.html
+    ├── logo.in.html
+    ├── menu.in.html
+    ├── nancy-small.png -> ../../logo/nancy-small.png
+    ├── nancy-tiny.png -> ../../logo/nancy-tiny.png
+    ├── path-to-root.in.sh
+    ├── style.css
+    └── template.in.html
 
 Note that there is only one menu fragment (the main menu is the same for
 every page), while each section has its own breadcrumb trail
@@ -136,9 +159,7 @@ has covered all the standard techniques for Nancy’s use.
 
 ### Building the site
 
-The site is built by running Nancy on each page; see
-[test/build-tree](test/build-tree) and
-[test/build-things](test/build-things) for ways to do this. After building
+The site is built by running Nancy on each page. After building
 the pages, static assets are copied into the built site.
 
 [FIXME]: # (Explain how to serve the web site dynamically.)
