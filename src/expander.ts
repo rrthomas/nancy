@@ -1,165 +1,74 @@
-import fs from 'fs'
+import fs from 'fs-extra'
+import realFs from 'fs'
+import {IFS} from 'unionfs/lib/fs'
 import path from 'path'
-import slimdom from 'slimdom'
-// import formatXML from 'xml-formatter'
-import {evaluateXPathToFirstNode} from 'fontoxpath'
-import which from 'which'
-import execa from 'execa'
-import PCRE2 from 'pcre2'
-import stripFinalNewline from 'strip-final-newline'
+import Debug from 'debug'
 
-const PCRE = PCRE2.PCRE2
+const debug = Debug('nancy')
 
-function isExecutable(file: string) {
-  try {
-    fs.accessSync(file, fs.constants.X_OK)
-    return true
-  } catch {
-    return false
+export function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
+  if (s.startsWith(prefix + path.sep)) {
+    return path.join(newPrefix, s.slice(prefix.length + path.sep.length))
+  } else if (s === prefix) {
+    return newPrefix
   }
+  return s
 }
 
-function dirTreeToXML(root: string) {
-  const xtree = new slimdom.Document()
-  const objToNode = (obj: string) => {
-    const stats = fs.statSync(obj)
-    const elem = xtree.createElement(stats.isDirectory() ? 'directory' : 'file')
-    elem.setAttribute('name', path.basename(obj))
-    elem.setAttribute('path', obj)
-    if (isExecutable(obj)) {
-      elem.setAttribute('executable', 'true')
-    }
-    if (stats.isDirectory()) {
-      const dir = fs.readdirSync(obj, {withFileTypes: true})
-      const dirs = dir.filter(dirent => dirent.isDirectory())
-      const files = dir.filter(dirent => !(dirent.isDirectory()))
-      dirs.forEach((dirent) => elem.appendChild(objToNode(path.join(obj, dirent.name))))
-      files.forEach((dirent) => elem.appendChild(objToNode(path.join(obj, dirent.name))))
-    }
-    return elem
-  }
-  xtree.appendChild(objToNode(root))
-  return xtree
-}
+export abstract class Expander {
 
-function basenameToXPath(basename: string, nodeElement: string) {
-  if (new Set(['.', '..']).has(basename)) {
-    return basename
-  }
-  return `${nodeElement}[@name="${basename}"]`
-}
-
-function filePathToXPath(file: string, leafElement = '*', nodeElement = '*') {
-  const fileArray = file === '' ? [] : file.split(path.sep)
-  const steps = []
-  for (const component of fileArray.slice(0, -1)) {
-    steps.push(basenameToXPath(component, nodeElement))
-  }
-  if (fileArray.length > 0) {
-    steps.push(basenameToXPath(fileArray[fileArray.length - 1], leafElement))
-  }
-  return steps
-}
-
-export class Expander {
-  xtree: slimdom.Document
-
+  // FIXME: arguments except input should be arguments to expand()
   constructor(
-    private template: string,
-    private path: string,
-    private root: string,
-    private verbose: boolean,
-  ) {
-    this.xtree = dirTreeToXML(this.root)
-    // console.error(formatXML(slimdom.serializeToWellFormedString(this.xtree)))
-  }
+    protected input: string,
+    protected output: string,
+    protected path = '',
+    protected abortOnError = false,
+    protected inputFs: IFS = realFs,
+  ) {}
 
-  // Search for file starting at the given path; if found return its
-  // Element; if not, die.
-  private find(startPath: string, file: string) {
-    const startNode = evaluateXPathToFirstNode(['*'].concat(filePathToXPath(startPath)).join('/'), this.xtree)
-    const fileXPath = filePathToXPath(file, 'file', 'directory')
-    const searchXPath = ['ancestor-or-self::*'].concat(fileXPath).join('/')
-    const match = evaluateXPathToFirstNode(searchXPath, startNode) as slimdom.Element
-    if (match !== null) {
-      const matchPath = match.getAttribute('path') as string
-      if (this.verbose) {
-        console.error(`  ${matchPath} ${(match.getAttribute('executable') ? '*' : '')}`)
-      }
-      return match
+  protected static templateRegex = /\.nancy\.(?=\.[^.]+$)?/
+  protected static noCopyRegex = /\.in(?=\.[^.]+$)?/
+
+  protected abstract expandFile(filePath: string): string
+
+  isExecutable(file: string): boolean {
+    try {
+      this.inputFs.accessSync(file, fs.constants.X_OK)
+      return true
+    } catch {
+      return false
     }
-    return null
   }
 
-  private getFile(currentFile: string, leaf: string, args: string[]) {
-    let output
-    let newFile
-    if (leaf === '-') {
-      output = fs.readFileSync(process.stdin.fd)
-      newFile = '-'
+  private expandPath(obj: string): void {
+    const outputPath = replacePathPrefix(obj, path.join(this.input, this.path), this.output)
+      .replace(Expander.templateRegex, '.')
+    debug(`Expanding ${obj} to ${outputPath}`)
+    const stats = this.inputFs.statSync(obj)
+    if (stats.isDirectory()) {
+      fs.emptyDirSync(outputPath)
+      const dir = this.inputFs.readdirSync(obj, {withFileTypes: true})
+        .filter(dirent => dirent.name[0] !== '.')
+      const dirs = dir.filter(dirent => dirent.isDirectory())
+      const files = dir.filter(dirent => !dirent.isDirectory())
+      dirs.forEach((dirent) => this.expandPath(path.join(obj, dirent.name)))
+      files.forEach((dirent) => this.expandPath(path.join(obj, dirent.name)))
     } else {
-      let startPath = this.path
-      if (currentFile !== '-' && leaf === path.basename(currentFile)) {
-        startPath = path.dirname(path.dirname(currentFile.replace(new RegExp(`^${this.root}${path.sep}`), '')))
-      }
-      const elem = this.find(startPath, leaf)
-      if (elem !== null && !elem.getAttribute('executable')) {
-        newFile = elem.getAttribute('path') as string
-        output = fs.readFileSync(newFile)
-      } else {
-        newFile = elem !== null ? elem.getAttribute('path') as string : which.sync(leaf, {nothrow: true})
-        if (newFile === null) {
-          throw new Error(`cannot find \`${leaf}' while building \`${this.path}'`)
-        }
-        output = execa.sync(newFile, args).stdout
+      if (Expander.templateRegex.exec(obj)) {
+        fs.writeFileSync(outputPath, this.expandFile(obj))
+      } else if (!Expander.noCopyRegex.exec(obj)) {
+        fs.copyFileSync(obj, outputPath)
       }
     }
-    return [newFile, output.toString('utf-8')]
   }
 
-  expand(file: string, text: string) {
-    // Set up macros
-    type Macro = (...args: string[]) => string
-    type Macros = {[key: string]: Macro}
-
-    const macros: Macros = {
-      path: () => this.path,
-      root: () => this.root,
-      template: () => this.template,
-      include: (...args) => {
-        const [newFile, output] = this.getFile(file, args[0], args.slice(1))
-        return stripFinalNewline(this.expand(newFile, output))
-      },
-      paste: (...args) => {
-        const [, output] = this.getFile(file, args[0], args.slice(1))
-        return stripFinalNewline(output)
-      },
+  expand(): void {
+    const obj = path.join(this.input, this.path)
+    if (!this.inputFs.existsSync(obj)) {
+      throw new Error(`path '${this.path}' does not exist in '${this.input}'`)
     }
-
-    const doMacro = (macro: string, arg?: string) => {
-      const args = (arg || '').split(/(?<!\\),/)
-      const expandedArgs: string[] = []
-      for (const arg of args) {
-        const unescapedArg = arg.replace(/\\,/g, ',') // Remove escaping backslashes
-        expandedArgs.push(this.expand(file, unescapedArg))
-      }
-      if (macros[macro]) {
-        return macros[macro](...expandedArgs)
-      }
-      // If macro is not found, reconstitute the call
-      let res = `$${macro}`
-      if (arg !== null) {
-        res += `{${arg}}`
-      }
-      return res
-    }
-
-    // FIXME: Allow syntax to be redefined; e.g. use XML syntax: <[namespace:]include file="" />
-    const re = new PCRE(String.raw`(\\)?\$(\p{L}(?:\p{L}|\p{N}|_)+)(\{((?:[^{}]++|(?3))*)})?`, 'guE')
-    return re.replace(
-      text,
-      (_match: string, escaped: string, name: string, _args: string, args?: string) =>
-        escaped === null ? doMacro(name, args) : `$${name}${_args}`
-    )
+    this.expandPath(obj)
   }
 }
+
+export default Expander

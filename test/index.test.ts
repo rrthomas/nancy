@@ -1,34 +1,11 @@
 import util from 'util'
 import fs from 'fs'
-import {Writable} from 'stream'
 import path from 'path'
 import execa from 'execa'
-import walk from 'walkdir'
 import {directory} from 'tempy'
-import {compareSync} from 'dir-compare'
+import {compareSync, Difference} from 'dir-compare'
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-
-// Turn a directory into a map of subdirectories to 'leaf' | 'node'
-function scanDir(root_: string) {
-  const root = path.resolve(root_)
-  const dirs: {[name: string]: ('leaf' | 'node')} = {}
-  walk.sync(root, {no_return: true}, (objPath, stats) => {
-    if (!stats.isDirectory()) {
-      return
-    }
-    const dir = objPath.replace(new RegExp(`^${root}(?:${path.sep})?`), '')
-    if (dirs[dir] === undefined) {
-      dirs[dir] = 'leaf'
-    }
-    let parent = path.dirname(dir)
-    if (parent === '.') {
-      parent = ''
-    }
-    dirs[parent] = 'node'
-  })
-  return dirs
-}
 
 chai.use(chaiAsPromised)
 const expect = chai.expect
@@ -36,69 +13,39 @@ const assert = chai.assert
 
 const nancyCmd = '../bin/run'
 
-async function runNancy(args: string[], inputFile?: string) {
-  const proc = execa(nancyCmd, args)
-  if (inputFile !== undefined) {
-    fs.createReadStream(inputFile).pipe(proc.stdin as Writable)
-  }
-  return proc
+async function runNancy(args: string[]) {
+  return execa(nancyCmd, args)
 }
 
-async function buildTree(srcRoot: string, template: string, destRoot: string, inputFile?: string) {
-  const sources = scanDir(srcRoot)
-  for (const dir of Object.keys(sources).sort()) {
-    const dest = path.join(destRoot, dir)
-    if (sources[dir] === 'leaf') { // Process a leaf directory into a page
-      try {
-        await runNancy([
-          '--verbose',
-          `--root=${srcRoot}`,
-          `--output=${path.join(destRoot, dir)}`,
-          template,
-          dir,
-        ], inputFile)
-      } catch (error) {
-        throw new Error(`Problem building \`${dir}': ${error}`)
-      }
-    } else if (dir !== '') { // Make a non-leaf directory
-      try {
-        fs.mkdirSync(dest)
-      } catch (error) {
-        throw new Error(`Error creating \`${dir}': ${error}`)
-      }
-    }
-  }
-}
-
-async function nancyTest(src: string, expected: string, template: string, pages?: string[], inputFile?: string) {
-  const outputDir = directory()
-  if (pages === undefined) {
-    try {
-      await buildTree(src, template, outputDir, inputFile)
-    } catch (error) {
-      throw new Error(`Test in \`${src}' failed to run: ${error}`)
-    }
+function assertFileObjEqual(obj: string, expected: string) {
+  const stats = fs.statSync(obj)
+  if (stats.isDirectory()) {
+    const compareResult = compareSync(obj, expected, {compareContent: true})
+    assert(compareResult.same, util.inspect(diffsetDiffsOnly(compareResult.diffSet as Difference[])))
   } else {
-    const results = []
-    for (const page of pages) {
-      const dir = path.join(outputDir, page === '' ? 'output.txt' : page)
-      fs.mkdirSync(path.dirname(dir), {recursive: true})
-      try {
-        results.push(runNancy(['--verbose', `--root=${src}`, `--output=${dir}`, template, page], inputFile))
-      } catch (error) {
-        throw new Error(`Test in \`${src}' failed to run: ${error}`)
-      }
-    }
-    await Promise.all(results)
+    assert(
+      fs.readFileSync(obj).equals(fs.readFileSync(expected)),
+      `'${obj}' does not match expected '${expected}'`
+    )
   }
-  const compareResult = compareSync(outputDir, expected, {compareContent: true})
-  assert(compareResult.same, util.inspect(compareResult.diffSet))
+}
+
+function diffsetDiffsOnly(diffSet: Difference[]): Difference[] {
+  return diffSet.filter((diff) => diff.state !== 'equal')
+}
+
+async function nancyTest(args: string[], expected: string) {
+  const outputDir = directory()
+  const outputObj = path.join(outputDir, 'output')
+  args.push(outputObj)
+  await runNancy(args)
+  assertFileObjEqual(outputObj, expected)
   fs.rmdirSync(outputDir, {recursive: true})
 }
 
 describe('nancy', function () {
   // The tests are rather slow, but not likely to hang.
-  this.timeout(0)
+  this.timeout(10000)
 
   before(function () {
     process.chdir('test')
@@ -110,65 +57,59 @@ describe('nancy', function () {
     expect(stdout).to.contain('A simple templating system.')
   })
 
-  it('One-tree test', async () => {
-    await nancyTest(
-      'webpage-src', 'webpage-expected', 'template.html',
-      ['index.html', 'people/index.html', 'people/adam.html', 'people/eve.html'],
-    )
+  it('Whole-tree test', async () => {
+    await nancyTest(['--keep-going', 'webpage-src'], 'webpage-expected')
   })
 
-  it('Test with template on stdin', async () => {
-    // Can only test one page, as template only supplied once!
-    await nancyTest('webpage-src', 'webpage-stdin-expected', '-', ['index.html'], 'webpage-src/template.html')
+  it('Whole-tree test (XML)', async () => {
+    await nancyTest(['--keep-going', '--expander=xml', 'webpage-xml-src'], 'webpage-xhtml-expected')
   })
 
-  it('Test with output on stdout', async () => {
-    const proc = runNancy(['--output=-', '--root=webpage-src', 'template.html', 'index.html'])
-    const {stdout} = await proc
-    expect(stdout).to.equal(fs.readFileSync('webpage-stdout-expected/index.html', 'utf-8'))
+  it('Part-tree test', async () => {
+    await nancyTest(['--keep-going', 'webpage-src', '--path=people'], 'webpage-expected/people')
   })
 
-  it('Test with output on stdout, with no --output argument', async () => {
-    const proc = runNancy(['--root=webpage-src', 'template.html', 'index.html'])
-    const {stdout} = await proc
-    expect(stdout).to.equal(fs.readFileSync('webpage-stdout-expected/index.html', 'utf-8'))
-  })
-
-  it('Test nested macro invocations', async () => {
-    await nancyTest('nested-macro-src', 'nested-macro-expected', 'template.txt', [''])
+  it('Part-tree test (XML)', async () => {
+    await nancyTest(['--keep-going', '--expander=xml', 'webpage-xml-src', '--path=people'], 'webpage-xhtml-expected/people')
   })
 
   it('Two-tree test', async () => {
-    const mergedDir = directory()
-    await execa('./mergetrees', ['mergetrees-src:webpage-src', mergedDir])
-    await nancyTest(
-      mergedDir, 'mergetrees-expected', 'template.html',
-      ['index.html', 'animals/index.html', 'animals/adam.html', 'animals/eve.html']
-    )
-    fs.rmdirSync(mergedDir, {recursive: true})
+    await nancyTest(['--keep-going', 'mergetrees-src:webpage-src'], 'mergetrees-expected')
+  })
+
+  it('Two-tree test (XML)', async () => {
+    await nancyTest(['--keep-going', '--expander=xml', 'mergetrees-xml-src:webpage-xml-src'], 'mergetrees-xhtml-expected')
+  })
+
+  it('Test nested macro invocations', async () => {
+    await nancyTest(['nested-macro-src'], 'nested-macro-expected')
   })
 
   it('Failing executable test', async () => {
-    return assert.isRejected(nancyTest('.', 'dummy', 'false.txt', ['dummy']))
+    return assert.isRejected(runNancy(['false.nancy.txt', 'dummy']))
   })
 
   it('Passing executable test', async () => {
-    await nancyTest('.', 'true-expected', 'true.txt', [''])
+    await nancyTest(['true.nancy.txt'], 'true-expected.txt')
   })
 
   it('Executable test with in-tree executable', async () => {
-    await nancyTest('page-template-with-date-src', 'page-template-with-date-expected', 'Page.md', ['Page.md'])
+    await nancyTest(['page-template-with-date-src'], 'page-template-with-date-expected')
   })
 
-  it('Ensure that macros aren\'t expanded in Nancy\'s command-line arguments', async () => {
-    await nancyTest('.', 'dollar-path-expected', 'path.txt', ['$path.txt'])
+  it('Test that macros aren\'t expanded in Nancy\'s command-line arguments', async () => {
+    await nancyTest(['$path-src'], '$path-expected')
   })
 
   it('Test that $paste doesn\'t expand macros', async () => {
-    await nancyTest('paste-src', 'paste-expected', 'paste.txt', ['paste.txt'])
+    await nancyTest(['paste-src'], 'paste-expected')
   })
 
   it('Cookbook web site example', async () => {
-    await nancyTest('cookbook-example-website-src', 'cookbook-example-website-expected', 'template.html')
+    await nancyTest(['cookbook-example-website-src'], 'cookbook-example-website-expected')
+  })
+
+  it('Cookbook web site example (XML)', async () => {
+    await nancyTest(['--expander=xml', 'cookbook-example-website-xml-src'], 'cookbook-example-website-xhtml-expected')
   })
 })
