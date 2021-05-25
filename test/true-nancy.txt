@@ -1,1 +1,0 @@
-$include{true-nancy.sh}
