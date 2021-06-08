@@ -6,6 +6,7 @@ import {directory} from 'tempy'
 import {compareSync, Difference} from 'dir-compare'
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+import {check} from 'linkinator'
 
 chai.use(chaiAsPromised)
 const expect = chai.expect
@@ -43,6 +44,14 @@ async function nancyTest(args: string[], expected: string) {
   fs.rmdirSync(outputDir, {recursive: true})
 }
 
+async function checkLinks(root: string, start: string) {
+  const results = await check({path: start, serverRoot: root})
+  if (!results.passed) {
+    console.error(results)
+  }
+  assert(results.passed, 'Broken links in output')
+}
+
 describe('nancy', function () {
   // The tests are rather slow, but not likely to hang.
   this.timeout(10000)
@@ -59,26 +68,32 @@ describe('nancy', function () {
 
   it('Whole-tree test', async () => {
     await nancyTest(['--keep-going', 'webpage-src'], 'webpage-expected')
+    await checkLinks('webpage-expected', 'index.html')
   })
 
   it('Whole-tree test (XML)', async () => {
     await nancyTest(['--keep-going', '--expander=xml', 'webpage-xml-src'], 'webpage-xhtml-expected')
+    await checkLinks('webpage-xhtml-expected', 'index.xhtml')
   })
 
   it('Part-tree test', async () => {
     await nancyTest(['--keep-going', 'webpage-src', '--path=people'], 'webpage-expected/people')
+    await checkLinks('webpage-expected/people', 'index.html')
   })
 
   it('Part-tree test (XML)', async () => {
     await nancyTest(['--keep-going', '--expander=xml', 'webpage-xml-src', '--path=people'], 'webpage-xhtml-expected/people')
+    await checkLinks('webpage-xhtml-expected/people', 'index.xhtml')
   })
 
   it('Two-tree test', async () => {
     await nancyTest(['--keep-going', 'mergetrees-src:webpage-src'], 'mergetrees-expected')
+    await checkLinks('mergetrees-expected', 'index.html')
   })
 
   it('Two-tree test (XML)', async () => {
     await nancyTest(['--keep-going', '--expander=xml', 'mergetrees-xml-src:webpage-xml-src'], 'mergetrees-xhtml-expected')
+    await checkLinks('mergetrees-xhtml-expected', 'index.xhtml')
   })
 
   it('Test nested macro invocations', async () => {
@@ -107,9 +122,11 @@ describe('nancy', function () {
 
   it('Cookbook web site example', async () => {
     await nancyTest(['cookbook-example-website-src'], 'cookbook-example-website-expected')
+    await checkLinks('cookbook-example-website-expected', 'index/index.html')
   })
 
   it('Cookbook web site example (XML)', async () => {
     await nancyTest(['--expander=xml', 'cookbook-example-website-xml-src'], 'cookbook-example-website-xhtml-expected')
+    await checkLinks('cookbook-example-website-xhtml-expected', 'index/index.xhtml')
   })
 })

@@ -38,6 +38,7 @@
     "chai-as-promised": "^7.1.1",
     "dir-compare": "^3.3.0",
     "eslint": "^7.25.0",
+    "linkinator": "^2.13.6",
     "mocha": "^8.3.2",
     "mocha-reporter": "^0.1.1",
     "nyc": "^15.1.0",
