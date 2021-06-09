@@ -4,6 +4,7 @@ import {IFS} from 'unionfs/lib/fs'
 import path from 'path'
 import slimdom from 'slimdom'
 import {sync as parseXML} from 'slimdom-sax-parser'
+import formatXML from 'xml-formatter'
 import {
   evaluateXPath, evaluateXPathToNodes, evaluateXPathToFirstNode, evaluateXPathToString,
   registerCustomXPathFunction, registerXQueryModule, Options,
@@ -84,6 +85,7 @@ export class XMLExpander extends Expander {
     }
     const rootElem = objToNode(root)
     xtree.appendChild(rootElem)
+    debug(formatXML(slimdom.serializeToWellFormedString(xtree)))
     return xtree
   }
 
@@ -135,8 +137,9 @@ export class XMLExpander extends Expander {
     }
 
     const expandNode = (elem: slimdom.Element, stack: slimdom.Node[]): slimdom.Node[] => {
-      const findMatch = (queryElem: slimdom.Element, xQuery: string): slimdom.Element => {
+      const findMatch = (xQuery: string): slimdom.Element => {
         const searchXPath = `ancestor::nc:directory/${xQuery}`
+        debug(`expandNode search ${searchXPath}`)
         const matchElems = query(searchXPath, anchor) as slimdom.Element[]
         for (const matchElem of matchElems) {
           if (!stack.includes(matchElem)) {
@@ -155,7 +158,7 @@ export class XMLExpander extends Expander {
       for (const queryElem of queries) {
         let expandedNodes
         try {
-          const match = findMatch(queryElem, queryElem.textContent ?? '')
+          const match = findMatch(queryElem.textContent ?? '')
           switch (queryElem.localName) {
             case 'include':
             case 'x':
@@ -189,7 +192,7 @@ export class XMLExpander extends Expander {
             ['xs:string'], 'xs:string',
             (_, query: string): string => {
               try {
-                const match = findMatch(queryElem, query)
+                const match = findMatch(query)
                 return nodesToText(expandNode(match, stack.concat(match)))
               } catch (error) {
                 if (this.abortOnError) {
@@ -204,7 +207,7 @@ export class XMLExpander extends Expander {
             ['xs:string'], 'xs:string',
             (_, query: string): string => {
               try {
-                return nodesToText([findMatch(queryElem, query)])
+                return nodesToText([findMatch(query)])
               } catch (error) {
                 if (this.abortOnError) {
                   throw error
