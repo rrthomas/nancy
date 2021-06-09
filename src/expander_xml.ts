@@ -1,7 +1,7 @@
 import assert from 'assert'
-import fs from 'fs'
 import {IFS} from 'unionfs/lib/fs'
 import path from 'path'
+import execa from 'execa'
 import slimdom from 'slimdom'
 import {sync as parseXML} from 'slimdom-sax-parser'
 import formatXML from 'xml-formatter'
@@ -31,11 +31,14 @@ const nodesToText = (nodes: slimdom.Node[]): string => {
 }
 
 export class XMLExpander extends Expander {
+  private absInput: string
+
   private xtree: slimdom.Document
 
   constructor(input: string, output: string, filePath?: string, abortOnError?: boolean, inputFs?: IFS) {
     super(input, output, filePath, abortOnError, inputFs)
-    this.xtree = this.dirTreeToXML(this.input)
+    this.absInput = path.resolve(input)
+    this.xtree = this.dirTreeToXML(input)
   }
 
   private dirTreeToXML(root: string) {
@@ -43,20 +46,37 @@ export class XMLExpander extends Expander {
     const objToNode = (obj: string) => {
       const stats = this.inputFs.statSync(obj)
       const parsedPath = path.parse(obj)
+      const basename = (/^[^.]*/.exec(parsedPath.name) as string[])[0]
       let elem: slimdom.Element
       if (stats.isDirectory()) {
         elem = xtree.createElementNS(nc, 'directory')
         elem.setAttributeNS(nc, 'type', 'directory')
         const dir = this.inputFs.readdirSync(obj, {withFileTypes: true})
           .filter(dirent => dirent.name[0] !== '.')
+        // FIXME: sort the names.
         const dirs = dir.filter(dirent => dirent.isDirectory())
         const files = dir.filter(dirent => !(dirent.isDirectory()))
         dirs.forEach((dirent) => elem.appendChild(objToNode(path.join(obj, dirent.name))))
         files.forEach((dirent) => elem.appendChild(objToNode(path.join(obj, dirent.name))))
-      } else if (stats.mode & fs.constants.X_OK) {
+      } else if (this.isExecutable(obj)) {
+        registerCustomXPathFunction(
+          {localName: basename, namespaceURI: nc},
+          // FIXME: 'array(xs:string)' unsupported: https://github.com/FontoXML/fontoxpath/issues/360
+          ['array(*)'], 'xs:string',
+          (_, args: string[]): string => {
+            try {
+              debug(`running ${this.input} ${obj}`)
+              return execa.sync(path.join(this.absInput, replacePathPrefix(obj, this.input)), args).stdout
+            } catch (error) {
+              if (this.abortOnError) {
+                throw error
+              }
+              return `${error}`
+            }
+          },
+        )
         elem = xtree.createElementNS(nc, 'executable')
       } else if (stats.isFile()) {
-        const basename = (/^[^.]*/.exec(parsedPath.name) as string[])[0]
         if (['.xml', '.xhtml'].includes(parsedPath.ext)) {
           const text = this.inputFs.readFileSync(obj, 'utf-8')
           const wrappedText = `<${basename}>${text}</${basename}>`
