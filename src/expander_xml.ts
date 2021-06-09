@@ -21,22 +21,20 @@ const xQueryOptions: Options = {
   language: evaluateXPath.XQUERY_3_1_LANGUAGE,
 }
 
+const nodesToText = (nodes: slimdom.Node[]): string => {
+  let res = ''
+  for (const node of nodes) {
+    res += slimdom.serializeToWellFormedString(node)
+  }
+  return res
+}
+
 export class XMLExpander extends Expander {
   private xtree: slimdom.Document
 
-  constructor(input: string, output: string, path?: string, abortOnError?: boolean, inputFs?: IFS) {
-    super(input, output, path, abortOnError, inputFs)
+  constructor(input: string, output: string, filePath?: string, abortOnError?: boolean, inputFs?: IFS) {
+    super(input, output, filePath, abortOnError, inputFs)
     this.xtree = this.dirTreeToXML(this.input)
-    registerCustomXPathFunction(
-      {localName: 'paste', namespaceURI: nc},
-      // FIXME: 'array(xs:string)' doesn't work in the next line: https://github.com/FontoXML/fontoxpath/issues/360
-      ['array(*)'], 'xs:string',
-      (_, args: string): string => {
-        // const file = getFile(args[0])
-        // return readFile(file, args.slice(1))
-        return args[0]
-      },
-    )
   }
 
   private dirTreeToXML(root: string) {
@@ -110,7 +108,7 @@ export class XMLExpander extends Expander {
     }
 
     // FIXME: annotate error with location
-    const query = (xQuery: string, node: slimdom.Node) => {
+    const query = (xQuery: string, node: slimdom.Node): slimdom.Node[] | null => {
       return evaluateXPathToNodes(xQuery, node, null, xQueryVariables, xQueryOptions)
     }
 
@@ -137,33 +135,44 @@ export class XMLExpander extends Expander {
     }
 
     const expandNode = (elem: slimdom.Element, stack: slimdom.Node[]): slimdom.Node[] => {
-      const doExpand = (queryElem: slimdom.Element, xQuery: string, errorAttr: string): slimdom.Node[] | null => {
-        try {
-          const searchXPath = `ancestor::nc:directory/${xQuery}`
-          const matchElems = query(searchXPath, anchor) as slimdom.Element[]
-          for (const matchElem of matchElems) {
-            if (!stack.includes(matchElem)) {
-              return expandNode(matchElem, stack.concat(matchElem))
-            }
+      const findMatch = (queryElem: slimdom.Element, xQuery: string): slimdom.Element => {
+        const searchXPath = `ancestor::nc:directory/${xQuery}`
+        const matchElems = query(searchXPath, anchor) as slimdom.Element[]
+        for (const matchElem of matchElems) {
+          if (!stack.includes(matchElem)) {
+            return matchElem
           }
-          throw new Error(`${xQuery} not found for ${this.nodePath(elem)}`)
-        } catch (error) {
-          if (this.abortOnError) {
-            throw error
-          }
-          queryElem.setAttributeNS(nc, errorAttr, `${error}`)
         }
-        return null
+        throw new Error(`${xQuery} not found for ${this.nodePath(elem)}`)
       }
 
       // Copy element to be expanded, and find queries
       const resElem = elem.cloneNode(true)
-      const queries = query('descendant::nc:x', resElem) as slimdom.Element[]
+      const queries = query('descendant::nc:*', resElem) as slimdom.Element[]
       const attrQueries = query(`descendant::*[@*[namespace-uri()="${nc}"]]`, resElem) as slimdom.Element[]
 
       // Process element queries
       for (const queryElem of queries) {
-        const expandedNodes = doExpand(queryElem, queryElem.textContent ?? '', 'error')
+        let expandedNodes
+        try {
+          const match = findMatch(queryElem, queryElem.textContent ?? '')
+          switch (queryElem.localName) {
+            case 'include':
+            case 'x':
+              expandedNodes = expandNode(match, stack.concat(match))
+              break
+            case 'paste':
+              expandedNodes = [match]
+              break
+            default:
+              throw new Error('no such macro')
+          }
+        } catch (error) {
+          if (this.abortOnError) {
+            throw error
+          }
+          queryElem.setAttributeNS(nc, 'error', `${error}`)
+        }
         if (expandedNodes) {
           queryElem.replaceWith(...expandedNodes)
         }
@@ -174,6 +183,37 @@ export class XMLExpander extends Expander {
         const attrs = query(`./@*[namespace-uri()="${nc}"]`, queryElem) as slimdom.Attr[]
         for (const attr of attrs) {
           queryElem.removeAttributeNS(nc, attr.localName)
+
+          registerCustomXPathFunction(
+            {localName: 'include', namespaceURI: nc},
+            ['xs:string'], 'xs:string',
+            (_, query: string): string => {
+              try {
+                const match = findMatch(queryElem, query)
+                return nodesToText(expandNode(match, stack.concat(match)))
+              } catch (error) {
+                if (this.abortOnError) {
+                  throw error
+                }
+                return `${error}`
+              }
+            },
+          )
+          registerCustomXPathFunction(
+            {localName: 'paste', namespaceURI: nc},
+            ['xs:string'], 'xs:string',
+            (_, query: string): string => {
+              try {
+                return nodesToText([findMatch(queryElem, query)])
+              } catch (error) {
+                if (this.abortOnError) {
+                  throw error
+                }
+                return `${error}`
+              }
+            }
+          )
+
           try {
             const expandedText = queryString(attr.value, anchor)
             queryElem.setAttribute(attr.localName, expandedText)
@@ -189,11 +229,6 @@ export class XMLExpander extends Expander {
       return resElem.childNodes
     }
 
-    let res = ''
-    const expandedNodes = expandNode(anchor, [anchor])
-    for (const node of expandedNodes) {
-      res += slimdom.serializeToWellFormedString(node)
-    }
-    return res
+    return nodesToText(expandNode(anchor, [anchor]))
   }
 }
