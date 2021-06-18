@@ -43,7 +43,6 @@ export abstract class Expander {
   private expandPath(obj: string): void {
     const outputPath = replacePathPrefix(obj, path.join(this.input, this.path), this.output)
       .replace(Expander.templateRegex, '.')
-    debug(`Expanding ${obj} to ${outputPath}`)
     const stats = this.inputFs.statSync(obj)
     if (stats.isDirectory()) {
       fs.emptyDirSync(outputPath)
@@ -55,6 +54,7 @@ export abstract class Expander {
       files.forEach((dirent) => this.expandPath(path.join(obj, dirent.name)))
     } else {
       if (Expander.templateRegex.exec(obj)) {
+        debug(`Expanding ${obj} to ${outputPath}`)
         fs.writeFileSync(outputPath, this.expandFile(obj))
       } else if (!Expander.noCopyRegex.exec(obj)) {
         fs.copyFileSync(obj, outputPath)
