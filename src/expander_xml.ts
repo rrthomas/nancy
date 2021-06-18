@@ -22,12 +22,32 @@ const xQueryOptions: Options = {
   language: evaluateXPath.XQUERY_3_1_LANGUAGE,
 }
 
-const nodesToText = (nodes: slimdom.Node[]): string => {
+function nodesToText(nodes: slimdom.Node[]): string {
   let res = ''
   for (const node of nodes) {
     res += slimdom.serializeToWellFormedString(node)
   }
   return res
+}
+
+type XQueryResult = slimdom.Node[] | slimdom.Node | string | null
+
+function xQueryResultIsNodeArray(res: XQueryResult): res is slimdom.Node[] {
+  if (!Array.isArray(res)) {
+    return false
+  }
+  if (res.length > 0) {
+    return res[0] instanceof slimdom.Node
+  }
+  return true
+}
+
+function xQueryResultIsNode(res: XQueryResult): res is slimdom.Node {
+  return res instanceof slimdom.Node
+}
+
+function xQueryResultIsString(res: XQueryResult): res is string {
+  return typeof res === 'string' || res instanceof String
 }
 
 export class XMLExpander extends Expander {
@@ -53,31 +73,30 @@ export class XMLExpander extends Expander {
         elem.setAttributeNS(nc, 'type', 'directory')
         const dir = this.inputFs.readdirSync(obj, {withFileTypes: true})
           .filter(dirent => dirent.name[0] !== '.')
-        // FIXME: sort the names.
-        const dirs = dir.filter(dirent => dirent.isDirectory())
-        const files = dir.filter(dirent => !(dirent.isDirectory()))
+        const dirs = dir.filter(dirent => dirent.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))
+        const files = dir.filter(dirent => !(dirent.isDirectory())).sort((a, b) => a.name.localeCompare(b.name))
         dirs.forEach((dirent) => elem.appendChild(objToNode(path.join(obj, dirent.name))))
         files.forEach((dirent) => elem.appendChild(objToNode(path.join(obj, dirent.name))))
-      } else if (this.isExecutable(obj)) {
-        registerCustomXPathFunction(
-          {localName: basename, namespaceURI: nc},
-          // FIXME: 'array(xs:string)' unsupported: https://github.com/FontoXML/fontoxpath/issues/360
-          ['array(*)'], 'xs:string',
-          (_, args: string[]): string => {
-            try {
-              debug(`running ${this.input} ${obj}`)
-              return execa.sync(path.join(this.absInput, replacePathPrefix(obj, this.input)), args).stdout
-            } catch (error) {
-              if (this.abortOnError) {
-                throw error
-              }
-              return `${error}`
-            }
-          },
-        )
-        elem = xtree.createElementNS(nc, 'executable')
       } else if (stats.isFile()) {
-        if (['.xml', '.xhtml'].includes(parsedPath.ext)) {
+        if (this.isExecutable(obj)) {
+          registerCustomXPathFunction(
+            {localName: basename.replace(Expander.noCopyRegex, ''), namespaceURI: nc},
+            // FIXME: 'array(xs:string)' unsupported: https://github.com/FontoXML/fontoxpath/issues/360
+            ['array(*)'], 'xs:string',
+            (_, args: string[]): string => {
+              try {
+                debug(`running ${this.input} ${obj}`)
+                return execa.sync(path.join(this.absInput, replacePathPrefix(obj, this.input)), args).stdout
+              } catch (error) {
+                if (this.abortOnError) {
+                  throw error
+                }
+                return `${error}`
+              }
+            },
+          )
+          elem = xtree.createElementNS(nc, 'executable')
+        } else if (['.xml', '.xhtml'].includes(parsedPath.ext)) {
           const text = this.inputFs.readFileSync(obj, 'utf-8')
           const wrappedText = `<${basename}>${text}</${basename}>`
           let doc
@@ -117,16 +136,30 @@ export class XMLExpander extends Expander {
       n = n.parentNode
     ) {
       const e = n as slimdom.Element
-      filePath.unshift(e.getAttributeNS(nc, 'name'))
+      filePath.unshift(e.getAttributeNS(nc, 'name') || e.nodeName)
     }
     return filePath.join(path.sep)
   }
 
   expandFile(baseFile: string): string {
     const xQueryVariables = {
+      // FIXME: Put these variables in nc namespace.
       root: this.input,
       path: replacePathPrefix(path.dirname(baseFile), this.input)
         .replace(Expander.templateRegex, '.'),
+    }
+
+    const queryAny = (xQuery: string, node: slimdom.Node): slimdom.Node[] | string => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const res = evaluateXPath(xQuery, node, null, xQueryVariables, evaluateXPath.ANY_TYPE, xQueryOptions)
+      if (xQueryResultIsNode(res)) {
+        return [res]
+      } else if (xQueryResultIsString(res)) {
+        return res
+      } else if (xQueryResultIsNodeArray(res)) {
+        return res
+      }
+      throw new Error(`Result of query '${xQuery}' is not node list or string`)
     }
 
     // FIXME: annotate error with location
@@ -157,17 +190,22 @@ export class XMLExpander extends Expander {
     }
 
     const expandNode = (elem: slimdom.Element, stack: slimdom.Node[]): slimdom.Node[] => {
-      const findMatch = (xQuery: string): slimdom.Element => {
-        const searchXPath = `ancestor::nc:directory/${xQuery}`
-        debug(`expandNode search ${searchXPath}`)
-        const matchElems = query(searchXPath, anchor) as slimdom.Element[]
-        for (const matchElem of matchElems) {
-          if (!stack.includes(matchElem)) {
-            return matchElem
+      const findQueryMatch = (xQuery: string): slimdom.Node => {
+        const match = queryAny(xQuery, anchor)
+        if (xQueryResultIsNodeArray(match)) {
+          for (const matchElem of match) {
+            if (!stack.includes(matchElem)) {
+              return matchElem
+            }
           }
+        } else if (match !== null) {
+          return new slimdom.Text(match)
         }
         throw new Error(`${xQuery} not found for ${this.nodePath(elem)}`)
       }
+
+      const findMatch = (xQuery: string): slimdom.Node =>
+        findQueryMatch(`ancestor::nc:directory/${xQuery}`)
 
       // Copy element to be expanded, and find queries
       const resElem = elem.cloneNode(true)
@@ -178,15 +216,42 @@ export class XMLExpander extends Expander {
       for (const queryElem of queries) {
         let expandedNodes
         try {
-          const match = findMatch(queryElem.textContent ?? '')
+          const query = queryElem.textContent ?? ''
           switch (queryElem.localName) {
             case 'include':
             case 'x':
-              expandedNodes = expandNode(match, stack.concat(match))
+              {
+                const match = findMatch(query)
+                if (match.nodeType !== slimdom.Node.ELEMENT_NODE) {
+                  throw new Error(`Unexpected node type ${match.nodeType} returned for '${query}'`)
+                }
+                expandedNodes = expandNode(match as slimdom.Element, stack.concat(match))
+              }
               break
             case 'paste':
-              expandedNodes = [match]
+              {
+                const match = findMatch(query)
+                if (match.nodeType !== slimdom.Node.ELEMENT_NODE) {
+                  throw new Error(`Unexpected node type ${match.nodeType} returned for '${query}'`)
+                }
+                expandedNodes = [match]
+              }
               break
+            case 'do':
+              {
+                const match = findQueryMatch(query)
+                switch (match.nodeType) {
+                  case slimdom.Node.ELEMENT_NODE:
+                    expandedNodes = [match]
+                    break
+                  case slimdom.Node.TEXT_NODE:
+                    queryElem.textContent = match.textContent
+                    break
+                  default:
+                    throw new Error(`Unexpected node type ${match.nodeType} returned for '${query}'`)
+                }
+                break
+              }
             default:
               throw new Error('no such macro')
           }
@@ -196,7 +261,7 @@ export class XMLExpander extends Expander {
           }
           queryElem.setAttributeNS(nc, 'error', `${error}`)
         }
-        if (expandedNodes) {
+        if (expandedNodes !== undefined) {
           queryElem.replaceWith(...expandedNodes)
         }
       }
@@ -213,7 +278,7 @@ export class XMLExpander extends Expander {
             (_, query: string): string => {
               try {
                 const match = findMatch(query)
-                return nodesToText(expandNode(match, stack.concat(match)))
+                return nodesToText(expandNode(match as slimdom.Element, stack.concat(match)))
               } catch (error) {
                 if (this.abortOnError) {
                   throw error
