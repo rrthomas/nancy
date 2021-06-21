@@ -110,6 +110,7 @@ export class XMLExpander extends Expander {
         } else {
           if (/.xq[lmy]?/.test(parsedPath.ext)) {
             registerXQueryModule(this.inputFs.readFileSync(obj, 'utf-8'));
+            // FIXME: Parse namespace declaration in module?
             xQueryOptions.moduleImports = URI_BY_PREFIX
           }
           elem = xtree.createElementNS(nc, 'file')
