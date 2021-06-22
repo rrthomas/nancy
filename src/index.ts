@@ -6,7 +6,6 @@ import {link} from 'linkfs'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
 import packageJson from '../package.json'
 import {TextExpander} from './expander_text'
-import {XMLExpander} from './expander_xml'
 
 // Read and process arguments
 const parser = new ArgumentParser({
@@ -22,12 +21,6 @@ parser.add_argument('--path', {help: 'relative path to build [default: input dir
 parser.add_argument('--keep-going', {
   action: 'store_true',
   help: 'do not stop on error',
-})
-parser.add_argument('--expander', {
-  metavar: 'EXPANDER',
-  help: 'expander to use [default: %(default)s]',
-  choices: ['text', 'xml'],
-  default: 'text',
 })
 parser.add_argument('--version', {
   action: 'version',
@@ -57,19 +50,8 @@ for (const dir of inputDirs.reverse()) {
 ufs.use(fs)
 
 // Expand input
-let expander
-switch (args.expander) {
-  case 'text':
-    expander = new TextExpander(inputDir, args.output, args.path, !args.keep_going, ufs)
-    break
-  case 'xml':
-    expander = new XMLExpander(inputDir, args.output, args.path, !args.keep_going, ufs)
-    break
-  default:
-    throw new Error(`unknown expander '${args.expander}'`)
-}
 try {
-  expander.expand()
+  new TextExpander(inputDir, args.output, args.path, !args.keep_going, ufs).expand()
 } catch (error) {
   if (process.env.DEBUG) {
     console.error(error)
