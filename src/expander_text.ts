@@ -1,12 +1,11 @@
 import path from 'path'
 import which from 'which'
 import execa from 'execa'
-import {PCRE2} from 'pcre2'
 import stripFinalNewline from 'strip-final-newline'
 import {Expander, replacePathPrefix} from './expander'
 import Debug from 'debug'
 
-const debug = Debug('nancy-text')
+const debug = Debug('nancy')
 
 export class TextExpander extends Expander {
   protected expandFile(baseFile: string): string {
@@ -108,16 +107,43 @@ export class TextExpander extends Expander {
           }
         }
 
-        const re = new PCRE2(String.raw`(\\?)\$(\p{L}(?:\p{L}|\p{N}|_)+)(\{((?:[^{}]++|(?3))*)})?`, 'guE')
-        return re.replace(
-          text,
-          (_match: string, escaped: string, name: string, _args?: string, args?: string) => {
-            if (escaped === '\\') {
-              return `$${name}${_args ? _args : ''}`
+        const re = /(\\?)\$(\p{Letter}(?:\p{Letter}|\p{Number}|_)+)/gu
+        let res
+        while ((res = re.exec(text)) !== null) {
+          const escaped = res[1]
+          const name = res[2]
+          let args
+          if (text[re.lastIndex] === '{') {
+            const argsStart = re.lastIndex
+            let depth = 1
+            let nextChar
+            for (nextChar = argsStart + 1; nextChar < text.length; nextChar += 1) {
+              if (text[nextChar] === '}') {
+                depth -= 1
+                if (depth === 0) {
+                  break
+                }
+              } else if (text[nextChar] === '{') {
+                depth += 1
+              }
             }
-            return doMacro(name, args)
+            if (nextChar === text.length) {
+              throw new Error('unbalanced braces')
+            }
+            // Update re to restart matching past close brace
+            re.lastIndex = nextChar + 1
+            args = doExpand(text.slice(argsStart + 1, nextChar))
           }
-        )
+          let output
+          if (escaped !== '') {
+            output = `$${name}${args !== undefined ? `{${args}}` : ''}`
+          } else {
+            output = doMacro(name, args)
+          }
+          text = text.slice(0, res.index) + output + text.slice(re.lastIndex)
+        }
+
+        return text
       }
 
       return doExpand(text)
