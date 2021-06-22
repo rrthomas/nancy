@@ -5,7 +5,7 @@ import {ufs} from 'unionfs'
 import {link} from 'linkfs'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
 import packageJson from '../package.json'
-import {TextExpander} from './expander_text'
+import Expander from './expander'
 
 // Read and process arguments
 const parser = new ArgumentParser({
@@ -51,7 +51,7 @@ ufs.use(fs)
 
 // Expand input
 try {
-  new TextExpander(inputDir, args.output, args.path, !args.keep_going, ufs).expand()
+  new Expander(inputDir, args.output, args.path, !args.keep_going, ufs).expand()
 } catch (error) {
   if (process.env.DEBUG) {
     console.error(error)
