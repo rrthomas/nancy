@@ -12,9 +12,7 @@ or run as a command and its output included.
 
 Nancy was originally designed to build simple static web sites, but can be
 used for all sorts of other tasks, similar to more complicated systems like
-[AutoGen] and [TXR]. It supports two syntaxes: plain text, which works with
-any text files, and XML, which only works with XML documents, but adds
-XML-based functionality.
+[AutoGen] and [TXR].
 
 [AutoGen]: http://autogen.sourceforge.net
 [TXR]: http://www.nongnu.org/txr

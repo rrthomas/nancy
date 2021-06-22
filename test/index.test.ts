@@ -71,29 +71,14 @@ describe('nancy', function () {
     await checkLinks('webpage-expected', 'index.html')
   })
 
-  it('Whole-tree test (XML)', async () => {
-    await nancyTest(['--keep-going', '--expander=xml', 'webpage-xml-src'], 'webpage-xhtml-expected')
-    await checkLinks('webpage-xhtml-expected', 'index.xhtml')
-  })
-
   it('Part-tree test', async () => {
     await nancyTest(['--keep-going', 'webpage-src', '--path=people'], 'webpage-expected/people')
     await checkLinks('webpage-expected/people', 'index.html')
   })
 
-  it('Part-tree test (XML)', async () => {
-    await nancyTest(['--keep-going', '--expander=xml', 'webpage-xml-src', '--path=people'], 'webpage-xhtml-expected/people')
-    await checkLinks('webpage-xhtml-expected/people', 'index.xhtml')
-  })
-
   it('Two-tree test', async () => {
     await nancyTest(['--keep-going', 'mergetrees-src:webpage-src'], 'mergetrees-expected')
     await checkLinks('mergetrees-expected', 'index.html')
-  })
-
-  it('Two-tree test (XML)', async () => {
-    await nancyTest(['--keep-going', '--expander=xml', 'mergetrees-xml-src:webpage-xml-src'], 'mergetrees-xhtml-expected')
-    await checkLinks('mergetrees-xhtml-expected', 'index.xhtml')
   })
 
   it('Test nested macro invocations', async () => {
@@ -123,10 +108,5 @@ describe('nancy', function () {
   it('Cookbook web site example', async () => {
     await nancyTest(['cookbook-example-website-src'], 'cookbook-example-website-expected')
     await checkLinks('cookbook-example-website-expected', 'index/index.html')
-  })
-
-  it('Cookbook web site example (XML)', async () => {
-    await nancyTest(['--expander=xml', 'cookbook-example-website-xml-src'], 'cookbook-example-website-xhtml-expected')
-    await checkLinks('cookbook-example-website-xhtml-expected', 'index/index.xhtml')
   })
 })
