@@ -56,8 +56,12 @@
   "repository": "rrthomas/nancy",
   "scripts": {
     "lint": "eslint . --ext .ts",
-    "prepack": "rm -rf lib && tsc -b && npm run cookbook",
-    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
+    "prebuild": "node --print \"'export const programVersion = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts",
+    "build": "tsc --build",
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
+    "prepack": "npm run clean && npm run build && npm run cookbook",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "coverage": "NODE_ENV=coverage nyc --extension .ts npm run test",
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
     "cookbook": "./bin/run Cookbook.nancy.md Cookbook.md"
   },

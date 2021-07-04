@@ -4,7 +4,7 @@ import fs from 'fs'
 import {ufs} from 'unionfs'
 import {link} from 'linkfs'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
-import packageJson from '../package.json'
+import {programVersion} from './version'
 import expand from './expander'
 
 // Read and process arguments
@@ -24,7 +24,7 @@ parser.add_argument('--keep-going', {
 })
 parser.add_argument('--version', {
   action: 'version',
-  version: `%(prog)s ${packageJson.version}
+  version: `%(prog)s ${programVersion}
 (c) 2002-2021 Reuben Thomas <rrt@sc3d.org>
 https://github.com/rrthomas/nancy/
 Distributed under the GNU General Public License version 3, or (at
