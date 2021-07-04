@@ -9,6 +9,9 @@ import Debug from 'debug'
 
 const debug = Debug('nancy')
 
+const templateRegex = /\.nancy\.(?=\.[^.]+$)?/
+const noCopyRegex = /\.in(?=\.[^.]+$)?/
+
 function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
   if (s.startsWith(prefix + path.sep)) {
     return path.join(newPrefix, s.slice(prefix.length + path.sep.length))
@@ -18,51 +21,39 @@ function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
   return s
 }
 
-export class Expander {
-  // FIXME: arguments except input should be arguments to expand()
-  constructor(
-    private input: string,
-    private output: string,
-    private path = '',
-    private abortOnError = false,
-    private inputFs: IFS = realFs,
-  ) {}
-
-  private static templateRegex = /\.nancy\.(?=\.[^.]+$)?/
-  private static noCopyRegex = /\.in(?=\.[^.]+$)?/
-
-  private isExecutable(file: string): boolean {
+function expand(inputPath: string, outputPath: string, buildPath = '', abortOnError = false, inputFs: IFS = realFs): void {
+  const isExecutable = (file: string): boolean => {
     try {
-      this.inputFs.accessSync(file, fs.constants.X_OK)
+      inputFs.accessSync(file, fs.constants.X_OK)
       return true
     } catch {
       return false
     }
   }
 
-  private expandPath(obj: string): void {
-    const outputPath = replacePathPrefix(obj, path.join(this.input, this.path), this.output)
-      .replace(Expander.templateRegex, '.')
-    const stats = this.inputFs.statSync(obj)
+  const expandPath = (obj: string): void => {
+    const outputObj = replacePathPrefix(obj, path.join(inputPath, buildPath), outputPath)
+      .replace(templateRegex, '.')
+    const stats = inputFs.statSync(obj)
     if (stats.isDirectory()) {
-      fs.emptyDirSync(outputPath)
-      const dir = this.inputFs.readdirSync(obj, {withFileTypes: true})
+      fs.emptyDirSync(outputObj)
+      const dir = inputFs.readdirSync(obj, {withFileTypes: true})
         .filter(dirent => dirent.name[0] !== '.')
       const dirs = dir.filter(dirent => dirent.isDirectory())
       const files = dir.filter(dirent => !dirent.isDirectory())
-      dirs.forEach((dirent) => this.expandPath(path.join(obj, dirent.name)))
-      files.forEach((dirent) => this.expandPath(path.join(obj, dirent.name)))
+      dirs.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
+      files.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
     } else {
-      if (Expander.templateRegex.exec(obj)) {
-        debug(`Expanding ${obj} to ${outputPath}`)
-        fs.writeFileSync(outputPath, this.expandFile(obj))
-      } else if (!Expander.noCopyRegex.exec(obj)) {
-        fs.copyFileSync(obj, outputPath)
+      if (templateRegex.exec(obj)) {
+        debug(`Expanding ${obj} to ${outputObj}`)
+        fs.writeFileSync(outputObj, expandFile(obj))
+      } else if (!noCopyRegex.exec(obj)) {
+        fs.copyFileSync(obj, outputObj)
       }
     }
   }
 
-  private expandFile(baseFile: string): string {
+  const expandFile = (baseFile: string): string => {
     const innerExpand = (text: string, expandStack: string[]): string => {
       const doExpand = (text: string) => {
         // Search for file starting at the given path; if found return its file
@@ -75,8 +66,8 @@ export class Expander {
           }
           for (; ; search.pop()) {
             const thisSearch = search.concat(fileArray)
-            const obj = path.join(this.input, ...thisSearch)
-            if (this.inputFs.existsSync(obj)) {
+            const obj = path.join(inputPath, ...thisSearch)
+            if (inputFs.existsSync(obj)) {
               return obj
             }
             if (search.length === 0) {
@@ -88,7 +79,7 @@ export class Expander {
 
         const getFile = (leaf: string) => {
           debug(`Searching for ${leaf}`)
-          const startPath = replacePathPrefix(path.dirname(baseFile), this.input)
+          const startPath = replacePathPrefix(path.dirname(baseFile), inputPath)
           let fileOrExec
           for (const pathStack = startPath.split(path.sep); ; pathStack.pop()) {
             fileOrExec = findOnPath(pathStack, leaf)
@@ -106,10 +97,10 @@ export class Expander {
 
         const readFile = (file: string, args: string[]) => {
           let output
-          if (this.isExecutable(file)) {
+          if (isExecutable(file)) {
             output = execa.sync(file, args).stdout
           } else {
-            output = this.inputFs.readFileSync(file)
+            output = inputFs.readFileSync(file)
           }
           return output.toString('utf-8')
         }
@@ -119,9 +110,9 @@ export class Expander {
         type Macros = {[key: string]: Macro}
 
         const macros: Macros = {
-          path: () => replacePathPrefix(path.dirname(baseFile), this.input)
-            .replace(Expander.templateRegex, '.'),
-          root: () => this.input,
+          path: () => replacePathPrefix(path.dirname(baseFile), inputPath)
+            .replace(templateRegex, '.'),
+          root: () => inputPath,
           include: (...args) => {
             debug(`$include{${args.join(',')}}`)
             const file = getFile(args[0])
@@ -146,7 +137,7 @@ export class Expander {
           try {
             return macros[macro](...expandedArgs)
           } catch (error) {
-            if (this.abortOnError) {
+            if (abortOnError) {
               if (macros[macro] !== undefined) {
                 throw error
               }
@@ -203,16 +194,10 @@ export class Expander {
       return doExpand(text)
     }
 
-    return innerExpand(this.inputFs.readFileSync(baseFile, 'utf-8'), [baseFile])
+    return innerExpand(inputFs.readFileSync(baseFile, 'utf-8'), [baseFile])
   }
 
-  expand(): void {
-    const obj = path.join(this.input, this.path)
-    if (!this.inputFs.existsSync(obj)) {
-      throw new Error(`path '${this.path}' does not exist in '${this.input}'`)
-    }
-    this.expandPath(obj)
-  }
+  expandPath(path.join(inputPath, buildPath))
 }
 
-export default Expander
+export default expand
