@@ -186,6 +186,8 @@ function expand(inputPath: string, outputPath: string, buildPath = '', abortOnEr
             output = doMacro(name, args)
           }
           text = text.slice(0, res.index) + output + text.slice(re.lastIndex)
+          // Update re to restart matching after output of macro
+          re.lastIndex = res.index + output.length
         }
 
         return text
