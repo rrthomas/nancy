@@ -173,7 +173,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', abortOnEr
               }
             }
             if (nextChar === text.length) {
-              throw new Error('unbalanced braces')
+              throw new Error('missing close brace')
             }
             // Update re to restart matching past close brace
             re.lastIndex = nextChar + 1
