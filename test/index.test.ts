@@ -12,7 +12,7 @@ chai.use(chaiAsPromised)
 const expect = chai.expect
 const assert = chai.assert
 
-const nancyCmd = '../bin/run'
+const nancyCmd = process.env.NODE_ENV === 'coverage' ? '../bin/test-run' : '../bin/run'
 
 async function runNancy(args: string[]) {
   return execa(nancyCmd, args)
@@ -53,9 +53,6 @@ async function checkLinks(root: string, start: string) {
 }
 
 describe('nancy', function () {
-  // The tests are rather slow, but not likely to hang.
-  this.timeout(10000)
-
   before(function () {
     process.chdir('test')
   })
