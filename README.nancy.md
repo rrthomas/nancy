@@ -35,42 +35,25 @@ $ npm install -g @sc3d/nancy
 
 ## Invocation
 
-    usage: run [-h] [--path PATH] [--keep-going] [--version]
-               INPUT-PATH OUTPUT-DIRECTORY
-    
-    A simple templating system.
-    
-    positional arguments:
-      INPUT-PATH        desired directory list to build
-      OUTPUT-DIRECTORY  output directory
-    
-    optional arguments:
-      -h, --help        show this help message and exit
-      --path PATH       relative path to build [default: input directory]
-      --keep-going      do not stop on error
-      --version         show program's version number and exit
-    
-    The INPUT-PATH is a ':'-separated list of directories; the directories
-    are merged, with the contents of each directory taking precedence over any
-    directories to its right.
+$paste{sh,-c,./bin/run --help | build-aux/indent-preformatted}
 
 ## Operation <a name="operation"></a>
 
 Nancy builds a path given a template as follows:
 
-1. Set the initial text to `$include{TEMPLATE}`, unless `TEMPLATE` is `-`,
+1. Set the initial text to `\$include{TEMPLATE}`, unless `TEMPLATE` is `-`,
    in which case set the initial text to the contents of standard input.
 2. Scan the text for commands. Expand any arguments to the command, run each
    command, and replace the command by the result.
 3. Output the resultant text, eliding any final newline. (This last part may
    look tricky, but it almost always does what you want, and makes
-   `$include` behave better in various contexts.)
+   `\$include` behave better in various contexts.)
 
-A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`. To
+A command takes the form `\$COMMAND` or `\$COMMAND{ARGUMENT, ...}`. To
 prevent a comma from being interpreted as an argument separator, put a
 backslash in front of it:
 
-    $include{cat,I\,Robot.txt,3 Rules of Robotics.txt}
+    \$include{cat,I\,Robot.txt,3 Rules of Robotics.txt}
 
 This will run the command as if it had been typed:
 
@@ -78,26 +61,26 @@ This will run the command as if it had been typed:
 
 Similarly, a command can be treated as literal text by putting a backslash in front of it:
 
-    Now I can talk about \$paste.
+    Now I can talk about \\$paste.
 
 This will output:
 
-    Now I can talk about $paste.
+    Now I can talk about \$paste.
 
 Nancy recognises these commands:
 
-* *`$include{FILE}`* Look up the given source file; read its contents, then
+* *`\$include{FILE}`* Look up the given source file; read its contents, then
   expand them (that is, execute any commands found therein) and return the
   result.
-* *`$paste{FILE}`* Like `$include`, but does not expand its result before
+* *`\$paste{FILE}`* Like `\$include`, but does not expand its result before
   returning it.
-* *`$path`* Return the `PATH` argument.
-* *`$root`* Return the root directory.
+* *`\$path`* Return the `PATH` argument.
+* *`\$root`* Return the root directory.
 
-The last two commands are mostly useful as arguments to `$include` and
-`$paste`.
+The last two commands are mostly useful as arguments to `\$include` and
+`\$paste`.
 
-To find the source file `FILE` specified by a `$include{FILE}` command,
+To find the source file `FILE` specified by a `\$include{FILE}` command,
 Nancy proceeds thus:
 
 1. See whether `ROOT/PATH/FILE` is a file (or a symbolic link to a file). If
@@ -126,14 +109,14 @@ worked example.
 
 ### Running other programs
 
-In addition to the rules given above, Nancy also allows `$include` and
-`$paste` to take their input from programs. This can be useful in a variety
+In addition to the rules given above, Nancy also allows `\$include` and
+`\$paste` to take their input from programs. This can be useful in a variety
 of ways: to insert the current date or time, to make a calculation, or to
 convert a file to a different format.
 
 Nancy can run a program in two ways:
 
-1. If a file found by an `$include` or `$paste` command has the “execute”
+1. If a file found by an `\$include` or `\$paste` command has the “execute”
    permission, it is run.
 
 2. If no file of the given name can be found using the rules in the previous
@@ -144,12 +127,12 @@ Nancy can run a program in two ways:
    Nancy will find a file called `file.html` somewhere on the user’s `PATH`,
    since executables don’t normally end in `.html`.)
 
-In either case, arguments may be passed to the program: use `$include{FILE,
-ARGUMENT_1, ARGUMENT_2, …}`, or the equivalent for `$paste`.
+In either case, arguments may be passed to the program: use `\$include{FILE,
+ARGUMENT_1, ARGUMENT_2, …}`, or the equivalent for `\$paste`.
 
 For example, to insert the current date:
 
-    $paste{date,+%Y-%m-%d}
+    \$paste{date,+%Y-%m-%d}
 
 See the [date example](Cookbook.md#date-example) in the Cookbook for more
 detail.
