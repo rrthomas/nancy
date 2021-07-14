@@ -119,6 +119,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', abortOnEr
             const output = readFile(file, args.slice(1))
             return stripFinalNewline(innerExpand(output, expandStack.concat(file)))
           },
+          // FIXME: When called with no arguments, it pastes the current file
           paste: (...args) => {
             debug(`paste{${args.join(',')}}`)
             const file = getFile(args[0])
