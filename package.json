@@ -60,13 +60,20 @@
     "build": "tsc --build",
     "clean": "rm -rf lib tsconfig.tsbuildinfo",
     "prepack": "npm run clean && npm run build && npm run docs",
-    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "test": "npm run build && mocha --forbid-only \"test/**/*.test.ts\"",
     "coverage": "NODE_ENV=coverage nyc --extension .ts npm run test",
     "loc": "npx cloc src/*.ts",
-    "prepublishOnly": "git diff --exit-code && git push --all",
+    "diff-check": "git diff --exit-code",
+    "prepublishOnly": "npm run diff-check && git push --all",
     "postpublish": "git push --tags",
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
     "docs": "./bin/run Cookbook.nancy.md Cookbook.md && ./bin/run README.nancy.md README.md"
   },
+  "pre-commit": [
+    "lint",
+    "test",
+    "docs",
+    "diff-check"
+  ],
   "types": "lib/*.d.ts"
 }
