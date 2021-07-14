@@ -63,7 +63,8 @@
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",
     "coverage": "NODE_ENV=coverage nyc --extension .ts npm run test",
     "loc": "npx cloc src/*.ts",
-    "publish": "git diff --exit-code && git tag v$(node --print \"require('./package.json').version\") && git push --follow-tags && npm publish --access public",
+    "prepublishOnly": "git diff --exit-code && git push --all",
+    "postpublish": "git push --tags",
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
     "docs": "./bin/run Cookbook.nancy.md Cookbook.md && ./bin/run README.nancy.md README.md"
   },
