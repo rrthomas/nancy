@@ -1,6 +1,0 @@
-#!/bin/sh
-# Indent preformatted text for use in markdown
-
-# Usage: indent-preformatted < INPUT > OUTPUT
-
-sed -e 's/^\(.*\)$/    \1/'

@@ -35,24 +35,26 @@ $ npm install -g @sc3d/nancy
 
 ## Invocation
 
-    usage: run [-h] [--path PATH] [--keep-going] [--version]
-               INPUT-PATH OUTPUT-DIRECTORY
-    
-    A simple templating system.
-    
-    positional arguments:
-      INPUT-PATH        desired directory list to build
-      OUTPUT-DIRECTORY  output directory
-    
-    optional arguments:
-      -h, --help        show this help message and exit
-      --path PATH       relative path to build [default: input directory]
-      --keep-going      do not stop on error
-      --version         show program's version number and exit
-    
-    The INPUT-PATH is a ':'-separated list of directories; the directories
-    are merged, with the contents of each directory taking precedence over any
-    directories to its right.
+```
+usage: run [-h] [--path PATH] [--keep-going] [--version]
+           INPUT-PATH OUTPUT-DIRECTORY
+
+A simple templating system.
+
+positional arguments:
+  INPUT-PATH        desired directory list to build
+  OUTPUT-DIRECTORY  output directory
+
+optional arguments:
+  -h, --help        show this help message and exit
+  --path PATH       relative path to build [default: input directory]
+  --keep-going      do not stop on error
+  --version         show program's version number and exit
+
+The INPUT-PATH is a ':'-separated list of directories; the directories
+are merged, with the contents of each directory taking precedence over any
+directories to its right.
+```
 
 ## Operation <a name="operation"></a>
 
