@@ -154,8 +154,10 @@ for the logo fragment, which can refer to the larger graphic desired.
 The `breadcrumb.html` fragments, except for the top-level one, contain the
 command
 
-    $include{breadcrumb.html}
-    
+```
+$include{breadcrumb.html}
+```
+
 This makes Nancy start at the next directory up from the fragment. So for
 example, when expanding `source/places/breadcrumb.html`, it starts looking
 at `source/breadcrumb.html`. This means that the breadcrumb trail can be
