@@ -164,9 +164,10 @@ run.
 
 ## Development
 
-Check out the git repository with:
+Check out the git repository and download the dependencies with:
 
     git clone https://github.com/rrthomas/nancy
+    npm install
 
 To run the tests:
 
