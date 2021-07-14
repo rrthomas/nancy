@@ -35,7 +35,9 @@ $ npm install -g @sc3d/nancy
 
 ## Invocation
 
-$paste{sh,-c,./bin/run --help | build-aux/indent-preformatted}
+```
+$paste{./bin/run,--help}
+```
 
 ## Operation <a name="operation"></a>
 
