@@ -16,109 +16,117 @@ page, which is the default `index.html`.
 Suppose further that the web site has the following structure, where each
 line corresponds to a page:
 
-    ├── People
-    │   ├── Hilary Pilary
-    │   └── Jo Bloggs
-    ├── Places
-    │   ├── Timbuktu
-    │   └── Vladivostok
-    ├── nancy-small.png
-    ├── nancy-tiny.png
-    └── style.css
-    └── Home page
+```
+ ├── Home page
+ ├── People
+ │   ├── Hilary Pilary
+ │   ├── Jo Bloggs
+ ├── Places
+ │   ├── Timbuktu
+ │   ├── Vladivostok
+ ├── nancy-small.png
+ ├── nancy-tiny.png
+ └── style.css
+```
 
 The basic page template looks something like this:
 
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <link rel="stylesheet" type="text/css" href="$paste{path-to-root.in.sh,$path}/style.css">
-        <title>$include{title.in.txt}</title>
-      </head>
-      <body>
-        <div class="wrapper">
-          <div class="logo">$include{logo.in.html}</div>
-          <div class="breadcrumb.in"><div class="breadcrumb.in-content">$include{breadcrumb.in.html}</div></div>
-        </div>
-        <div class="wrapper">
-          <div class="menu">$include{menu.in.html}</div>
-          <div class="main">$include{main.in.html}</div>
-        </div>
-      </body>
-    </html>
+```
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="$paste{path-to-root.in.sh,$path}/style.css">
+    <title>$include{title.in.txt}</title>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="logo">$include{logo.in.html}</div>
+      <div class="breadcrumb.in"><div class="breadcrumb.in-content">$include{breadcrumb.in.html}</div></div>
+    </div>
+    <div class="wrapper">
+      <div class="menu">$include{menu.in.html}</div>
+      <div class="main">$include{main.in.html}</div>
+    </div>
+  </body>
+</html>
+```
 
 Making the menu an included file is not strictly necessary, but makes the
 template easier to read. The pages will be laid out as follows:
 
-    ├── index
-    │   └── index.html
-    ├── People
-    │   ├── Hilary Pilary
-    │   │   └── index.html
-    │   ├── index
-    │   │   └── index.html
-    │   └── Jo Bloggs
-    │       └── index.html
-    ├── Places
-    │   ├── index
-    │   │   └── index.html
-    │   ├── Timbuktu
-    │   │   └── index.html
-    │   └── Vladivostok
-    │       └── index.html
-    ├── nancy-small.png
-    ├── nancy-tiny.png
-    └── style.css
+```
+ ├── People
+ │   ├── Hilary Pilary
+ │   │   └── index.html
+ │   ├── Jo Bloggs
+ │   │   └── index.html
+ │   └── index
+ │       └── index.html
+ ├── Places
+ │   ├── Timbuktu
+ │   │   └── index.html
+ │   ├── Vladivostok
+ │   │   └── index.html
+ │   └── index
+ │       └── index.html
+ ├── index
+ │   └── index.html
+ ├── nancy-small.png
+ ├── nancy-tiny.png
+ └── style.css
+```
 
 The corresponding source files will be laid out as follows. This may look a
 little confusing at first, but note the similarity to the HTML pages, and
 hold on for the explanation!
 
-    ├── index
-    │   ├── index.nancy.html
-    │   ├── logo.in.html
-    │   ├── main.in.html
-    │   └── title.in.txt
-    ├── People
-    │   ├── Hilary Pilary
-    │   │   ├── breadcrumb.in.html
-    │   │   ├── index.nancy.html
-    │   │   ├── main.in.html
-    │   │   └── title.in.txt
-    │   ├── index
-    │   │   ├── index.nancy.html
-    │   │   ├── main.in.html
-    │   │   └── title.in.txt
-    │   ├── Jo Bloggs
-    │   │   ├── breadcrumb.in.html
-    │   │   ├── index.nancy.html
-    │   │   ├── main.in.html
-    │   │   └── title.in.txt
-    │   └── breadcrumb.in.html
-    ├── Places
-    │   ├── index
-    │   │   ├── index.nancy.html
-    │   │   ├── main.in.html
-    │   │   └── title.in.txt
-    │   ├── Timbuktu
-    │   │   ├── breadcrumb.in.html
-    │   │   ├── index.nancy.html
-    │   │   ├── main.in.html
-    │   │   └── title.in.txt
-    │   ├── Vladivostok
-    │   │   ├── breadcrumb.in.html
-    │   │   ├── index.nancy.html
-    │   │   ├── main.in.html
-    │   │   └── title.in.txt
-    │   └── breadcrumb.in.html
-    ├── breadcrumb.in.html
-    ├── logo.in.html
-    ├── menu.in.html
-    ├── nancy-small.png -> ../../logo/nancy-small.png
-    ├── nancy-tiny.png -> ../../logo/nancy-tiny.png
-    ├── path-to-root.in.sh
-    ├── style.css
-    └── template.in.html
+```
+ ├── People
+ │   ├── Hilary Pilary
+ │   │   ├── breadcrumb.in.html
+ │   │   ├── index.nancy.html
+ │   │   ├── main.in.html
+ │   │   └── title.in.txt
+ │   ├── Jo Bloggs
+ │   │   ├── breadcrumb.in.html
+ │   │   ├── index.nancy.html
+ │   │   ├── main.in.html
+ │   │   └── title.in.txt
+ │   ├── breadcrumb.in.html
+ │   └── index
+ │       ├── index.nancy.html
+ │       ├── main.in.html
+ │       └── title.in.txt
+ ├── Places
+ │   ├── Timbuktu
+ │   │   ├── breadcrumb.in.html
+ │   │   ├── index.nancy.html
+ │   │   ├── main.in.html
+ │   │   └── title.in.txt
+ │   ├── Vladivostok
+ │   │   ├── breadcrumb.in.html
+ │   │   ├── index.nancy.html
+ │   │   ├── main.in.html
+ │   │   └── title.in.txt
+ │   ├── breadcrumb.in.html
+ │   └── index
+ │       ├── index.nancy.html
+ │       ├── main.in.html
+ │       └── title.in.txt
+ ├── breadcrumb.in.html
+ ├── index
+ │   ├── index.nancy.html
+ │   ├── logo.in.html
+ │   ├── main.in.html
+ │   └── title.in.txt
+ ├── logo.in.html
+ ├── menu.in.html
+ ├── nancy-small.png
+ ├── nancy-tiny.png
+ ├── path-to-root.in.sh
+ ├── style.css
+ └── template.in.html
+```
 
 Note that there is only one menu fragment (the main menu is the same for
 every page), while each section has its own breadcrumb trail
@@ -169,23 +177,27 @@ the pages, static assets are copied into the built site.
 Given a simple page template, a timestamp can be added by using the `date`
 command with `$paste`:
 
-    # Title
-    
-    Page contents.
-    
-    --
-    
-    Last updated: $paste{date,+%Y-%m-%d}
+```
+# Title
+
+Page contents.
+
+--
+
+Last updated: $paste{date,+%Y-%m-%d}
+```
 
 This gives a result looking something like:
 
-    # Title
-    
-    Page contents.
-    
-    --
-    
-    Last updated: 2016-10-12
+```
+# Title
+
+Page contents.
+
+--
+
+Last updated: 2016-10-12
+```
 
 ## Adding code examples to Markdown
 [FIXME]: # (Explain the techniques)

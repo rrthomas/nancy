@@ -16,23 +16,31 @@ page, which is the default `index.html`.
 Suppose further that the web site has the following structure, where each
 line corresponds to a page:
 
-$paste{sh,-c,build-aux/dirtree test/cookbook-example-website-expected | build-aux/indent-preformatted | sed -e 's/\.html//g' | grep -v index}
-    └── Home page
+```
+ ├── Home page
+$paste{sh,-c,build-aux/dirtree test/cookbook-example-website-expected | sed -e 's/\.html//g' | grep -v index}
+```
 
 The basic page template looks something like this:
 
-$paste{sh,-c,build-aux/indent-preformatted < test/cookbook-example-website-src/template.in.html}
+```
+$paste{cat,test/cookbook-example-website-src/template.in.html}
+```
 
 Making the menu an included file is not strictly necessary, but makes the
 template easier to read. The pages will be laid out as follows:
 
-$paste{sh,-c,build-aux/dirtree test/cookbook-example-website-expected | build-aux/indent-preformatted}
+```
+$paste{build-aux/dirtree,test/cookbook-example-website-expected}
+```
 
 The corresponding source files will be laid out as follows. This may look a
 little confusing at first, but note the similarity to the HTML pages, and
 hold on for the explanation!
 
-$paste{sh,-c,build-aux/dirtree test/cookbook-example-website-src | build-aux/indent-preformatted}
+```
+$paste{build-aux/dirtree,test/cookbook-example-website-src}
+```
 
 Note that there is only one menu fragment (the main menu is the same for
 every page), while each section has its own breadcrumb trail
@@ -83,11 +91,15 @@ the pages, static assets are copied into the built site.
 Given a simple page template, a timestamp can be added by using the `date`
 command with `\$paste`:
 
-$paste{sh,-c,build-aux/indent-preformatted < test/page-template-with-date-src/Page.nancy.md | sed -e 's|\,--date=2016/10/12||'}
+```
+$paste{sh,-c,sed -e 's|\,--date=2016/10/12||' < test/page-template-with-date-src/Page.nancy.md}
+```
 
 This gives a result looking something like:
 
-$include{sh,-c,build-aux/indent-preformatted < test/page-template-with-date-src/Page.nancy.md}
+```
+$include{cat,test/page-template-with-date-src/Page.nancy.md}
+```
 
 ## Adding code examples to Markdown
 [FIXME]: # (Explain the techniques)
