@@ -1,7 +1,7 @@
 {
   "name": "@sc3d/nancy",
   "description": "Simple templating system",
-  "version": "7.0.0-alpha1",
+  "version": "7.0.0-alpha2",
   "author": "Reuben Thomas",
   "bin": {
     "nancy": "./bin/run"
@@ -48,7 +48,7 @@
     "node": "^14.0.0"
   },
   "files": [
-    "/bin",
+    "/bin/run",
     "/lib"
   ],
   "homepage": "https://github.com/rrthomas/nancy",
