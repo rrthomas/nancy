@@ -1,7 +1,7 @@
 {
   "name": "nancy",
   "description": "Simple templating system",
-  "version": "7.0.0",
+  "version": "7.0.0-alpha1",
   "author": "Reuben Thomas",
   "bin": {
     "nancy": "./bin/run"
