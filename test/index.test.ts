@@ -90,7 +90,7 @@ describe('nancy', function () {
     await nancyTest(['true.nancy.txt'], 'true-expected.txt')
   })
 
-  it('Executable test with in-tree executable', async () => {
+  it('Executable test', async () => {
     await nancyTest(['page-template-with-date-src'], 'page-template-with-date-expected')
   })
 
