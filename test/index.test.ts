@@ -64,17 +64,17 @@ describe('nancy', function () {
   })
 
   it('Whole-tree test', async () => {
-    await nancyTest(['--keep-going', 'webpage-src'], 'webpage-expected')
+    await nancyTest(['webpage-src'], 'webpage-expected')
     await checkLinks('webpage-expected', 'index.html')
   })
 
   it('Part-tree test', async () => {
-    await nancyTest(['--keep-going', 'webpage-src', '--path=people'], 'webpage-expected/people')
+    await nancyTest(['webpage-src', '--path=people'], 'webpage-expected/people')
     await checkLinks('webpage-expected/people', 'index.html')
   })
 
   it('Two-tree test', async () => {
-    await nancyTest(['--keep-going', 'mergetrees-src:webpage-src'], 'mergetrees-expected')
+    await nancyTest(['mergetrees-src:webpage-src'], 'mergetrees-expected')
     await checkLinks('mergetrees-expected', 'index.html')
   })
 

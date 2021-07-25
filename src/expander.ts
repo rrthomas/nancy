@@ -21,7 +21,7 @@ function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
   return s
 }
 
-function expand(inputPath: string, outputPath: string, buildPath = '', abortOnError = false, inputFs: IFS = realFs): void {
+function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: IFS = realFs): void {
   const isExecutable = (file: string): boolean => {
     try {
       inputFs.accessSync(file, fs.constants.X_OK)
@@ -135,22 +135,10 @@ function expand(inputPath: string, outputPath: string, buildPath = '', abortOnEr
             const unescapedArg = arg.replace(/\\,/g, ',') // Remove escaping backslashes
             expandedArgs.push(doExpand(unescapedArg))
           }
-          try {
-            return macros[macro](...expandedArgs)
-          } catch (error) {
-            if (abortOnError) {
-              if (macros[macro] !== undefined) {
-                throw error
-              }
-              throw new Error(`no such macro '${macro}'`)
-            }
-            // Reconstitute the call
-            let res = `$${macro}`
-            if (arg !== null) {
-              res += `{${arg}}`
-            }
-            return res
+          if (macros[macro] === undefined) {
+            throw new Error(`no such macro '${macro}'`)
           }
+          return macros[macro](...expandedArgs)
         }
 
         const re = /(\\?)\$(\p{Letter}(?:\p{Letter}|\p{Number}|_)+)/gu
