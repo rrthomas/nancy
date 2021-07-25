@@ -36,7 +36,7 @@ $ npm install -g @sc3d/nancy
 ## Invocation
 
 ```
-$paste{./bin/run,--help}
+$paste{/bin/sh,-c,./bin/run --help | sed -e 's/usage: run/nancy/'}
 ```
 
 ## Operation <a name="operation"></a>

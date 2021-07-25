@@ -36,7 +36,7 @@ $ npm install -g @sc3d/nancy
 ## Invocation
 
 ```
-usage: run [-h] [--path PATH] [--keep-going] [--version]
+nancy [-h] [--path PATH] [--keep-going] [--version]
            INPUT-PATH OUTPUT-DIRECTORY
 
 A simple templating system.
