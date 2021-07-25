@@ -18,10 +18,6 @@ const parser = new ArgumentParser({
 parser.add_argument('input', {metavar: 'INPUT-PATH', help: 'desired directory list to build'})
 parser.add_argument('output', {metavar: 'OUTPUT-DIRECTORY', help: 'output directory'})
 parser.add_argument('--path', {help: 'relative path to build [default: input directory]'})
-parser.add_argument('--keep-going', {
-  action: 'store_true',
-  help: 'do not stop on error',
-})
 parser.add_argument('--version', {
   action: 'version',
   version: `%(prog)s ${programVersion}
@@ -35,7 +31,6 @@ interface Args {
   output: string;
   path?: string;
   verbose: boolean;
-  keep_going: boolean;
   expander: string;
 }
 const args: Args = parser.parse_args() as Args
@@ -51,7 +46,7 @@ ufs.use(fs)
 
 // Expand input
 try {
-  expand(inputDir, args.output, args.path, !args.keep_going, ufs)
+  expand(inputDir, args.output, args.path, ufs)
 } catch (error) {
   if (process.env.DEBUG) {
     console.error(error)

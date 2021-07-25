@@ -36,8 +36,7 @@ $ npm install -g @sc3d/nancy
 ## Invocation
 
 ```
-nancy [-h] [--path PATH] [--keep-going] [--version]
-           INPUT-PATH OUTPUT-DIRECTORY
+nancy [-h] [--path PATH] [--version] INPUT-PATH OUTPUT-DIRECTORY
 
 A simple templating system.
 
@@ -48,7 +47,6 @@ positional arguments:
 optional arguments:
   -h, --help        show this help message and exit
   --path PATH       relative path to build [default: input directory]
-  --keep-going      do not stop on error
   --version         show program's version number and exit
 
 The INPUT-PATH is a ':'-separated list of directories; the directories
