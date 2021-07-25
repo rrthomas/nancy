@@ -27,7 +27,7 @@ report them on the project’s web page (see above for addresses).
 
 ## Installation
 
-It's easiest to install Nancy with npm:
+Install Nancy with npm (part of [Node](https://nodejs.org/en/)):
 
 ```
 $ npm install -g @sc3d/nancy
