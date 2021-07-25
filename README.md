@@ -70,19 +70,27 @@ A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`. To
 prevent a comma from being interpreted as an argument separator, put a
 backslash in front of it:
 
-    $include{cat,I\,Robot.txt,3 Rules of Robotics.txt}
+```
+$include{cat,I\,Robot.txt,3 Rules of Robotics.txt}
+```
 
 This will run the command as if it had been typed:
 
-    cat "I, Robot.txt" "3 Rules of Robotics.txt"
+```
+cat "I, Robot.txt" "3 Rules of Robotics.txt"
+```
 
 Similarly, a command can be treated as literal text by putting a backslash in front of it:
 
-    Now I can talk about \$paste.
+```
+Now I can talk about \$paste.
+```
 
 This will output:
 
-    Now I can talk about $paste.
+```
+Now I can talk about $paste.
+```
 
 Nancy recognises these commands:
 
@@ -149,7 +157,9 @@ ARGUMENT_1, ARGUMENT_2, …}`, or the equivalent for `$paste`.
 
 For example, to insert the current date:
 
-    $paste{date,+%Y-%m-%d}
+```
+$paste{date,+%Y-%m-%d}
+```
 
 See the [date example](Cookbook.md#date-example) in the Cookbook for more
 detail.
@@ -164,11 +174,15 @@ run.
 
 ## Development
 
-Check out the git repository and download the dependencies with:
+Check out the git repository and download dependencies with:
 
-    git clone https://github.com/rrthomas/nancy
-    npm install
+```
+git clone https://github.com/rrthomas/nancy
+npm install
+```
 
 To run the tests:
 
-    npm test
+```
+npm test
+```
