@@ -22,6 +22,8 @@ function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
 }
 
 function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: IFS = realFs): void {
+  const buildRoot = path.join(inputPath, buildPath)
+
   const isExecutable = (file: string): boolean => {
     try {
       inputFs.accessSync(file, fs.constants.X_OK)
@@ -32,8 +34,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: 
   }
 
   const expandPath = (obj: string): void => {
-    const outputObj = replacePathPrefix(obj, path.join(inputPath, buildPath), outputPath)
-      .replace(templateRegex, '')
+    const outputObj = replacePathPrefix(obj, buildRoot, outputPath).replace(templateRegex, '')
     const stats = inputFs.statSync(obj)
     if (stats.isDirectory()) {
       fs.emptyDirSync(outputObj)
@@ -184,7 +185,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: 
     return innerExpand(inputFs.readFileSync(baseFile, 'utf-8'), [baseFile])
   }
 
-  expandPath(path.join(inputPath, buildPath))
+  expandPath(buildRoot)
 }
 
 export default expand
