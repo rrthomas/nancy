@@ -130,47 +130,56 @@ hold on for the explanation!
 
 Note that there is only one menu fragment (the main menu is the same for
 every page), while each section has its own breadcrumb trail
-(`breadcrumb.html`), and each page has its own content
-(`main.html`).
+(`breadcrumb.in.html`), and each page has its own content
+(`main.in.html`).
 
 Now consider how Nancy builds the page whose URL is
-`places/vladivostok.html`. Assume the source files are in the directory
-`source`. According to the rules given in the
+`Places/Vladivostok/index.html`. Assume the source files are in the
+directory `source`. This page is built from
+`source/Places/Vladivostok/index.nancy.html`, whose contents is
+`$include{template.in.html}`. According to the rules given in the
 [Operation](README.md#operation) section of the manual, Nancy will look
-first for files in `source/places/vladivostok.html`, then in
-`source/places`, and finally in `source`. Hence, the actual list of files
-used to assemble the page is:
+first for files in `source/Places/Vladivostok`, then in `source/places`, and
+finally in `source`. Hence, the actual list of files used to assemble the
+page is:
 
-[FIXME]: # (Generate this list)
-* `source/template.html`
-* `source/logo.html`
-* `source/places/breadcrumb.html`
-* `source/menu.html`
-* `source/places/vladivostok.html/main.html`
+[FIXME]: # (Replace the use of agrep with something npm-able; tidy up temp directory.)
+* `source/breadcrumb.in.html`
+* `source/logo.in.html`
+* `source/menu.in.html`
+* `source/path-to-root.in.sh`
+* `source/Places/breadcrumb.in.html`
+* `source/Places/Vladivostok/breadcrumb.in.html`
+* `source/Places/Vladivostok/main.in.html`
+* `source/Places/Vladivostok/title.in.txt`
+* `source/template.in.html`
 
-For the site’s index page, the file `index.html/logo.html` will be used
-for the logo fragment, which can refer to the larger graphic desired.
+For the site’s index page, the file `index/logo.in.html` will be used for the
+logo fragment, which can refer to the larger graphic desired.
 
-The `breadcrumb.html` fragments, except for the top-level one, contain the
+The `breadcrumb.in.html` fragments, except for the top-level one, contain the
 command
 
 ```
-$include{breadcrumb.html}
+$include{breadcrumb.in.html}
 ```
 
-This makes Nancy start at the next directory up from the fragment. So for
-example, when expanding `source/places/breadcrumb.html`, it starts looking
-at `source/breadcrumb.html`. This means that the breadcrumb trail can be
-defined recursively: each `breadcrumb.html` fragment includes all those
+When expanding `source/Places/breadcrumb.in.html`, Nancy ignores that file,
+since it is already expanding it, and goes straight to
+`source/breadcrumb.in.html`. This means that the breadcrumb trail can be
+defined recursively: each `breadcrumb.in.html` fragment includes all those
 above it in the source tree.
 
-This scheme, though simple, is surprisingly flexible; this simple example
-has covered all the standard techniques for Nancy’s use.
+This scheme, though simple, is surprisingly flexible; this example has
+covered all the standard techniques for Nancy’s use.
 
 ### Building the site
 
-The site is built by running Nancy on each page. After building
-the pages, static assets are copied into the built site.
+The site is built by running Nancy on the `sources` directory:
+
+```
+nancy sources site
+```
 
 [FIXME]: # (Explain how to serve the web site dynamically.)
 
@@ -204,7 +213,7 @@ Last updated: 2016-10-12
 ## Adding code examples to Markdown
 [FIXME]: # (Explain the techniques)
 
-Look at the [source](Cookbook.md.in) for the Cookbook to see how Nancy is
+Look at the [source](Cookbook.nancy.md) for the Cookbook to see how Nancy is
 used to include example source code, and the output of other commands, such
 as directory listings.
 
