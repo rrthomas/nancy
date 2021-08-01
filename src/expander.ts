@@ -60,10 +60,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: 
         // name and contents; if not, die.
         const findOnPath = (startPath: string[], file: string) => {
           const search = [...startPath]
-          const fileArray = file.split(path.sep)
-          for (; fileArray[0] === '..'; fileArray.shift()) {
-            search.pop()
-          }
+          const fileArray = path.normalize(file).split(path.sep)
           for (; ; search.pop()) {
             const thisSearch = search.concat(fileArray)
             const obj = path.join(inputPath, ...thisSearch)
