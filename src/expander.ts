@@ -9,8 +9,8 @@ import Debug from 'debug'
 
 const debug = Debug('nancy')
 
-const templateRegex = /\.nancy\.(?=\.[^.]+$)?/
-const noCopyRegex = /\.in(?=\.[^.]+$)?/
+const templateRegex = /\.nancy(?=\.[^.]+$|$)/
+const noCopyRegex = /\.in(?=\.[^.]+$|$)/
 
 function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
   if (s.startsWith(prefix + path.sep)) {
@@ -33,7 +33,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: 
 
   const expandPath = (obj: string): void => {
     const outputObj = replacePathPrefix(obj, path.join(inputPath, buildPath), outputPath)
-      .replace(templateRegex, '.')
+      .replace(templateRegex, '')
     const stats = inputFs.statSync(obj)
     if (stats.isDirectory()) {
       fs.emptyDirSync(outputObj)
@@ -110,8 +110,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: 
         type Macros = {[key: string]: Macro}
 
         const macros: Macros = {
-          path: () => replacePathPrefix(path.dirname(baseFile), inputPath)
-            .replace(templateRegex, '.'),
+          path: () => replacePathPrefix(path.dirname(baseFile), inputPath),
           root: () => inputPath,
           include: (...args) => {
             debug(`$include{${args.join(',')}}`)
