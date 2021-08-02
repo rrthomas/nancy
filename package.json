@@ -62,7 +62,7 @@
     "clean": "rm -rf lib tsconfig.tsbuildinfo",
     "prepack": "npm run clean && npm run build && npm run docs",
     "test": "npm run build && mocha --forbid-only \"test/**/*.test.ts\"",
-    "coverage": "NODE_ENV=coverage nyc --extension .ts npm run test",
+    "coverage": "NODE_ENV=coverage nyc --extension .ts npm test",
     "loc": "npx cloc src/*.ts",
     "diff-check": "git diff --exit-code",
     "prepublishOnly": "npm run diff-check && git push --all",
