@@ -1,5 +1,7 @@
 import fs from 'fs-extra'
 import realFs from 'fs'
+import {link} from 'linkfs'
+import {IUnionFs, Union} from 'unionfs'
 import {IFS} from 'unionfs/lib/fs'
 import path from 'path'
 import which from 'which'
@@ -21,8 +23,23 @@ function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
   return s
 }
 
-function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: IFS = realFs): void {
-  const buildRoot = path.join(inputPath, buildPath)
+// Merge input directories, left as highest-priority
+export function unionFs(inputDirs_: string[]): IUnionFs {
+  const inputDirs = [...inputDirs_]
+  const inputDir = inputDirs.shift()
+  if (inputDir === undefined) {
+    throw new Error('input path must not be empty')
+  }
+  const ufs = new Union;
+  for (const dir of inputDirs.reverse()) {
+    ufs.use(link(fs, [inputDir, dir]))
+  }
+  ufs.use(realFs)
+  return ufs
+}
+
+function expand(inputDir: string, outputPath: string, buildPath = '', inputFs: IFS = realFs): void {
+  const buildRoot = path.join(inputDir, buildPath)
 
   const isExecutable = (file: string): boolean => {
     try {
@@ -64,7 +81,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: 
           const fileArray = path.normalize(file).split(path.sep)
           for (; ; search.pop()) {
             const thisSearch = search.concat(fileArray)
-            const obj = path.join(inputPath, ...thisSearch)
+            const obj = path.join(inputDir, ...thisSearch)
             if (inputFs.existsSync(obj)) {
               return obj
             }
@@ -77,7 +94,7 @@ function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: 
 
         const getFile = (leaf: string) => {
           debug(`Searching for ${leaf}`)
-          const startPath = replacePathPrefix(path.dirname(baseFile), inputPath)
+          const startPath = replacePathPrefix(path.dirname(baseFile), inputDir)
           let fileOrExec
           for (const pathStack = startPath.split(path.sep); ; pathStack.pop()) {
             fileOrExec = findOnPath(pathStack, leaf)
@@ -108,8 +125,8 @@ function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: 
         type Macros = {[key: string]: Macro}
 
         const macros: Macros = {
-          path: () => replacePathPrefix(path.dirname(baseFile), inputPath),
-          root: () => inputPath,
+          path: () => replacePathPrefix(path.dirname(baseFile), inputDir),
+          root: () => inputDir,
           include: (...args) => {
             debug(`$include{${args.join(',')}}`)
             const file = getFile(args[0])
