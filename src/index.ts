@@ -1,11 +1,7 @@
-import assert from 'assert'
 import path from 'path'
-import fs from 'fs'
-import {ufs} from 'unionfs'
-import {link} from 'linkfs'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
 import {programVersion} from './version'
-import expand from './expander'
+import expand, {unionFs} from './expander'
 
 // Read and process arguments
 const parser = new ArgumentParser({
@@ -35,18 +31,10 @@ interface Args {
 }
 const args: Args = parser.parse_args() as Args
 
-// Merge input directories, left as highest-priority
-const inputDirs = args.input.split(path.delimiter)
-const inputDir = inputDirs.shift()
-assert(inputDir !== undefined)
-for (const dir of inputDirs.reverse()) {
-  ufs.use(link(fs, [inputDir, dir]))
-}
-ufs.use(fs)
-
 // Expand input
+const inputDirs = args.input.split(path.delimiter)
 try {
-  expand(inputDir, args.output, args.path, ufs)
+  expand(inputDirs[0], args.output, args.path, unionFs(inputDirs))
 } catch (error) {
   if (process.env.DEBUG) {
     console.error(error)
