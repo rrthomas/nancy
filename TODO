@@ -1,5 +1,3 @@
-Package as CLI plus two expander modules, plus base module.
-
 Look at Leo @clean
 
 Add support for patches with diff. This is an alternative to Nancy syntax for files that can't be edited, and must be used as pristine sources.
