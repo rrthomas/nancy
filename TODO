@@ -1,5 +1,3 @@
-Run most tests via the module only, and have specific tests for various possible invocations of the front end.
-
 Re-ensure that the tests have 100% coverage.
 
 Look at Leo @clean
