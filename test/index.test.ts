@@ -8,6 +8,8 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import {check} from 'linkinator'
 
+import {expand, unionFs} from '../src/index'
+
 chai.use(chaiAsPromised)
 const expect = chai.expect
 const assert = chai.assert
@@ -35,11 +37,22 @@ function diffsetDiffsOnly(diffSet: Difference[]): Difference[] {
   return diffSet.filter((diff) => diff.state !== 'equal')
 }
 
-async function nancyTest(args: string[], expected: string) {
-  const outputDir = directory()
-  const outputObj = path.join(outputDir, 'output')
+async function nancyTest(inputPath: string, expected: string, buildPath?: string) {
+  let outputDir = directory()
+  let outputObj = path.join(outputDir, 'output')
+  const args = [inputPath]
+  if (buildPath) {
+    args.push(`--path=${buildPath}`)
+  }
   args.push(outputObj)
   await runNancy(args)
+  assertFileObjEqual(outputObj, expected)
+  fs.rmdirSync(outputDir, {recursive: true})
+
+  outputDir = directory()
+  outputObj = path.join(outputDir, 'output')
+  const inputDirs = inputPath.split(path.delimiter)
+  expand(inputDirs[0], outputObj, buildPath, unionFs(inputDirs))
   assertFileObjEqual(outputObj, expected)
   fs.rmdirSync(outputDir, {recursive: true})
 }
@@ -67,22 +80,22 @@ describe('nancy', function () {
   })
 
   it('Whole-tree test', async () => {
-    await nancyTest(['webpage-src'], 'webpage-expected')
+    await nancyTest('webpage-src', 'webpage-expected')
     await checkLinks('webpage-expected', 'index.html')
   })
 
   it('Part-tree test', async () => {
-    await nancyTest(['webpage-src', '--path=people'], 'webpage-expected/people')
+    await nancyTest('webpage-src', 'webpage-expected/people', 'people')
     await checkLinks('webpage-expected/people', 'index.html')
   })
 
   it('Two-tree test', async () => {
-    await nancyTest(['mergetrees-src:webpage-src'], 'mergetrees-expected')
+    await nancyTest('mergetrees-src:webpage-src', 'mergetrees-expected')
     await checkLinks('mergetrees-expected', 'index.html')
   })
 
   it('Test nested macro invocations', async () => {
-    await nancyTest(['nested-macro-src'], 'nested-macro-expected')
+    await nancyTest('nested-macro-src', 'nested-macro-expected')
   })
 
   it('Failing executable test', async () => {
@@ -90,23 +103,23 @@ describe('nancy', function () {
   })
 
   it('Passing executable test', async () => {
-    await nancyTest(['true.nancy.txt'], 'true-expected.txt')
+    await nancyTest('true.nancy.txt', 'true-expected.txt')
   })
 
   it('Executable test', async () => {
-    await nancyTest(['page-template-with-date-src'], 'page-template-with-date-expected')
+    await nancyTest('page-template-with-date-src', 'page-template-with-date-expected')
   })
 
   it('Test that macros aren\'t expanded in Nancy\'s command-line arguments', async () => {
-    await nancyTest(['$path-src'], '$path-expected')
+    await nancyTest('$path-src', '$path-expected')
   })
 
   it('Test that $paste doesn\'t expand macros', async () => {
-    await nancyTest(['paste-src'], 'paste-expected')
+    await nancyTest('paste-src', 'paste-expected')
   })
 
   it('Cookbook web site example', async () => {
-    await nancyTest(['cookbook-example-website-src'], 'cookbook-example-website-expected')
+    await nancyTest('cookbook-example-website-src', 'cookbook-example-website-expected')
     await checkLinks('cookbook-example-website-expected', 'index/index.html')
   })
 })
