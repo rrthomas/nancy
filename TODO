@@ -1,3 +1,7 @@
+Run most tests via the module only, and have specific tests for various possible invocations of the front end.
+
+Re-ensure that the tests have 100% coverage.
+
 Look at Leo @clean
 
 Add support for patches with diff. This is an alternative to Nancy syntax for files that can't be edited, and must be used as pristine sources.
