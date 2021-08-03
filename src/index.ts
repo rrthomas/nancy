@@ -61,13 +61,15 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
       const files = dir.filter(dirent => !dirent.isDirectory())
       dirs.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
       files.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
-    } else {
+    } else if (stats.isFile()) {
       if (templateRegex.exec(obj)) {
         debug(`Expanding ${obj} to ${outputObj}`)
         fs.writeFileSync(outputObj, expandFile(obj))
       } else if (!noCopyRegex.exec(obj)) {
         fs.copyFileSync(obj, outputObj)
       }
+    } else {
+      throw new Error(`'${obj}' is not a directory or file`)
     }
   }
 
