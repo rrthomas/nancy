@@ -24,18 +24,12 @@ function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
 }
 
 // Merge input directories, left as highest-priority
-export function unionFs(inputDirs_: string[]): IUnionFs {
-  const inputDirs = [...inputDirs_]
-  const inputDir = inputDirs.shift()
-  if (inputDir === undefined) {
-    throw new Error('input path must not be empty')
-  }
+export function unionFs(dirs: string[]): IUnionFs {
   const ufs = new Union;
-  for (const dir of inputDirs.reverse()) {
-    ufs.use(link(fs, [inputDir, dir]))
+  for (const dir of dirs.slice(1).reverse()) {
+    ufs.use(link(fs, [dirs[0], dir]))
   }
-  ufs.use(realFs)
-  return ufs
+  return ufs.use(realFs)
 }
 
 export function expand(inputDir: string, outputPath: string, buildPath = '', inputFs: IFS = realFs): void {
@@ -152,7 +146,7 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
             expandedArgs.push(doExpand(unescapedArg))
           }
           if (macros[macro] === undefined) {
-            throw new Error(`no such macro '${macro}'`)
+            throw new Error(`no such macro '$${macro}'`)
           }
           return macros[macro](...expandedArgs)
         }

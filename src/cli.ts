@@ -32,9 +32,12 @@ interface Args {
 const args: Args = parser.parse_args() as Args
 
 // Expand input
-const inputDirs = args.input.split(path.delimiter)
 try {
-  expand(inputDirs[0], args.output, args.path, unionFs(inputDirs))
+  if (args.input === '') {
+    throw new Error('input path must not be empty')
+  }
+  const inputDirs = args.input.split(path.delimiter)
+    expand(inputDirs[0], args.output, args.path, unionFs(inputDirs))
 } catch (error) {
   if (process.env.DEBUG) {
     console.error(error)

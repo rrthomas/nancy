@@ -38,11 +38,16 @@ function diffsetDiffsOnly(diffSet: Difference[]): Difference[] {
   return diffSet.filter((diff) => diff.state !== 'equal')
 }
 
-function nancyTest(inputPath: string, expected: string, buildPath?: string) {
+function nancyTest(inputDirs: string[], expected: string, buildPath?: string) {
   const outputDir = directory()
   const outputObj = path.join(outputDir, 'output')
-  const inputDirs = inputPath.split(path.delimiter)
-  expand(inputDirs[0], outputObj, buildPath, unionFs(inputDirs))
+  if (inputDirs.length > 1) {
+    expand(inputDirs[0], outputObj, buildPath, unionFs(inputDirs))
+  } else if (buildPath !== undefined) {
+    expand(inputDirs[0], outputObj, buildPath)
+  } else {
+    expand(inputDirs[0], outputObj)
+  }
   assertFileObjEqual(outputObj, expected)
   fs.rmdirSync(outputDir, {recursive: true})
 }
@@ -65,27 +70,27 @@ describe('nancy', function () {
 
   // Module tests
   it('Whole-tree test', async () => {
-    nancyTest('webpage-src', 'webpage-expected')
+    nancyTest(['webpage-src'], 'webpage-expected')
     await checkLinks('webpage-expected', 'index.html')
   })
 
   it('Part-tree test', async () => {
-    nancyTest('webpage-src', 'webpage-expected/people', 'people')
+    nancyTest(['webpage-src'], 'webpage-expected/people', 'people')
     await checkLinks('webpage-expected/people', 'index.html')
   })
 
   it('Two-tree test', async () => {
-    nancyTest('mergetrees-src:webpage-src', 'mergetrees-expected')
+    nancyTest(['mergetrees-src', 'webpage-src'], 'mergetrees-expected')
     await checkLinks('mergetrees-expected', 'index.html')
   })
 
   it('Test nested macro invocations', () => {
-    nancyTest('nested-macro-src', 'nested-macro-expected')
+    nancyTest(['nested-macro-src'], 'nested-macro-expected')
   })
 
   it('Failing executable test', () => {
     try {
-      nancyTest('false.nancy.txt', 'dummy')
+      nancyTest(['false.nancy.txt'], 'dummy')
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(error.message).to.contain('Command failed with exit code 1')
@@ -93,24 +98,77 @@ describe('nancy', function () {
   })
 
   it('Passing executable test', () => {
-    nancyTest('true.nancy.txt', 'true-expected.txt')
+    nancyTest(['true.nancy.txt'], 'true-expected.txt')
   })
 
   it('Executable test', () => {
-    nancyTest('page-template-with-date-src', 'page-template-with-date-expected')
+    nancyTest(['page-template-with-date-src'], 'page-template-with-date-expected')
   })
 
   it('Test that macros aren\'t expanded in Nancy\'s command-line arguments', () => {
-    nancyTest('$path-src', '$path-expected')
+    nancyTest(['$path-src'], '$path-expected')
   })
 
   it('Test that $paste doesn\'t expand macros', () => {
-    nancyTest('paste-src', 'paste-expected')
+    nancyTest(['paste-src'], 'paste-expected')
+  })
+
+  it('Test escaping a macro without arguments', () => {
+    nancyTest(['escaped-path-src'], 'escaped-path-expected')
+  })
+
+  it('Test escaping a macro with arguments', () => {
+    nancyTest(['escaped-include-src'], 'escaped-include-expected')
   })
 
   it('Cookbook web site example', async () => {
-    nancyTest('cookbook-example-website-src', 'cookbook-example-website-expected')
+    nancyTest(['cookbook-example-website-src'], 'cookbook-example-website-expected')
     await checkLinks('cookbook-example-website-expected', 'index/index.html')
+  })
+
+  it('Empty input path should cause an error', () => {
+    try {
+      nancyTest([], 'dummy')
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(error.message).to.contain('The "path" argument must be of type string.')
+    }
+  })
+
+  it('A non-existent input path should cause an error', () => {
+    try {
+      nancyTest(['a'], 'b')
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(error.message).to.contain('no such file or directory')
+    }
+  })
+
+  it('$include-ing a non-existent file should give an error', () => {
+    try {
+      nancyTest(['missing-include.nancy.txt'], 'dummy')
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(error.message).to.contain('cannot find \'foo\'')
+    }
+  })
+
+  it('Calling an undefined macro should give an error', () => {
+    try {
+      nancyTest(['undefined-macro.nancy.txt'], 'dummy')
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(error.message).to.contain('no such macro \'$foo\'')
+    }
+  })
+
+  it('A macro call with a missing close brace should give an error', () => {
+    try {
+      nancyTest(['missing-close-brace.nancy.txt'], 'dummy')
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(error.message).to.contain('missing close brace')
+    }
   })
 
   // CLI tests
@@ -129,7 +187,7 @@ describe('nancy', function () {
     }
   })
 
-  it('--foo should cause an error', async () => {
+  it('Invalid command-line argument should cause an error', async () => {
     try {
       await runNancy(['--foo', 'a', 'b'])
     } catch (error) {
@@ -147,15 +205,6 @@ describe('nancy', function () {
       expect(error.stderr).to.contain('no such file or directory')
     }
     delete process.env.DEBUG
-  })
-
-  it('Running on a non-existent path should cause an error', async () => {
-    try {
-      await runNancy(['a', 'b'])
-    } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(error.stderr).to.contain('no such file or directory')
-    }
   })
 
   it('Running on something not a directory or file should cause an error', async () => {
@@ -178,6 +227,15 @@ describe('nancy', function () {
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(error.stderr).to.contain('no such file or directory')
+    }
+  })
+
+  it('Empty INPUT-PATH should cause an error', async () => {
+    try {
+      await runNancy(['', 'dummy'])
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(error.message).to.contain('input path must not be empty')
     }
   })
 })
