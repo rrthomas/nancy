@@ -113,6 +113,24 @@ describe('nancy', function () {
     nancyTest(['paste-src'], 'paste-expected')
   })
 
+  it('Test that $include with no arguments gives an error', () => {
+    try {
+      nancyTest(['include-no-arg.nancy.txt'], 'true-expected.txt')
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(error.message).to.contain('$include expects at least one argument')
+    }
+  })
+
+  it('Test that $paste with no arguments gives an error', () => {
+    try {
+      nancyTest(['paste-no-arg.nancy.txt'], 'true-expected.txt')
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(error.message).to.contain('$paste expects at least one argument')
+    }
+  })
+
   it('Test escaping a macro without arguments', () => {
     nancyTest(['escaped-path-src'], 'escaped-path-expected')
   })

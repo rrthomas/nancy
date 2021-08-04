@@ -125,13 +125,18 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
           root: () => inputDir,
           include: (...args) => {
             debug(`$include{${args.join(',')}}`)
+            if (args.length < 1) {
+              throw new Error('$include expects at least one argument')
+            }
             const file = getFile(args[0])
             const output = readFile(file, args.slice(1))
             return stripFinalNewline(innerExpand(output, expandStack.concat(file)))
           },
-          // FIXME: When called with no arguments, it pastes the current file
           paste: (...args) => {
             debug(`paste{${args.join(',')}}`)
+            if (args.length < 1) {
+              throw new Error('$paste expects at least one argument')
+            }
             const file = getFile(args[0])
             const output = readFile(file, args.slice(1))
             return stripFinalNewline(output)
@@ -139,7 +144,7 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
         }
 
         const doMacro = (macro: string, arg?: string) => {
-          const args = (arg || '').split(/(?<!\\),/)
+          const args = (arg !== undefined) ? arg.split(/(?<!\\),/) : []
           const expandedArgs: string[] = []
           for (const arg of args) {
             const unescapedArg = arg.replace(/\\,/g, ',') // Remove escaping backslashes
