@@ -68,7 +68,7 @@
     "prepublishOnly": "npm run diff-check && git push --all",
     "postpublish": "git push --tags",
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
-    "docs": "./bin/run Cookbook.nancy.md Cookbook.md && ./bin/run README.nancy.md README.md"
+    "docs": "./bin/run README.nancy.md README.md && ./bin/run Cookbook.nancy.md Cookbook.md"
   },
   "pre-commit": [
     "lint",
