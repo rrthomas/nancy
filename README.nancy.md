@@ -20,7 +20,7 @@ used for all sorts of other tasks, similar to more complicated systems like
 Nancy is free software, licensed under the GNU GPL version 3 (or, at your
 option, any later version), and written in TypeScript.
 
-See the [Cookbook](Cookbook.md) for instructions and examples.
+See the [Cookbook](Cookbook.md) for examples.
 
 Please send questions, comments, and bug reports to the maintainer, or
 report them on the project’s web page (see above for addresses).
@@ -45,7 +45,8 @@ Nancy starts by combining the list of directories given as its _input path_.
 If the same file or directory exists in more than one of the directories on
 the input path, the left-most takes precedence.
 
-Nancy then creates the output directory, deleting its contents if it already existed.
+Nancy then creates the output directory, deleting its contents if it already
+existed.
 
 Next, Nancy traverses the resulting directory tree, or the subdirectory
 given by the `--path` argument, if any.
