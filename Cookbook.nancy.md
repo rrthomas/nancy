@@ -91,7 +91,7 @@ nancy sources site
 
 ## Adding a date to a template using a program <a name="date-example"></a>
 
-Given a simple page template, a timestamp can be added by using the `date`
+Given a simple page template, a datestamp can be added by using the `date`
 command with `\$paste`:
 
 ```
