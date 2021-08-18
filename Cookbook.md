@@ -24,9 +24,6 @@ line corresponds to a page:
  ├── Places
  │   ├── Timbuktu
  │   ├── Vladivostok
- ├── nancy-small.png
- ├── nancy-tiny.png
- └── style.css
 ```
 
 The basic page template looks something like this:

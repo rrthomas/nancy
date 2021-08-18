@@ -18,7 +18,7 @@ line corresponds to a page:
 
 ```
  ├── Home page
-$paste{sh,-c,build-aux/dirtree test/cookbook-example-website-expected | sed -e 's/\.html//g' | grep -v index}
+$paste{sh,-c,build-aux/dirtree test/cookbook-example-website-expected | sed -e 's/\.html//g' | grep -v index | grep -v \\.}
 ```
 
 The basic page template looks something like this:
