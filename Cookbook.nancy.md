@@ -11,7 +11,7 @@ Suppose a web site has the following page design:
 
 Most of the elements are the same on each page, but the breadcrumb trail has
 to show the canonical path to each page, and the logo is bigger on the home
-page, which is the default `index.html`.
+page, which is `index/index.html`.
 
 Suppose further that the web site has the following structure, where each
 line corresponds to a page:
