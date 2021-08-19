@@ -51,7 +51,7 @@ Now consider how Nancy builds the page whose URL is
 `Places/Vladivostok/index.html`. Assume the source files are in the
 directory `source`. This page is built from
 `source/Places/Vladivostok/index.nancy.html`, whose contents is
-`\$include{template.in.html}`. According to the rules given in the
+`$paste{cat,test/cookbook-example-website-src/Places/Vladivostok/index.nancy.html}`. According to the rules given in the
 [Operation](README.md#operation) section of the manual, Nancy will look
 first for files in `source/Places/Vladivostok`, then in `source/places`, and
 finally in `source`. Hence, the actual list of files used to assemble the
