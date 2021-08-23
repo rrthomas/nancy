@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import net from 'net'
 import execa from 'execa'
-import tempy, {directory} from 'tempy'
+import tempy from 'tempy'
 import {compareSync, Difference} from 'dir-compare'
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
@@ -39,7 +39,7 @@ function diffsetDiffsOnly(diffSet: Difference[]): Difference[] {
 }
 
 function test(inputDirs: string[], expected: string, buildPath?: string) {
-  const outputDir = directory()
+  const outputDir = tempy.directory()
   const outputObj = path.join(outputDir, 'output')
   if (inputDirs.length > 1) {
     expand(inputDirs[0], outputObj, buildPath, unionFs(inputDirs))
