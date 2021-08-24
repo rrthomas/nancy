@@ -73,7 +73,7 @@ template easier to read. The pages will be laid out as follows:
  └── style.css
 ```
 
-The corresponding source files will be laid out as follows. This may look a
+The corresponding source files are laid out as follows. This may look a
 little confusing at first, but note the similarity to the HTML pages, and
 hold on for the explanation!
 
