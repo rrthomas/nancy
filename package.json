@@ -14,7 +14,7 @@
     "fs-extra": "^10.0.0",
     "linkfs": "^2.1.0",
     "strip-final-newline": "^2.0.0",
-    "tslib": "^1.14.1",
+    "tslib": "^2.3.1",
     "unionfs": "^4.4.0",
     "which": "^2.0.2"
   },
@@ -25,7 +25,7 @@
     "@types/chai-as-promised": "^7.1.4",
     "@types/debug": "^4.1.7",
     "@types/fs-extra": "^9.0.12",
-    "@types/mocha": "^8.2.3",
+    "@types/mocha": "^9.0.0",
     "@types/node": "^14.17.11",
     "@types/which": "^2.0.1",
     "@typescript-eslint/eslint-plugin": "^4.29.3",
@@ -38,12 +38,12 @@
     "eslint-config-airbnb-typescript": "^14.0.0",
     "eslint-plugin-import": "^2.24.2",
     "linkinator": "rrthomas/linkinator",
-    "mocha": "^8.3.2",
+    "mocha": "^9.1.0",
     "nyc": "^15.1.0",
-    "open-cli": "^6.0.1",
+    "open-cli": "^7.0.0",
     "pre-commit": "^1.2.2",
     "tempy": "^1.0.1",
-    "ts-node": "^9.1.1",
+    "ts-node": "^10.2.1",
     "typescript": "^4.3.5"
   },
   "engines": {
