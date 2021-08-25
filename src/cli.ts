@@ -1,15 +1,16 @@
 import path from 'path'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
-import {programVersion} from './version'
+import programVersion from './version'
+// eslint-disable-next-line import/no-named-as-default
 import expand, {unionFs} from './index'
 
 // Read and process arguments
 const parser = new ArgumentParser({
   description: 'A simple templating system.',
   formatter_class: RawDescriptionHelpFormatter,
-  epilog: `The INPUT-PATH is a '${path.delimiter}'-separated list of directories; the directories\n` +
-    'are merged, with the contents of each directory taking precedence over any\n' +
-    'directories to its right.',
+  epilog: `The INPUT-PATH is a '${path.delimiter}'-separated list of directories; the directories\n`
+    + 'are merged, with the contents of each directory taking precedence over any\n'
+    + 'directories to its right.',
 })
 parser.add_argument('input', {metavar: 'INPUT-PATH', help: 'desired directory list to build'})
 parser.add_argument('output', {metavar: 'OUTPUT-DIRECTORY', help: 'output directory'})
@@ -37,7 +38,7 @@ try {
     throw new Error('input path must not be empty')
   }
   const inputDirs = args.input.split(path.delimiter)
-    expand(inputDirs[0], args.output, args.path, unionFs(inputDirs))
+  expand(inputDirs[0], args.output, args.path, unionFs(inputDirs))
 } catch (error) {
   if (process.env.DEBUG) {
     console.error(error)

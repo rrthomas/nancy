@@ -17,7 +17,8 @@ const noCopyRegex = /\.in(?=\.[^.]+$|$)/
 function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
   if (s.startsWith(prefix + path.sep)) {
     return path.join(newPrefix, s.slice(prefix.length + path.sep.length))
-  } else if (s === prefix) {
+  }
+  if (s === prefix) {
     return newPrefix
   }
   return s
@@ -25,7 +26,7 @@ function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
 
 // Merge input directories, left as highest-priority
 export function unionFs(dirs: string[]): IUnionFs {
-  const ufs = new Union;
+  const ufs = new Union();
   for (const dir of dirs.slice(1).reverse()) {
     ufs.use(link(fs, [dirs[0], dir]))
   }
@@ -41,29 +42,6 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
       return true
     } catch {
       return false
-    }
-  }
-
-  const expandPath = (obj: string): void => {
-    const outputObj = replacePathPrefix(obj, buildRoot, outputPath).replace(templateRegex, '')
-    const stats = inputFs.statSync(obj)
-    if (stats.isDirectory()) {
-      fs.emptyDirSync(outputObj)
-      const dir = inputFs.readdirSync(obj, {withFileTypes: true})
-        .filter(dirent => dirent.name[0] !== '.')
-      const dirs = dir.filter(dirent => dirent.isDirectory())
-      const files = dir.filter(dirent => !dirent.isDirectory())
-      dirs.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
-      files.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
-    } else if (stats.isFile()) {
-      if (templateRegex.exec(obj)) {
-        debug(`Expanding ${obj} to ${outputObj}`)
-        fs.writeFileSync(outputObj, expandFile(obj))
-      } else if (!noCopyRegex.exec(obj)) {
-        fs.copyFileSync(obj, outputObj)
-      }
-    } else {
-      throw new Error(`'${obj}' is not a directory or file`)
     }
   }
 
@@ -94,7 +72,10 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
           let fileOrExec
           for (const pathStack = startPath.split(path.sep); ; pathStack.pop()) {
             fileOrExec = findOnPath(pathStack, leaf)
-            if (fileOrExec === undefined || !expandStack.includes(fileOrExec) || pathStack.length === 0) {
+            if (fileOrExec === undefined
+              || !expandStack.includes(fileOrExec)
+              || pathStack.length === 0
+            ) {
               break
             }
           }
@@ -158,30 +139,31 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
 
         const re = /(\\?)\$(\p{Letter}(?:\p{Letter}|\p{Number}|_)+)/gu
         let res
-        while ((res = re.exec(text)) !== null) {
+        let expanded = text
+        while ((res = re.exec(expanded)) !== null) {
           const escaped = res[1]
           const name = res[2]
           let args
-          if (text[re.lastIndex] === '{') {
+          if (expanded[re.lastIndex] === '{') {
             const argsStart = re.lastIndex
             let depth = 1
             let nextChar
-            for (nextChar = argsStart + 1; nextChar < text.length; nextChar += 1) {
-              if (text[nextChar] === '}') {
+            for (nextChar = argsStart + 1; nextChar < expanded.length; nextChar += 1) {
+              if (expanded[nextChar] === '}') {
                 depth -= 1
                 if (depth === 0) {
                   break
                 }
-              } else if (text[nextChar] === '{') {
+              } else if (expanded[nextChar] === '{') {
                 depth += 1
               }
             }
-            if (nextChar === text.length) {
+            if (nextChar === expanded.length) {
               throw new Error('missing close brace')
             }
             // Update re to restart matching past close brace
             re.lastIndex = nextChar + 1
-            args = doExpand(text.slice(argsStart + 1, nextChar))
+            args = doExpand(expanded.slice(argsStart + 1, nextChar))
           }
           let output
           if (escaped !== '') {
@@ -189,18 +171,41 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
           } else {
             output = doMacro(name, args)
           }
-          text = text.slice(0, res.index) + output + text.slice(re.lastIndex)
+          expanded = expanded.slice(0, res.index) + output + expanded.slice(re.lastIndex)
           // Update re to restart matching after output of macro
           re.lastIndex = res.index + output.length
         }
 
-        return text
+        return expanded
       }
 
       return doExpand(text)
     }
 
     return innerExpand(inputFs.readFileSync(baseFile, 'utf-8'), [baseFile])
+  }
+
+  const expandPath = (obj: string): void => {
+    const outputObj = replacePathPrefix(obj, buildRoot, outputPath).replace(templateRegex, '')
+    const stats = inputFs.statSync(obj)
+    if (stats.isDirectory()) {
+      fs.emptyDirSync(outputObj)
+      const dir = inputFs.readdirSync(obj, {withFileTypes: true})
+        .filter((dirent) => dirent.name[0] !== '.')
+      const dirs = dir.filter((dirent) => dirent.isDirectory())
+      const files = dir.filter((dirent) => !dirent.isDirectory())
+      dirs.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
+      files.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
+    } else if (stats.isFile()) {
+      if (templateRegex.exec(obj)) {
+        debug(`Expanding ${obj} to ${outputObj}`)
+        fs.writeFileSync(outputObj, expandFile(obj))
+      } else if (!noCopyRegex.exec(obj)) {
+        fs.copyFileSync(obj, outputObj)
+      }
+    } else {
+      throw new Error(`'${obj}' is not a directory or file`)
+    }
   }
 
   expandPath(buildRoot)

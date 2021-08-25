@@ -12,8 +12,8 @@ import {check} from 'linkinator'
 import {expand, unionFs} from '../src/index'
 
 chai.use(chaiAsPromised)
-const expect = chai.expect
-const assert = chai.assert
+const {expect} = chai
+const {assert} = chai
 
 const command = process.env.NODE_ENV === 'coverage' ? '../bin/test-run' : '../bin/run'
 
@@ -21,21 +21,23 @@ async function run(args: string[]) {
   return execa(command, args)
 }
 
+function diffsetDiffsOnly(diffSet: Difference[]): Difference[] {
+  return diffSet.filter((diff) => diff.state !== 'equal')
+}
+
 function assertFileObjEqual(obj: string, expected: string) {
   const stats = fs.statSync(obj)
   if (stats.isDirectory()) {
     const compareResult = compareSync(obj, expected, {compareContent: true})
-    assert(compareResult.same, util.inspect(diffsetDiffsOnly(compareResult.diffSet as Difference[])))
+    assert(
+      compareResult.same, util.inspect(diffsetDiffsOnly(compareResult.diffSet as Difference[])),
+    )
   } else {
     assert(
       fs.readFileSync(obj).equals(fs.readFileSync(expected)),
-      `'${obj}' does not match expected '${expected}'`
+      `'${obj}' does not match expected '${expected}'`,
     )
   }
-}
-
-function diffsetDiffsOnly(diffSet: Difference[]): Difference[] {
-  return diffSet.filter((diff) => diff.state !== 'equal')
 }
 
 function test(inputDirs: string[], expected: string, buildPath?: string) {
@@ -82,11 +84,11 @@ async function checkLinks(root: string, start: string) {
   assert(results.passed, 'Broken links in output')
 }
 
-describe('nancy', function () {
+describe('nancy', function t() {
   // In coverage mode, allow for recompilation.
   this.timeout(10000)
 
-  before(function () {
+  before(() => {
     process.chdir('test')
   })
 

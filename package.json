@@ -34,6 +34,9 @@
     "chai-as-promised": "^7.1.1",
     "dir-compare": "^3.3.0",
     "eslint": "^7.32.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-airbnb-typescript": "^14.0.0",
+    "eslint-plugin-import": "^2.24.2",
     "linkinator": "rrthomas/linkinator",
     "mocha": "^8.3.2",
     "nyc": "^15.1.0",
@@ -56,7 +59,7 @@
   "repository": "rrthomas/nancy",
   "scripts": {
     "lint": "eslint . --ext .ts",
-    "prebuild": "node --print \"'export const programVersion = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts",
+    "prebuild": "node --print \"'export default \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "build": "tsc --build",
     "clean": "rm -rf lib tsconfig.tsbuildinfo",
     "prepack": "npm run clean && npm run build && npm run docs",
