@@ -101,18 +101,18 @@ thus:
 2. See whether `path/FILE` is a file (or a symbolic link to a file). If so,
    return the file path, unless we are already in the middle of expanding
    this file.
-3. If `path` is `PATH`, stop. Otherwise, remove the last directory from `path`
+3. If `path` is empty, stop. Otherwise, remove the last directory from `path`
    and go to step 2.
 
 If no file is found, Nancy stops with an error message.
 
-For example, if `PATH` is `foo`, and Nancy is trying to find `file.html`,
-starting in the subdirectory `foo/bar/baz`, it will try the following files, in
-order:
+For example, if Nancy is trying to find `file.html`, starting in the
+subdirectory `foo/bar/baz`, it will try the following files, in order:
 
 1. `foo/bar/baz/file.html`
 2. `foo/bar/file.html`
 3. `foo/file.html`
+4. `file.html`
 
 See the [website example](Cookbook.md#website-example) in the Cookbook for a
 worked example.
