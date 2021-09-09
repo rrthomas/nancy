@@ -169,6 +169,10 @@ describe('nancy', function t() {
     failingTest(['undefined-macro.nancy.txt'], 'no such macro \'$foo\'')
   })
 
+  it('Calling an undefined single-letter macro should give an error', () => {
+    failingTest(['undefined-short-macro.nancy.txt'], 'no such macro \'$f\'')
+  })
+
   it('A macro call with a missing close brace should give an error', () => {
     failingTest(['missing-close-brace.nancy.txt'], 'missing close brace')
   })

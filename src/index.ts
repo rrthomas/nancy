@@ -129,7 +129,7 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
           return macros[macro](...expandedArgs)
         }
 
-        const re = /(\\?)\$(\p{Letter}(?:\p{Letter}|\p{Number}|_)+)/gu
+        const re = /(\\?)\$(\p{Letter}(?:\p{Letter}|\p{Number}|_)*)/gu
         let res
         let expanded = text
         while ((res = re.exec(expanded)) !== null) {
