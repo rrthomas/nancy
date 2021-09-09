@@ -58,7 +58,7 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
           for (; ;) {
             const thisSearch = search.concat(fileArray)
             const obj = path.join(inputDir, ...thisSearch)
-            if (inputFs.existsSync(obj)) {
+            if (!expandStack.includes(obj) && inputFs.existsSync(obj)) {
               return obj
             }
             if (search.pop() === undefined) {
@@ -70,17 +70,8 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
         const getFile = (leaf: string) => {
           debug(`Searching for ${leaf}`)
           const startPath = replacePathPrefix(path.dirname(baseFile), inputDir)
-          let fileOrExec
-          for (const pathStack = startPath.split(path.sep); ; pathStack.pop()) {
-            fileOrExec = findOnPath(pathStack, leaf)
-            if (fileOrExec === undefined
-              || !expandStack.includes(fileOrExec)
-              || pathStack.length === 0
-            ) {
-              break
-            }
-          }
-          fileOrExec = fileOrExec ?? which.sync(leaf, {nothrow: true})
+          const pathStack = startPath.split(path.sep)
+          const fileOrExec = findOnPath(pathStack, leaf) ?? which.sync(leaf, {nothrow: true})
           if (fileOrExec === null) {
             throw new Error(`cannot find '${leaf}' while expanding '${baseFile}'`)
           }
