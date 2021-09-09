@@ -58,20 +58,21 @@ directories to its right.
 
 Nancy starts by combining the list of directories given as its _input path_.
 If the same file or directory exists in more than one of the directories on
-the input path, the left-most takes precedence.
+the input path, the left-most takes precedence. The result is called the "input
+tree" and all paths are relative to it.
 
 Nancy then creates the output directory, deleting its contents if it already
 existed.
 
-Next, Nancy traverses the resulting directory tree, or the subdirectory
-given by the `--path` argument, if any.
+Next, Nancy traverses the input tree, or its subdirectory given by the `--path`
+argument, if any.
 
 For each file, Nancy looks at its name, and:
 
 + If the name contains the suffix `.nancy`, the file’s contents is expanded
   (see below), and the result is then written to a file of the same name,
-  but with the `.nancy` suffix removed, in the corresponding place in the
-  output directory.
+  but with `.nancy` removed, in the corresponding place in the output
+  directory.
 + Else, if the name contains the suffix `.in`, the file is skipped. (It may
   be used by macros in other files.)
 + Otherwise, the file is copied verbatim to the corresponding place in the
@@ -85,73 +86,48 @@ before the file type suffix.
 Nancy expands a template file as follows:
 
 1. Scan the text for commands. Expand any arguments to the command, run each
-   command, and replace the command by the result.
-2. Output the resultant text, eliding any final newline. (This last part may
-   look tricky, but it almost always does what you want, and makes
-   `$include` behave better in various contexts.)
+   command, and replace the command by the result, eliding any final newline.
+   (This elision may look tricky, but it almost always does what you want, and
+   makes `$include` behave better in various contexts.)
+2. Output the resultant text.
 
-A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`. To
-prevent a comma from being interpreted as an argument separator, put a
-backslash in front of it:
+A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`.
 
-```
-$include{cat,I\,Robot.txt,3 Rules of Robotics.txt}
-```
-
-This will run the command as if it had been typed:
-
-```
-cat "I, Robot.txt" "3 Rules of Robotics.txt"
-```
-
-Similarly, a command can be treated as literal text by putting a backslash
-in front of it:
-
-```
-Now I can talk about \$paste.
-```
-
-This will output:
-
-```
-Now I can talk about $paste.
-```
+### Built-in commands
 
 Nancy recognises these commands:
 
-* *`$include{FILE}`* Look up the given source file; read its contents, then
-  expand them (that is, execute any commands it contains) and return the
-  result.
+* *`$include{FILE}`* Look up the given source file in the input tree (see
+  below); read its contents, then expand them (that is, execute any commands it
+  contains) and return the result.
 * *`$paste{FILE}`* Like `$include`, but does not expand its result before
   returning it.
 * *`$path`* Expands to the directory containing the file currently being
-  expanded.
+  expanded, relative to the input tree.
 * *`$root`* Expands to the `INPUT-PATH` argument.
 
-The last two commands are mostly useful as arguments to `$include` and
-`$paste`.
+The last two commands are mostly useful as arguments to external programs (see
+below).
 
 To find the file specified by a `$include{FILE}` command, Nancy proceeds
 thus:
 
-1. Set `path` to the directory containing the input file currently being
-   expanded.
+1. Set `path` to the value of `$path`.
 2. See whether `path/FILE` is a file (or a symbolic link to a file). If so,
    return the file path, unless we are already in the middle of expanding
    this file.
-3. If not, remove the last directory from `path` and try again. Keep going
-   until `path` is `INPUT-PATH/PATH`.
+3. If `path` is `PATH`, stop. Otherwise, remove the last directory from `path`
+   and go to step 2.
 
 If no file is found, Nancy stops with an error message.
 
-For example, if `INPUT-PATH` is `/dir`, `PATH` is `foo`, and Nancy is trying
-to find `file.html`, starting in the subdirectory `foo/bar/baz`, it will try
-the following files, in order:
+For example, if `PATH` is `foo`, and Nancy is trying to find `file.html`,
+starting in the subdirectory `foo/bar/baz`, it will try the following files, in
+order:
 
-1. `/dir/foo/bar/baz/file.html`
-2. `/dir/foo/bar/file.html`
-3. `/dir/foo/file.html`
-4. `/dir/file.html`
+1. `foo/bar/baz/file.html`
+2. `foo/bar/file.html`
+3. `foo/file.html`
 
 See the [website example](Cookbook.md#website-example) in the Cookbook for a
 worked example.
@@ -170,11 +146,11 @@ Nancy can run a program in two ways:
 
 2. If no file of the given name can be found using the rules in the previous
    section, Nancy looks for an executable file on the user’s `PATH` (the
-   list of directories specified by the `PATH` environment variable), as if
-   with the `command -v` command. If one is found, it is run.
+   list of directories specified by the `PATH` environment variable). If one is
+   found, it is run.
 
 In either case, arguments may be passed to the program: use
-`$include{FILE, ARGUMENT_1, ARGUMENT_2, …}`, or the equivalent for `$paste`.
+`$include{FILE,ARGUMENT_1,ARGUMENT_2,…}`, or the equivalent for `$paste`.
 
 For example, to insert the current date:
 
@@ -187,11 +163,37 @@ detail.
 
 When commands that run programs are nested inside each other, the order in
 which they are run may matter. Nancy only guarantees that if one command is
-nested inside another, the inner command will be processed first. There is
-no guarantee of the order in which commands at the same nesting level are
-run.
+nested inside another, the inner command will be processed first.
 
 [FIXME]: # (Add example where this is significant)
+
+### Escaping
+
+To prevent a comma from being interpreted as an argument separator, put a
+backslash in front of it:
+
+```
+$include{cat,I\, Robot.txt,3 Rules of Robotics.txt}
+```
+
+This will run the `$include` command with the following arguments:
+
+1. `cat`
+2. `I, Robot.txt`
+3. `3 Rules of Robotics.txt`
+
+Similarly, a command can be treated as literal text by putting a backslash
+in front of it:
+
+```
+Now I can talk about \$paste.
+```
+
+This will output:
+
+```
+Now I can talk about $paste.
+```
 
 ## Development
 
