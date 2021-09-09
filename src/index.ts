@@ -183,12 +183,11 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
     const stats = inputFs.statSync(obj)
     if (stats.isDirectory()) {
       fs.emptyDirSync(outputObj)
-      const dir = inputFs.readdirSync(obj, {withFileTypes: true})
-        .filter((dirent) => dirent.name[0] !== '.')
-      const dirs = dir.filter((dirent) => dirent.isDirectory())
-      const files = dir.filter((dirent) => !dirent.isDirectory())
-      dirs.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
-      files.forEach((dirent) => expandPath(path.join(obj, dirent.name)))
+      for (const dirent of inputFs.readdirSync(obj)) {
+        if (dirent[0] !== '.') {
+          expandPath(path.join(obj, dirent))
+        }
+      }
     } else if (stats.isFile()) {
       if (templateRegex.exec(obj)) {
         debug(`Expanding ${obj} to ${outputObj}`)
