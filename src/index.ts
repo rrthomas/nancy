@@ -139,26 +139,27 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
           if (expanded[re.lastIndex] === '{') {
             const argsStart = re.lastIndex
             let depth = 1
-            let nextChar
-            for (nextChar = argsStart + 1; nextChar < expanded.length; nextChar += 1) {
-              if (expanded[nextChar] === '}') {
+            let nextIndex
+            for (nextIndex = argsStart + 1; nextIndex < expanded.length; nextIndex += 1) {
+              if (expanded[nextIndex] === '}') {
                 depth -= 1
                 if (depth === 0) {
                   break
                 }
-              } else if (expanded[nextChar] === '{') {
+              } else if (expanded[nextIndex] === '{') {
                 depth += 1
               }
             }
-            if (nextChar === expanded.length) {
+            if (nextIndex === expanded.length) {
               throw new Error('missing close brace')
             }
             // Update re to restart matching past close brace
-            re.lastIndex = nextChar + 1
-            args = doExpand(expanded.slice(argsStart + 1, nextChar))
+            re.lastIndex = nextIndex + 1
+            args = doExpand(expanded.slice(argsStart + 1, nextIndex))
           }
           let output
           if (escaped !== '') {
+            // Just remove the leading '\'
             output = `$${name}${args !== undefined ? `{${args}}` : ''}`
           } else {
             output = doMacro(name, args)
