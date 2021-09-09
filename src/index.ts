@@ -2,7 +2,6 @@ import fs from 'fs-extra'
 import realFs from 'fs'
 import {link} from 'linkfs'
 import {IUnionFs, Union} from 'unionfs'
-import {IFS} from 'unionfs/lib/fs'
 import path from 'path'
 import which from 'which'
 import execa from 'execa'
@@ -33,7 +32,10 @@ export function unionFs(dirs: string[]): IUnionFs {
   return ufs.use(realFs)
 }
 
-export function expand(inputDir: string, outputPath: string, buildPath = '', inputFs: IFS = realFs): void {
+// A supertype of `typeof(realFs)` and `IUnionFs`.
+export type FS = Omit<IUnionFs, 'use'>
+
+export function expand(inputDir: string, outputPath: string, buildPath = '', inputFs: FS = realFs): void {
   const buildRoot = path.join(inputDir, buildPath)
 
   const isExecutable = (file: string): boolean => {
