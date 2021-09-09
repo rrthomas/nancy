@@ -57,7 +57,7 @@ function test(inputDirs: string[], expected: string, buildPath?: string) {
 function failingTest(inputDirs: string[], expected: string) {
   try {
     test(inputDirs, 'dummy')
-  } catch (error) {
+  } catch (error: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(error.message).to.contain(expected)
     return
@@ -68,7 +68,7 @@ function failingTest(inputDirs: string[], expected: string) {
 async function failingCliTest(args: string[], expected: string) {
   try {
     await run(args)
-  } catch (error) {
+  } catch (error: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(error.stderr).to.contain(expected)
     return
