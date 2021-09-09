@@ -55,17 +55,16 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
         const findOnPath = (startPath: string[], file: string) => {
           const search = [...startPath]
           const fileArray = path.normalize(file).split(path.sep)
-          for (; ; search.pop()) {
+          for (; ;) {
             const thisSearch = search.concat(fileArray)
             const obj = path.join(inputDir, ...thisSearch)
             if (inputFs.existsSync(obj)) {
               return obj
             }
-            if (search.length === 0) {
-              break
+            if (search.pop() === undefined) {
+              return undefined
             }
           }
-          return undefined
         }
 
         const getFile = (leaf: string) => {
