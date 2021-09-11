@@ -183,6 +183,9 @@ This will run the `$include` command with the following arguments:
 2. `I, Robot.txt`
 3. `3 Rules of Robotics.txt`
 
+Note that the filenames supplied to `cat` refer not to the input tree, but
+to the file system.
+
 Similarly, a command can be treated as literal text by putting a backslash
 in front of it:
 
