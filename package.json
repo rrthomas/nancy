@@ -19,6 +19,7 @@
     "which": "^2.0.2"
   },
   "devDependencies": {
+    "@aweary/alder": "^2.0.0",
     "@tsconfig/node14": "^1.0.1",
     "@types/argparse": "^2.0.10",
     "@types/chai": "^4.2.21",
