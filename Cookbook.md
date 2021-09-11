@@ -140,7 +140,6 @@ first for files in `source/Places/Vladivostok`, then in `source/places`, and
 finally in `source`. Hence, the actual list of files used to assemble the
 page is:
 
-[FIXME]: # (Tidy up temp directory.)
 * `source/breadcrumb.in.html`
 * `source/logo.in.html`
 * `source/menu.in.html`
