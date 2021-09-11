@@ -51,6 +51,7 @@
     "node": "^14.0.0"
   },
   "files": [
+    "Cookbook.md",
     "/bin/run",
     "/lib"
   ],
