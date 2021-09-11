@@ -41,16 +41,15 @@ $paste{/bin/sh,-c,./bin/run --help | sed -e 's/usage: run/nancy/'}
 
 ## Operation <a name="operation"></a>
 
-Nancy starts by combining the list of directories given as its _input path_.
-If the same file or directory exists in more than one of the directories on
-the input path, the left-most takes precedence. The result is called the "input
+Nancy starts by combining the list of inputs given as its _input path_. If
+the same file or directory exists in more than one of the directories on the
+input path, the left-most takes precedence. The result is called the "input
 tree" and all paths are relative to it.
-
-Nancy then creates the output directory, deleting its contents if it already
-existed.
 
 Next, Nancy traverses the input tree, or its subdirectory given by the `--path`
 argument, if any.
+
+For each directory, Nancy creates a corresponding directory.
 
 For each file, Nancy looks at its name, and:
 
@@ -61,7 +60,10 @@ For each file, Nancy looks at its name, and:
 + Else, if the name contains the suffix `.in`, the file is skipped. (It may
   be used by macros in other files.)
 + Otherwise, the file is copied verbatim to the corresponding place in the
-  output directory.
+  output.
+
+Files and directories in the output have the same name as in the input tree,
+except for the root directory (or file), which is called `OUTPUT`.
 
 The special suffixes need not end the file name; they can be used as infixes
 before the file type suffix.

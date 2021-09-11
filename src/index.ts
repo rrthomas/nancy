@@ -23,11 +23,11 @@ function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
   return s
 }
 
-// Merge input directories, left as highest-priority
-export function unionFs(dirs: string[]): IUnionFs {
+// Merge directories (and files) left-to-right
+export function unionFs(objs: string[]): IUnionFs {
   const ufs = new Union();
-  for (const dir of dirs.slice(1).reverse()) {
-    ufs.use(link(fs, [dirs[0], dir]))
+  for (const obj of objs.slice(1).reverse()) {
+    ufs.use(link(fs, [objs[0], obj]))
   }
   return ufs.use(realFs)
 }
@@ -35,8 +35,8 @@ export function unionFs(dirs: string[]): IUnionFs {
 // A supertype of `typeof(realFs)` and `IUnionFs`.
 export type FS = Omit<IUnionFs, 'use'>
 
-export function expand(inputDir: string, outputPath: string, buildPath = '', inputFs: FS = realFs): void {
-  const buildRoot = path.join(inputDir, buildPath)
+export function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: FS = realFs): void {
+  const buildRoot = path.join(inputPath, buildPath)
 
   const isExecutable = (file: string): boolean => {
     try {
@@ -57,7 +57,7 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
           const fileArray = path.normalize(file).split(path.sep)
           for (; ;) {
             const thisSearch = search.concat(fileArray)
-            const obj = path.join(inputDir, ...thisSearch)
+            const obj = path.join(inputPath, ...thisSearch)
             if (!expandStack.includes(obj) && inputFs.existsSync(obj)) {
               return obj
             }
@@ -69,7 +69,7 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
 
         const getFile = (leaf: string) => {
           debug(`Searching for ${leaf}`)
-          const startPath = replacePathPrefix(path.dirname(baseFile), inputDir)
+          const startPath = replacePathPrefix(path.dirname(baseFile), inputPath)
           const pathStack = startPath.split(path.sep)
           const fileOrExec = findOnPath(pathStack, leaf) ?? which.sync(leaf, {nothrow: true})
           if (fileOrExec === null) {
@@ -82,6 +82,7 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
         const readFile = (file: string, args: string[]) => {
           let output
           if (isExecutable(file)) {
+            debug(`Running ${file} ${args.join(' ')}`)
             output = execa.sync(file, args).stdout
           } else {
             output = inputFs.readFileSync(file)
@@ -94,8 +95,8 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
         type Macros = {[key: string]: Macro}
 
         const macros: Macros = {
-          path: () => replacePathPrefix(path.dirname(baseFile), inputDir),
-          root: () => inputDir,
+          path: () => replacePathPrefix(path.dirname(baseFile), inputPath),
+          root: () => inputPath,
           include: (...args) => {
             debug(`$include{${args.join(',')}}`)
             if (args.length < 1) {
@@ -182,7 +183,7 @@ export function expand(inputDir: string, outputPath: string, buildPath = '', inp
     const outputObj = replacePathPrefix(obj, buildRoot, outputPath).replace(templateRegex, '')
     const stats = inputFs.statSync(obj)
     if (stats.isDirectory()) {
-      fs.emptyDirSync(outputObj)
+      fs.ensureDirSync(outputObj)
       for (const dirent of inputFs.readdirSync(obj)) {
         if (dirent[0] !== '.') {
           expandPath(path.join(obj, dirent))
