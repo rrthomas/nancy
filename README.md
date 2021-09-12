@@ -105,7 +105,6 @@ Nancy recognises these commands:
   returning it.
 * *`$path`* Expands to the directory containing the file currently being
   expanded, relative to the input tree.
-* *`$root`* Expands to the `INPUT-PATH` argument.
 
 The last two commands are mostly useful as arguments to external programs (see
 below).

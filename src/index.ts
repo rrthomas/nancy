@@ -94,7 +94,6 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
 
         const macros: Macros = {
           path: () => replacePathPrefix(path.dirname(baseFile), inputPath),
-          root: () => inputPath,
           include: (...args) => {
             debug(`$include{${args.join(',')}}`)
             if (args.length < 1) {
