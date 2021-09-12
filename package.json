@@ -60,7 +60,7 @@
   "main": "lib/index.js",
   "repository": "rrthomas/nancy",
   "scripts": {
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint . --ext .ts && depcheck",
     "prebuild": "node --print \"'export default \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "build": "tsc --build",
     "clean": "rm -rf lib tsconfig.tsbuildinfo",
