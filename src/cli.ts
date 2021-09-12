@@ -2,7 +2,7 @@ import path from 'path'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
 import programVersion from './version'
 // eslint-disable-next-line import/no-named-as-default
-import expand, {unionFs} from './index'
+import expand from './index'
 
 // Read and process arguments
 const parser = new ArgumentParser({
@@ -13,7 +13,7 @@ const parser = new ArgumentParser({
 })
 parser.add_argument('input', {metavar: 'INPUT-PATH', help: 'list of input directories (or files)'})
 parser.add_argument('output', {metavar: 'OUTPUT', help: 'output directory (or file)'})
-parser.add_argument('--path', {help: 'path to build relative to input tree [default: /]'})
+parser.add_argument('--path', {help: "path to build relative to input tree [default: '']"})
 parser.add_argument('--version', {
   action: 'version',
   version: `%(prog)s ${programVersion}
@@ -37,7 +37,7 @@ try {
     throw new Error('input path must not be empty')
   }
   const inputs = args.input.split(path.delimiter)
-  expand(inputs[0], args.output, args.path, unionFs(inputs))
+  expand(inputs, args.output, args.path)
 } catch (error) {
   if (process.env.DEBUG) {
     console.error(error)

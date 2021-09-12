@@ -9,7 +9,7 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import {check} from 'linkinator'
 
-import {expand, unionFs} from '../src/index'
+import {expand} from '../src/index'
 
 chai.use(chaiAsPromised)
 const {expect} = chai
@@ -43,12 +43,10 @@ function assertFileObjEqual(obj: string, expected: string) {
 function test(inputDirs: string[], expected: string, buildPath?: string) {
   const outputDir = tempy.directory()
   const outputObj = path.join(outputDir, 'output')
-  if (inputDirs.length > 1) {
-    expand(inputDirs[0], outputObj, buildPath, unionFs(inputDirs))
-  } else if (buildPath !== undefined) {
-    expand(inputDirs[0], outputObj, buildPath)
+  if (buildPath !== undefined) {
+    expand(inputDirs, outputObj, buildPath)
   } else {
-    expand(inputDirs[0], outputObj)
+    expand(inputDirs, outputObj)
   }
   assertFileObjEqual(outputObj, expected)
   fs.rmdirSync(outputDir, {recursive: true})

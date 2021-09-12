@@ -1,5 +1,4 @@
 import fs from 'fs-extra'
-import realFs from 'fs'
 import {link} from 'linkfs'
 import {IUnionFs, Union} from 'unionfs'
 import path from 'path'
@@ -23,20 +22,19 @@ function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
   return s
 }
 
-// Merge directories (and files) left-to-right
-export function unionFs(objs: string[]): IUnionFs {
-  const ufs = new Union();
-  for (const obj of objs.slice(1).reverse()) {
-    ufs.use(link(fs, [objs[0], obj]))
-  }
-  return ufs.use(realFs)
-}
-
 // A supertype of `typeof(realFs)` and `IUnionFs`.
 export type FS = Omit<IUnionFs, 'use'>
 
-export function expand(inputPath: string, outputPath: string, buildPath = '', inputFs: FS = realFs): void {
+export function expand(inputs: string[], outputPath: string, buildPath = ''): void {
+  const inputPath = inputs[0]
+
   const buildRoot = path.join(inputPath, buildPath)
+
+  // Merge directories (and files) left-to-right
+  const inputFs = new Union();
+  for (const obj of inputs.reverse()) {
+    inputFs.use(link(fs, [inputPath, obj]))
+  }
 
   const isExecutable = (file: string): boolean => {
     try {

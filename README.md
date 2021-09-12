@@ -46,7 +46,7 @@ positional arguments:
 
 optional arguments:
   -h, --help   show this help message and exit
-  --path PATH  path to build relative to input tree [default: /]
+  --path PATH  path to build relative to input tree [default: '']
   --version    show program's version number and exit
 
 The INPUT-PATH is a ':'-separated list; the inputs
