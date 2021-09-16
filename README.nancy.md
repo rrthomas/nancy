@@ -43,13 +43,14 @@ $paste{/bin/sh,-c,./bin/run --help | sed -e 's/usage: run/nancy/'}
 
 Nancy starts by combining the list of inputs given as its _input path_. If
 the same file or directory exists in more than one of the directories on the
-input path, the left-most takes precedence. The result is called the "input
-tree" and all paths are relative to it.
+input path, the left-most takes precedence. The result is called the “input
+tree”, and all paths are relative to it.
 
-Next, Nancy traverses the input tree, or its subdirectory given by the `--path`
+Next, Nancy traverses the input tree, or the subtree given by the `--path`
 argument, if any.
 
-For each directory, Nancy creates a corresponding directory.
+For each directory, Nancy creates a corresponding directory, if it does not
+already exist.
 
 For each file, Nancy looks at its name, and:
 

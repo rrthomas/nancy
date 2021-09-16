@@ -1,6 +1,5 @@
-import fs from 'fs-extra'
-import {link} from 'linkfs'
-import {IUnionFs, Union} from 'unionfs'
+import fs from 'fs'
+import fsExtra from 'fs-extra' // See https://github.com/jprichardson/node-fs-extra/issues/919
 import path from 'path'
 import which from 'which'
 import execa from 'execa'
@@ -12,40 +11,87 @@ const debug = Debug('nancy')
 const templateRegex = /\.nancy(?=\.[^.]+$|$)/
 const noCopyRegex = /\.in(?=\.[^.]+$|$)/
 
-function replacePathPrefix(s: string, prefix: string, newPrefix = ''): string {
-  if (s.startsWith(prefix + path.sep)) {
-    return path.join(newPrefix, s.slice(prefix.length + path.sep.length))
+function replacePathPrefix(s: string, prefix: string, newPrefix: string): string {
+  if (s.startsWith(prefix)) {
+    return path.join(newPrefix, s.slice(prefix.length))
   }
-  if (s === prefix) {
-    return newPrefix
-  }
-  return s
+  return s === prefix ? newPrefix : s
 }
 
-// A supertype of `typeof(realFs)` and `IUnionFs`.
-export type FS = Omit<IUnionFs, 'use'>
+function isExecutable(file: string): boolean {
+  try {
+    fs.accessSync(file, fs.constants.X_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// FIXME: `throwIfNoEntry` is missing in TypeScript types for Node 14:
+// https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/55786
+function statSync(file: string): fs.Stats {
+  return (fs as any).statSync(file, {throwIfNoEntry: false})
+}
 
 export function expand(inputs: string[], outputPath: string, buildPath = ''): void {
-  const inputPath = inputs[0]
-
-  const buildRoot = path.join(inputPath, buildPath)
-
-  // Merge directories (and files) left-to-right
-  const inputFs = new Union();
-  for (const obj of inputs.reverse()) {
-    inputFs.use(link(fs, [inputPath, obj]))
+  if (inputs.length === 0) {
+    throw new Error('at least one input must be given')
   }
 
-  const isExecutable = (file: string): boolean => {
-    try {
-      inputFs.accessSync(file, fs.constants.X_OK)
-      return true
-    } catch {
-      return false
+  type FullDirent = fs.Dirent & {path: string}
+  type File = string
+  type Directory = {[fullPath: string]: FullDirent}
+  type Dirent = File | Directory | undefined
+  function isFile(object: Dirent): object is File {
+    return typeof object === 'string'
+  }
+  function isDirectory(object: Dirent): object is Directory {
+    return typeof object === 'object'
+  }
+
+  // Find the first file or directory with path `object` in the input tree,
+  // scanning the roots from left to right.
+  // If the result is a file, return its file system path.
+  // If the result is a directory, return its contents as a map from tree
+  // paths to file system `fs.Dirent`s, obtained by similarly scanning the
+  // tree from left to right.
+  // If something neither a file nor directory is found, raise an error.
+  // If no result is found, return `undefined`.
+  function findObject(object: string): Dirent {
+    const dirs = []
+    for (const root of inputs) {
+      const stats = statSync(root)
+      if (stats !== undefined && (statSync(root).isDirectory() || object === '')) {
+        const objectPath = path.join(root, object)
+        const stats = statSync(objectPath)
+        if (stats !== undefined) {
+          if (stats.isFile()) {
+            return objectPath
+          }
+          if (stats.isDirectory()) {
+            dirs.push(objectPath)
+          } else {
+            throw new Error(`${objectPath} is not a file or directory`)
+          }
+        }
+      }
     }
+    const dirents: Directory = {}
+    for (const dir of dirs.reverse()) {
+      for (const dirent of fs.readdirSync(dir, {withFileTypes: true})) {
+        const fullDirent: FullDirent = dirent as FullDirent
+        fullDirent.path = path.join(dir, dirent.name)
+        dirents[path.join(object, dirent.name)] = fullDirent
+      }
+    }
+    return dirs.length > 0 ? dirents : undefined
   }
 
-  const expandFile = (baseFile: string): string => {
+  if (findObject(buildPath) === undefined) {
+    throw new Error(`build path '${buildPath}' matches no path in the inputs`)
+  }
+
+  const expandFile = (baseFile: string, filePath: string): string => {
     const innerExpand = (text: string, expandStack: string[]): string => {
       const doExpand = (text: string) => {
         // Search for file starting at the given path; if found return its file
@@ -55,9 +101,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
           const fileArray = path.normalize(file).split(path.sep)
           for (; ;) {
             const thisSearch = search.concat(fileArray)
-            const obj = path.join(inputPath, ...thisSearch)
-            if (!expandStack.includes(obj) && inputFs.existsSync(obj)) {
-              return obj
+            const objectPath = findObject(path.join(...thisSearch))
+            if (isFile(objectPath) && !expandStack.includes(objectPath)) {
+              return objectPath
             }
             if (search.pop() === undefined) {
               return undefined
@@ -67,9 +113,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
 
         const getFile = (leaf: string) => {
           debug(`Searching for ${leaf}`)
-          const startPath = replacePathPrefix(path.dirname(baseFile), inputPath)
-          const pathStack = startPath.split(path.sep)
-          const fileOrExec = findOnPath(pathStack, leaf) ?? which.sync(leaf, {nothrow: true})
+          const startPath = path.dirname(baseFile)
+          const fileOrExec = findOnPath(startPath.split(path.sep), leaf)
+            ?? which.sync(leaf, {nothrow: true})
           if (fileOrExec === null) {
             throw new Error(`cannot find '${leaf}' while expanding '${baseFile}'`)
           }
@@ -83,7 +129,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
             debug(`Running ${file} ${args.join(' ')}`)
             output = execa.sync(file, args).stdout
           } else {
-            output = inputFs.readFileSync(file)
+            output = fs.readFileSync(file)
           }
           return output.toString('utf-8')
         }
@@ -93,7 +139,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
         type Macros = {[key: string]: Macro}
 
         const macros: Macros = {
-          path: () => replacePathPrefix(path.dirname(baseFile), inputPath),
+          path: () => path.dirname(baseFile),
           include: (...args) => {
             debug(`$include{${args.join(',')}}`)
             if (args.length < 1) {
@@ -173,32 +219,47 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
       return doExpand(text)
     }
 
-    return innerExpand(inputFs.readFileSync(baseFile, 'utf-8'), [baseFile])
+    return innerExpand(fs.readFileSync(filePath, 'utf-8'), [filePath])
   }
 
-  const expandPath = (obj: string): void => {
-    const outputObj = replacePathPrefix(obj, buildRoot, outputPath).replace(templateRegex, '')
-    const stats = inputFs.statSync(obj)
-    if (stats.isDirectory()) {
-      fs.ensureDirSync(outputObj)
-      for (const dirent of inputFs.readdirSync(obj)) {
-        if (dirent[0] !== '.') {
-          expandPath(path.join(obj, dirent))
-        }
-      }
-    } else if (stats.isFile()) {
-      if (templateRegex.exec(obj)) {
-        debug(`Expanding ${obj} to ${outputObj}`)
-        fs.writeFileSync(outputObj, expandFile(obj))
-      } else if (!noCopyRegex.exec(obj)) {
-        fs.copyFileSync(obj, outputObj)
-      }
-    } else {
-      throw new Error(`'${obj}' is not a directory or file`)
+  const getOutputPath = (baseFile: string) => (
+    replacePathPrefix(baseFile, buildPath, outputPath).replace(templateRegex, '')
+  )
+
+  const processFile = (baseFile: File, filePath: string): void => {
+    const outputFile = getOutputPath(baseFile)
+    debug(`Processing file ${filePath}`)
+    if (templateRegex.exec(filePath)) {
+      debug(`Expanding ${baseFile} to ${outputFile}`)
+      fs.writeFileSync(outputFile, expandFile(baseFile, filePath))
+    } else if (!noCopyRegex.exec(filePath)) {
+      fs.copyFileSync(filePath, outputFile)
     }
   }
 
-  expandPath(buildRoot)
+  const processPath = (object: string): void => {
+    const dirent = findObject(object)
+    if (dirent === undefined) {
+      throw new Error(`'${object}' does not exist`)
+    } else if (isDirectory(dirent)) {
+      const outputDir = getOutputPath(object)
+      debug(`Entering directory ${object}`)
+      fsExtra.ensureDirSync(outputDir)
+      for (const [childObject, childDirent] of Object.entries(dirent)) {
+        if (childDirent.name[0] !== '.') {
+          if (childDirent.isFile()) {
+            processFile(childObject, childDirent.path)
+          } else {
+            processPath(childObject)
+          }
+        }
+      }
+    } else {
+      processFile(object, dirent)
+    }
+  }
+
+  processPath(buildPath)
 }
 
 export default expand

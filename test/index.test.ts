@@ -53,23 +53,29 @@ function test(inputDirs: string[], expected: string, buildPath?: string) {
 }
 
 function failingTest(inputDirs: string[], expected: string) {
+  const outputDir = tempy.directory()
   try {
-    test(inputDirs, 'dummy')
+    test(inputDirs, outputDir)
   } catch (error: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(error.message).to.contain(expected)
     return
+  } finally {
+    fs.rmdirSync(outputDir, {recursive: true})
   }
   throw new Error('test passed unexpectedly')
 }
 
 async function failingCliTest(args: string[], expected: string) {
+  const outputDir = tempy.directory()
   try {
-    await run(args)
+    await run(args.concat(outputDir))
   } catch (error: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(error.stderr).to.contain(expected)
     return
+  } finally {
+    fs.rmdirSync(outputDir, {recursive: true})
   }
   throw new Error('test passed unexpectedly')
 }
@@ -111,7 +117,7 @@ describe('nancy', function t() {
   })
 
   it('Failing executable test', () => {
-    failingTest(['false.nancy.txt', 'dummy'], 'Command failed with exit code 1')
+    failingTest(['false.nancy.txt'], 'Command failed with exit code 1')
   })
 
   it('Passing executable test', () => {
@@ -131,11 +137,11 @@ describe('nancy', function t() {
   })
 
   it('Test that $include with no arguments gives an error', () => {
-    failingTest(['include-no-arg.nancy.txt', 'dummy'], '$include expects at least one argument')
+    failingTest(['include-no-arg.nancy.txt'], '$include expects at least one argument')
   })
 
   it('Test that $paste with no arguments gives an error', () => {
-    failingTest(['paste-no-arg.nancy.txt', 'dummy'], '$paste expects at least one argument')
+    failingTest(['paste-no-arg.nancy.txt'], '$paste expects at least one argument')
   })
 
   it('Test escaping a macro without arguments', () => {
@@ -152,11 +158,11 @@ describe('nancy', function t() {
   })
 
   it('Empty input path should cause an error', () => {
-    failingTest([], 'The "path" argument must be of type string.')
+    failingTest([], 'at least one input must be given')
   })
 
   it('A non-existent input path should cause an error', () => {
-    failingTest(['a'], 'no such file or directory')
+    failingTest(['a'], "build path '' matches no path in the inputs")
   })
 
   it('$include-ing a non-existent file should give an error', () => {
@@ -184,49 +190,43 @@ describe('nancy', function t() {
 
   it('Missing command-line argument should cause an error', async () => {
     await failingCliTest(
-      ['dummy'],
+      [],
       'the following arguments are required',
     )
   })
 
   it('Invalid command-line argument should cause an error', async () => {
-    await failingCliTest(
-      ['--foo', 'a', 'b'],
-      'unrecognized arguments: --foo',
-    )
+    await failingCliTest(['--foo', 'a'], 'unrecognized arguments: --foo')
   })
 
   it('Running on a non-existent path should cause an error (DEBUG=yes coverage)', async () => {
     process.env.DEBUG = 'yes'
-    await failingCliTest(
-      ['a', 'b'],
-      'no such file or directory',
-    )
-    delete process.env.DEBUG
+    try {
+      await failingCliTest(['a'], "build path '' matches no path in the inputs")
+    } finally {
+      delete process.env.DEBUG
+    }
   })
 
-  it('Running on something not a directory or file should cause an error', async () => {
+  it('Running on something not a file or directory should cause an error', async () => {
     const server = net.createServer()
     const tempFile = tempy.file()
     server.listen(tempFile)
-    await failingCliTest(
-      [`${tempFile}`, 'dummy'],
-      'is not a directory or file',
-    )
-    server.close()
+    try {
+      await failingCliTest([`${tempFile}`], 'is not a file or directory')
+    } finally {
+      server.close()
+    }
   })
 
   it('Non-existent --path should cause an error', async () => {
     await failingCliTest(
-      ['--path', 'nonexistent', 'webpage-src', 'dummy'],
-      'no such file or directory',
+      ['--path', 'nonexistent', 'webpage-src'],
+      'matches no path in the inputs',
     )
   })
 
   it('Empty INPUT-PATH should cause an error', async () => {
-    await failingCliTest(
-      ['', 'dummy'],
-      'input path must not be empty',
-    )
+    await failingCliTest([''], 'input path must not be empty')
   })
 })
