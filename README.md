@@ -88,9 +88,9 @@ before the file type suffix.
 Nancy expands a template file as follows:
 
 1. Scan the text for commands. Expand any arguments to the command, run each
-   command, and replace the command by the result, eliding any final newline.
-   (This elision may look tricky, but it almost always does what you want, and
-   makes `$include` behave better in various contexts.)
+   command, and replace the command by the result, eliding any final
+   newline. (This elision may look tricky, but it almost always does what
+   you want, and makes `$include` behave better in various contexts.)
 2. Output the resultant text.
 
 A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`.
@@ -100,15 +100,17 @@ A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`.
 Nancy recognises these commands:
 
 * *`$include{FILE}`* Look up the given source file in the input tree (see
-  below); read its contents, then expand them (that is, execute any commands it
-  contains) and return the result.
+  below); read its contents, then expand them (that is, execute any commands
+  it contains) and return the result.
 * *`$paste{FILE}`* Like `$include`, but does not expand its result before
   returning it.
-* *`$path`* Expands to the directory containing the file currently being
-  expanded, relative to the input tree.
+* *`$path`* Expands to the file currently being expanded, relative to the
+  input tree.
+* * `$realpath`* Expands to the real path of the file currently being
+    expanded.
 
-The last two commands are mostly useful as arguments to external programs (see
-below).
+The last two commands are mostly useful as arguments to external programs
+(see below).
 
 To find the file specified by a `$include{FILE}` command, Nancy proceeds
 thus:
@@ -117,8 +119,8 @@ thus:
 2. See whether `path/FILE` is a file (or a symbolic link to a file). If so,
    return the file path, unless we are already in the middle of expanding
    this file.
-3. If `path` is empty, stop. Otherwise, remove the last directory from `path`
-   and go to step 2.
+3. If `path` is empty, stop. Otherwise, remove the last directory from
+   `path` and go to step 2.
 
 If no file is found, Nancy stops with an error message.
 
@@ -147,8 +149,8 @@ Nancy can run a program in two ways:
 
 2. If no file of the given name can be found using the rules in the previous
    section, Nancy looks for an executable file on the user’s `PATH` (the
-   list of directories specified by the `PATH` environment variable). If one is
-   found, it is run.
+   list of directories specified by the `PATH` environment variable). If one
+   is found, it is run.
 
 In either case, arguments may be passed to the program: use
 `$include{FILE,ARGUMENT_1,ARGUMENT_2,…}`, or the equivalent for `$paste`.

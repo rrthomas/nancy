@@ -139,7 +139,8 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
         type Macros = {[key: string]: Macro}
 
         const macros: Macros = {
-          path: () => path.dirname(baseFile),
+          path: () => baseFile,
+          realpath: () => filePath,
           include: (...args) => {
             debug(`$include{${args.join(',')}}`)
             if (args.length < 1) {
