@@ -40,13 +40,13 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
 
   type FullDirent = fs.Dirent & {path: string}
   type File = string
-  type Directory = {[fullPath: string]: FullDirent}
+  type Directory = FullDirent[]
   type Dirent = File | Directory | undefined
   function isFile(object: Dirent): object is File {
     return typeof object === 'string'
   }
   function isDirectory(object: Dirent): object is Directory {
-    return typeof object === 'object'
+    return Array.isArray(object)
   }
 
   // Find the first file or directory with path `object` in the input tree,
@@ -76,12 +76,12 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
         }
       }
     }
-    const dirents: Directory = {}
+    const dirents: Directory = []
     for (const dir of dirs.reverse()) {
       for (const dirent of fs.readdirSync(dir, {withFileTypes: true})) {
         const fullDirent: FullDirent = dirent as FullDirent
         fullDirent.path = path.join(dir, dirent.name)
-        dirents[path.join(object, dirent.name)] = fullDirent
+        dirents.push(fullDirent)
       }
     }
     return dirs.length > 0 ? dirents : undefined
@@ -246,8 +246,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
       const outputDir = getOutputPath(object)
       debug(`Entering directory ${object}`)
       fsExtra.ensureDirSync(outputDir)
-      for (const [childObject, childDirent] of Object.entries(dirent)) {
+      for (const childDirent of dirent) {
         if (childDirent.name[0] !== '.') {
+          const childObject = path.join(object, childDirent.name)
           if (childDirent.isFile()) {
             processFile(childObject, childDirent.path)
           } else {
