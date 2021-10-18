@@ -41,7 +41,7 @@
     "mocha": "^9.1.0",
     "nyc": "^15.1.0",
     "open-cli": "^7.0.0",
-    "pre-commit": "^1.2.2",
+    "pre-push": "^0.1.1",
     "tempy": "^1.0.1",
     "ts-node": "^10.2.1",
     "typescript": "^4.3.5"
@@ -73,7 +73,7 @@
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
     "docs": "./bin/run README.nancy.md README.md && ./bin/run Cookbook.nancy.md Cookbook.md"
   },
-  "pre-commit": [
+  "pre-push": [
     "lint",
     "test",
     "docs",
