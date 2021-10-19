@@ -62,7 +62,7 @@
     "lint": "eslint . --ext .ts && depcheck",
     "prebuild": "node --print \"'export default \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "build": "tsc --build",
-    "clean": "rm -rf lib tsconfig.tsbuildinfo",
+    "clean": "tsc --build --clean",
     "prepack": "npm run clean && npm run build && npm run docs",
     "test": "npm run build && mocha --forbid-only \"test/**/*.test.ts\"",
     "coverage": "NODE_ENV=coverage nyc --extension .ts npm test",
