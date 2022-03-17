@@ -2,8 +2,7 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-© 2002–2022 Reuben Thomas <rrt@sc3d.org>  
-<https://github.com/rrthomas/nancy>
+$paste{/bin/sh,-c,./bin/run.js --version | tail +2 | head -2 | sed -e 's/$/  /'}
 
 Nancy is a simple macro processor that copies a file or directory, filling
 in templates as it goes. It has just one non-trivial construct:
