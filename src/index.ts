@@ -1,5 +1,4 @@
-import fs from 'fs'
-import fsExtra from 'fs-extra' // See https://github.com/jprichardson/node-fs-extra/issues/919
+import fs from 'fs-extra'
 import path from 'path'
 import which from 'which'
 import execa from 'execa'
@@ -245,7 +244,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
     } else if (isDirectory(dirent)) {
       const outputDir = getOutputPath(object)
       debug(`Entering directory ${object}`)
-      fsExtra.ensureDirSync(outputDir)
+      fs.ensureDirSync(outputDir)
       for (const childDirent of dirent) {
         if (childDirent.name[0] !== '.') {
           const childObject = path.join(object, childDirent.name)
