@@ -11,13 +11,6 @@ const debug = Debug('nancy')
 const templateRegex = /\.nancy(?=\.[^.]+$|$)/
 const noCopyRegex = /\.in(?=\.[^.]+$|$)/
 
-function replacePathPrefix(s: string, prefix: string, newPrefix: string): string {
-  if (s.startsWith(prefix)) {
-    return path.join(newPrefix, s.slice(prefix.length))
-  }
-  return s === prefix ? newPrefix : s
-}
-
 function isExecutable(file: string): boolean {
   try {
     fs.accessSync(file, fs.constants.X_OK)
@@ -222,7 +215,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
   }
 
   const getOutputPath = (baseFile: string) => (
-    replacePathPrefix(baseFile, buildPath, outputPath).replace(templateRegex, '')
+    path.join(outputPath, baseFile.slice(buildPath.length)).replace(templateRegex, '')
   )
 
   const processFile = (baseFile: File, filePath: string): void => {
