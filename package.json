@@ -71,7 +71,7 @@
     "prepublishOnly": "npm run diff-check && git push --all",
     "postpublish": "git push --tags && hub release create $(git describe) -m 'Release $(git describe)'",
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
-    "docs": "./bin/run.js README.nancy.md README.md && ./bin/run.js Cookbook.nancy.md Cookbook.md"
+    "docs": "./bin/test-run.js README.nancy.md README.md && ./bin/test-run.js Cookbook.nancy.md Cookbook.md"
   },
   "pre-push": [
     "lint",
