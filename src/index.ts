@@ -43,9 +43,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
   // Find the first file or directory with path `object` in the input tree,
   // scanning the roots from left to right.
   // If the result is a file, return its file system path.
-  // If the result is a directory, return its contents as a map from tree
-  // paths to file system `fs.Dirent`s, obtained by similarly scanning the
-  // tree from left to right.
+  // If the result is a directory, return its contents as a list of
+  // FullDirents, obtained by similarly scanning the tree from left to
+  // right.
   // If something neither a file nor directory is found, raise an error.
   // If no result is found, return `undefined`.
   function findObject(object: string): Dirent {
@@ -67,15 +67,15 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
         }
       }
     }
-    const dirents: Directory = []
+    const dirents: {[key: string]: FullDirent} = {}
     for (const dir of dirs.reverse()) {
       for (const dirent of fs.readdirSync(dir, {withFileTypes: true})) {
         const fullDirent: FullDirent = dirent as FullDirent
         fullDirent.path = path.join(dir, dirent.name)
-        dirents.push(fullDirent)
+        dirents[path.join(object, dirent.name)] = fullDirent
       }
     }
-    return dirs.length > 0 ? dirents : undefined
+    return dirs.length > 0 ? Object.values(dirents) : undefined
   }
 
   if (findObject(buildPath) === undefined) {
