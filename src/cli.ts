@@ -17,7 +17,7 @@ parser.add_argument('--path', {help: "path to build relative to input tree [defa
 parser.add_argument('--version', {
   action: 'version',
   version: `%(prog)s ${programVersion}
-(c) 2002-2021 Reuben Thomas <rrt@sc3d.org>
+(c) 2002-2022 Reuben Thomas <rrt@sc3d.org>
 https://github.com/rrthomas/nancy/
 Distributed under the GNU General Public License version 3, or (at
 your option) any later version. There is no warranty.`,
