@@ -1,8 +1,8 @@
 import path from 'path'
 import {ArgumentParser, RawDescriptionHelpFormatter} from 'argparse'
-import programVersion from './version'
+import programVersion from './version.js'
 // eslint-disable-next-line import/no-named-as-default
-import expand from './index'
+import expand from './index.js'
 
 // Read and process arguments
 const parser = new ArgumentParser({

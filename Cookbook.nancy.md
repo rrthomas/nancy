@@ -57,7 +57,7 @@ first for files in `source/Places/Vladivostok`, then in `source/places`, and
 finally in `source`. Hence, the actual list of files used to assemble the
 page is:
 
-$paste{env,NANCY_TMPDIR=/tmp/cookbook-dest.$$,sh,-c,rm -rf ${NANCY_TMPDIR} && DEBUG="*" ./bin/run --path Places/Vladivostok test/cookbook-example-website-src ${NANCY_TMPDIR} 2>&1 | grep Found | cut -d " " -f 4 | sort | uniq | sed -e 's|^test/cookbook-example-website-src\(.*\)$|* `source\1`|' && rm -rf ${NANCY_TMPDIR}}
+$paste{env,NANCY_TMPDIR=/tmp/cookbook-dest.$$,sh,-c,rm -rf ${NANCY_TMPDIR} && DEBUG="*" ./bin/run.js --path Places/Vladivostok test/cookbook-example-website-src ${NANCY_TMPDIR} 2>&1 | grep Found | cut -d " " -f 4 | sort | uniq | sed -e 's|^test/cookbook-example-website-src\(.*\)$|* `source\1`|' && rm -rf ${NANCY_TMPDIR}}
 
 For the site’s index page, the file `index/logo.in.html` will be used for the
 logo fragment, which can refer to the larger graphic desired.

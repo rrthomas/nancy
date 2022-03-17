@@ -2,20 +2,20 @@ import util from 'util'
 import fs from 'fs'
 import path from 'path'
 import net from 'net'
-import execa from 'execa'
+import {execa} from 'execa'
 import tempy from 'tempy'
 import {compareSync, Difference} from 'dir-compare'
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import {check} from 'linkinator'
 
-import {expand} from '../src/index'
+import {expand} from '../src/index.js'
 
 chai.use(chaiAsPromised)
 const {expect} = chai
 const {assert} = chai
 
-const command = process.env.NODE_ENV === 'coverage' ? '../bin/test-run' : '../bin/run'
+const command = process.env.NODE_ENV === 'coverage' ? '../bin/test-run.js' : '../bin/run.js'
 
 async function run(args: string[]) {
   return execa(command, args)
@@ -30,7 +30,8 @@ function assertFileObjEqual(obj: string, expected: string) {
   if (stats.isDirectory()) {
     const compareResult = compareSync(obj, expected, {compareContent: true})
     assert(
-      compareResult.same, util.inspect(diffsetDiffsOnly(compareResult.diffSet as Difference[])),
+      compareResult.same,
+      util.inspect(diffsetDiffsOnly(compareResult.diffSet as Difference[])),
     )
   } else {
     assert(
@@ -49,7 +50,7 @@ function test(inputDirs: string[], expected: string, buildPath?: string) {
     expand(inputDirs, outputObj)
   }
   assertFileObjEqual(outputObj, expected)
-  fs.rmdirSync(outputDir, {recursive: true})
+  fs.rmSync(outputDir, {recursive: true})
 }
 
 function failingTest(inputDirs: string[], expected: string) {
@@ -61,7 +62,7 @@ function failingTest(inputDirs: string[], expected: string) {
     expect(error.message).to.contain(expected)
     return
   } finally {
-    fs.rmdirSync(outputDir, {recursive: true})
+    fs.rmSync(outputDir, {recursive: true})
   }
   throw new Error('test passed unexpectedly')
 }
@@ -75,7 +76,7 @@ async function failingCliTest(args: string[], expected: string) {
     expect(error.stderr).to.contain(expected)
     return
   } finally {
-    fs.rmdirSync(outputDir, {recursive: true})
+    fs.rmSync(outputDir, {recursive: true})
   }
   throw new Error('test passed unexpectedly')
 }

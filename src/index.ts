@@ -1,9 +1,10 @@
 import fs from 'fs-extra'
 import path from 'path'
 import which from 'which'
-import execa from 'execa'
+import {execaSync} from 'execa'
 import stripFinalNewline from 'strip-final-newline'
 import Debug from 'debug'
+import assert from 'assert'
 
 const debug = Debug('nancy')
 
@@ -26,10 +27,8 @@ function isExecutable(file: string): boolean {
   }
 }
 
-// FIXME: `throwIfNoEntry` is missing in TypeScript types for Node 14:
-// https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/55786
-function statSync(file: string): fs.Stats {
-  return (fs as any).statSync(file, {throwIfNoEntry: false})
+function statSync(file: string): fs.Stats | undefined {
+  return fs.statSync(file, {throwIfNoEntry: false})
 }
 
 export function expand(inputs: string[], outputPath: string, buildPath = ''): void {
@@ -60,7 +59,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
     const dirs = []
     for (const root of inputs) {
       const stats = statSync(root)
-      if (stats !== undefined && (statSync(root).isDirectory() || object === '')) {
+      if (stats !== undefined && (stats.isDirectory() || object === '')) {
         const objectPath = path.join(root, object)
         const stats = statSync(objectPath)
         if (stats !== undefined) {
@@ -126,7 +125,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
           let output
           if (isExecutable(file)) {
             debug(`Running ${file} ${args.join(' ')}`)
-            output = execa.sync(file, args).stdout
+            output = execaSync(file, args).stdout
           } else {
             output = fs.readFileSync(file)
           }
@@ -239,9 +238,8 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
 
   const processPath = (object: string): void => {
     const dirent = findObject(object)
-    if (dirent === undefined) {
-      throw new Error(`'${object}' does not exist`)
-    } else if (isDirectory(dirent)) {
+    assert(dirent)
+    if (isDirectory(dirent)) {
       const outputDir = getOutputPath(object)
       debug(`Entering directory ${object}`)
       fs.ensureDirSync(outputDir)
