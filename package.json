@@ -80,5 +80,5 @@
     "diff-check"
   ],
   "type": "module",
-  "types": "lib/*.d.ts"
+  "types": "lib/index.d.ts"
 }
