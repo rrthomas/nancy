@@ -91,7 +91,7 @@ Nancy recognises these commands:
   returning it.
 * *`\$path`* Expands to the file currently being expanded, relative to the
   input tree.
-* * `\$realpath`* Expands to the real path of the file currently being
+* *`\$realpath`* Expands to the real path of the file currently being
     expanded.
 
 The last two commands are mostly useful as arguments to external programs
