@@ -1,7 +1,7 @@
 {
   "ignores": [
     "@aweary/alder",
-    "@tsconfig/node16",
+    "@tsconfig/node18",
     "eslint-config-airbnb-base",
     "eslint-config-airbnb-typescript",
     "eslint-plugin-import",

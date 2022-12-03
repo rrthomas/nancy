@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import net from 'net'
 import {execa} from 'execa'
-import tempy from 'tempy'
+import {temporaryFile, temporaryDirectory} from 'tempy'
 import {compareSync, Difference} from 'dir-compare'
 import chai, {assert, expect} from 'chai'
 import chaiAsPromised from 'chai-as-promised'
@@ -40,7 +40,7 @@ function assertFileObjEqual(obj: string, expected: string) {
 }
 
 function test(inputDirs: string[], expected: string, buildPath?: string) {
-  const outputDir = tempy.directory()
+  const outputDir = temporaryDirectory()
   const outputObj = path.join(outputDir, 'output')
   if (buildPath !== undefined) {
     expand(inputDirs, outputObj, buildPath)
@@ -52,7 +52,7 @@ function test(inputDirs: string[], expected: string, buildPath?: string) {
 }
 
 function failingTest(inputDirs: string[], expected: string) {
-  const outputDir = tempy.directory()
+  const outputDir = temporaryDirectory()
   try {
     test(inputDirs, outputDir)
   } catch (error: any) {
@@ -66,7 +66,7 @@ function failingTest(inputDirs: string[], expected: string) {
 }
 
 async function failingCliTest(args: string[], expected: string) {
-  const outputDir = tempy.directory()
+  const outputDir = temporaryDirectory()
   try {
     await run(args.concat(outputDir))
   } catch (error: any) {
@@ -209,7 +209,7 @@ describe('nancy', function t() {
 
   it('Running on something not a file or directory should cause an error', async () => {
     const server = net.createServer()
-    const tempFile = tempy.file()
+    const tempFile = temporaryFile()
     server.listen(tempFile)
     try {
       await failingCliTest([`${tempFile}`], 'is not a file or directory')
