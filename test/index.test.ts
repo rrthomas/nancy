@@ -188,10 +188,7 @@ describe('nancy', function t() {
   })
 
   it('Missing command-line argument should cause an error', async () => {
-    await failingCliTest(
-      [],
-      'the following arguments are required',
-    )
+    await failingCliTest([], 'the following arguments are required')
   })
 
   it('Invalid command-line argument should cause an error', async () => {
