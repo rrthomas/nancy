@@ -161,7 +161,7 @@ describe('nancy', function t() {
   })
 
   it('A non-existent input path should cause an error', () => {
-    failingTest(['a'], "build path '' matches no path in the inputs")
+    failingTest(['a'], "'' matches no path in the inputs")
   })
 
   it('$include-ing a non-existent file should give an error', () => {
@@ -198,7 +198,7 @@ describe('nancy', function t() {
   it('Running on a non-existent path should cause an error (DEBUG=yes coverage)', async () => {
     process.env.DEBUG = 'yes'
     try {
-      await failingCliTest(['a'], "build path '' matches no path in the inputs")
+      await failingCliTest(['a'], "'' matches no path in the inputs")
     } finally {
       delete process.env.DEBUG
     }

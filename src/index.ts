@@ -4,7 +4,6 @@ import which from 'which'
 import {execaSync} from 'execa'
 import stripFinalNewline from 'strip-final-newline'
 import Debug from 'debug'
-import assert from 'assert'
 
 const debug = Debug('nancy')
 
@@ -76,10 +75,6 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
       }
     }
     return dirs.length > 0 ? Object.values(dirents) : undefined
-  }
-
-  if (findObject(buildPath) === undefined) {
-    throw new Error(`build path '${buildPath}' matches no path in the inputs`)
   }
 
   const expandFile = (baseFile: string, filePath: string): string => {
@@ -231,7 +226,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
 
   const processPath = (object: string): void => {
     const dirent = findObject(object)
-    assert(dirent)
+    if (dirent === undefined) {
+      throw new Error(`'${object}' matches no path in the inputs`)
+    }
     if (isDirectory(dirent)) {
       const outputDir = getOutputPath(object)
       debug(`Entering directory ${object}`)
