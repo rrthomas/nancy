@@ -93,7 +93,7 @@ describe('nancy', function t() {
     await checkLinks('webpage-expected', 'index.html')
   })
 
-  it('Part-tree test', async () => {
+  it('Part-tree test (relative --path)', async () => {
     test(['webpage-src'], 'webpage-expected/people', 'people')
     await checkLinks('webpage-expected/people', 'index.html')
   })
@@ -101,6 +101,14 @@ describe('nancy', function t() {
   it('Two-tree test', async () => {
     test(['mergetrees-src', 'webpage-src'], 'mergetrees-expected')
     await checkLinks('mergetrees-expected', 'index.html')
+  })
+
+  it('Absolute --path', async () => {
+    test(
+      ['webpage-src/people/adam'],
+      'absolute-build-path-expected.txt',
+      path.join(process.cwd(), 'absolute-build-path.nancy.txt'),
+    )
   })
 
   it('Test nested macro invocations', () => {

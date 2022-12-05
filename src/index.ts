@@ -39,8 +39,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
     return Array.isArray(object)
   }
 
-  // Find the first file or directory with path `object` in the input tree,
-  // scanning the roots from left to right.
+  // Find the first file or directory with relative path `object` in the
+  // input tree, scanning the roots from left to right, or absolute path
+  // `object`.
   // If the result is a file, return its file system path.
   // If the result is a directory, return its contents as a list of
   // FullDirents, obtained by similarly scanning the tree from left to
@@ -48,21 +49,28 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
   // If something neither a file nor directory is found, raise an error.
   // If no result is found, return `undefined`.
   function findObject(object: string): Dirent {
+    const objects = []
+    if (path.isAbsolute(object)) {
+      objects.push(object)
+    } else {
+      for (const root of inputs) {
+        const stats = statSync(root)
+        if (stats !== undefined && (stats.isDirectory() || object === '')) {
+          objects.push(path.join(root, object))
+        }
+      }
+    }
     const dirs = []
-    for (const root of inputs) {
-      const stats = statSync(root)
-      if (stats !== undefined && (stats.isDirectory() || object === '')) {
-        const objectPath = path.join(root, object)
-        const stats = statSync(objectPath)
-        if (stats !== undefined) {
-          if (stats.isFile()) {
-            return objectPath
-          }
-          if (stats.isDirectory()) {
-            dirs.push(objectPath)
-          } else {
-            throw new Error(`${objectPath} is not a file or directory`)
-          }
+    for (const object of objects) {
+      const stats = statSync(object)
+      if (stats !== undefined) {
+        if (stats.isFile()) {
+          return object
+        }
+        if (stats.isDirectory()) {
+          dirs.push(object)
+        } else {
+          throw new Error(`${object} is not a file or directory`)
         }
       }
     }

@@ -60,8 +60,9 @@ the same file or directory exists in more than one of the directories on the
 input path, the left-most takes precedence. The result is called the “input
 tree”, and all paths are relative to it.
 
-Next, Nancy traverses the input tree, or the subtree given by the `--path`
-argument, if any.
+Next, Nancy traverses the input tree, or the tree given by the `--path`
+argument, if any, which is either a relative path denoting a subtree of the
+input tree, or an absolute path.
 
 For each directory, Nancy creates a corresponding directory, if it does not
 already exist.
