@@ -1,18 +1,33 @@
 {
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": ["./tsconfig.json", "test/tsconfig.json"]
+    "project": [
+      "./tsconfig.json",
+      "test/tsconfig.json"
+    ]
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": [
+    "@typescript-eslint"
+  ],
   "extends": [
     "airbnb-base",
     "airbnb-typescript/base"
   ],
   "rules": {
-    "no-cond-assign": ["error", "except-parens"],
+    "no-cond-assign": [
+      "error",
+      "except-parens"
+    ],
     "no-console": "off",
     "no-warning-comments": "off",
     "no-restricted-syntax": "off",
+    "prefer-destructuring": [
+      "error",
+      {
+        "object": true,
+        "array": false
+      }
+    ],
     "@typescript-eslint/no-shadow": "off",
     "@typescript-eslint/object-curly-spacing": "off",
     "@typescript-eslint/restrict-template-expressions": "off",

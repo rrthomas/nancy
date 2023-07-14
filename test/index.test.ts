@@ -43,10 +43,10 @@ function test(inputDirs: string[], expected: string, buildPath?: string) {
   fs.rmSync(outputDir, {recursive: true})
 }
 
-function failingTest(inputDirs: string[], expected: string) {
+function failingTest(inputDirs: string[], expected: string, buildPath?: string) {
   const outputDir = temporaryDirectory()
   try {
-    test(inputDirs, outputDir)
+    test(inputDirs, outputDir, buildPath)
   } catch (error: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(error.message).to.contain(expected)
@@ -57,16 +57,23 @@ function failingTest(inputDirs: string[], expected: string) {
   throw new Error('test passed unexpectedly')
 }
 
-async function failingCliTest(args: string[], expected: string) {
+async function cliTest(args: string[], expected: string) {
   const outputDir = temporaryDirectory()
+  const outputObj = path.join(outputDir, 'output')
   try {
-    await run(args.concat(outputDir))
-  } catch (error: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    expect(error.stderr).to.contain(expected)
-    return
+    await run(args.concat(outputObj))
+    assertFileObjEqual(outputObj, expected)
   } finally {
     fs.rmSync(outputDir, {recursive: true})
+  }
+}
+
+async function failingCliTest(args: string[], expected: string) {
+  try {
+    await cliTest(args, '')
+  } catch (error: any) {
+    expect(error.stderr).to.contain(expected)
+    return
   }
   throw new Error('test passed unexpectedly')
 }
@@ -103,7 +110,7 @@ describe('nancy', function t() {
     await checkLinks('mergetrees-expected', 'index.html')
   })
 
-  it('Absolute --path', async () => {
+  it('Absolute --path', () => {
     test(
       ['webpage-src/people/adam'],
       'absolute-build-path-expected.txt',
@@ -116,31 +123,31 @@ describe('nancy', function t() {
   })
 
   it('Failing executable test', () => {
-    failingTest(['false.nancy.txt'], 'Command failed with exit code 1')
+    failingTest([process.cwd()], 'Command failed with exit code 1', 'false.nancy.txt')
   })
 
   it('Passing executable test', () => {
-    test(['true.nancy.txt'], 'true-expected.txt')
+    test([process.cwd()], 'true-expected.txt', 'true.nancy.txt')
   })
 
   it('Executable test', () => {
     test(['page-template-with-date-src'], 'page-template-with-date-expected')
   })
 
-  it('Test that macros aren\'t expanded in Nancy\'s command-line arguments', () => {
+  it("Test that macros aren't expanded in Nancy's command-line arguments", () => {
     test(['$path-src'], '$path-expected')
   })
 
-  it('Test that $paste doesn\'t expand macros', () => {
+  it("Test that $paste doesn't expand macros", () => {
     test(['paste-src'], 'paste-expected')
   })
 
   it('Test that $include with no arguments gives an error', () => {
-    failingTest(['include-no-arg.nancy.txt'], '$include expects at least one argument')
+    failingTest([process.cwd()], '$include expects at least one argument', 'include-no-arg.nancy.txt')
   })
 
   it('Test that $paste with no arguments gives an error', () => {
-    failingTest(['paste-no-arg.nancy.txt'], '$paste expects at least one argument')
+    failingTest([process.cwd()], '$paste expects at least one argument', 'paste-no-arg.nancy.txt')
   })
 
   it('Test escaping a macro without arguments', () => {
@@ -156,28 +163,36 @@ describe('nancy', function t() {
     await checkLinks('cookbook-example-website-expected', 'index/index.html')
   })
 
+  it('Test expanding a file with relative includes', () => {
+    test([process.cwd()], 'file-root-relative-include-expected.txt', 'file-root-relative-include.nancy.txt')
+  })
+
   it('Empty input path should cause an error', () => {
     failingTest([], 'at least one input must be given')
   })
 
   it('A non-existent input path should cause an error', () => {
-    failingTest(['a'], "'' matches no path in the inputs")
+    failingTest(['a'], "input 'a' does not exist")
   })
 
-  it('$include-ing a non-existent file should give an error', () => {
-    failingTest(['missing-include.nancy.txt'], 'cannot find \'foo\'')
+  it('An input that is not a directory should cause an error', () => {
+    failingTest(['random-text.txt'], "input 'random-text.txt' is not a directory")
   })
 
-  it('Calling an undefined macro should give an error', () => {
-    failingTest(['undefined-macro.nancy.txt'], 'no such macro \'$foo\'')
+  it('$include-ing a non-existent file should cause an error', () => {
+    failingTest([process.cwd()], "cannot find 'foo'", 'missing-include.nancy.txt')
   })
 
-  it('Calling an undefined single-letter macro should give an error', () => {
-    failingTest(['undefined-short-macro.nancy.txt'], 'no such macro \'$f\'')
+  it('Calling an undefined macro should cause an error', () => {
+    failingTest([process.cwd()], "no such macro '$foo'", 'undefined-macro.nancy.txt')
   })
 
-  it('A macro call with a missing close brace should give an error', () => {
-    failingTest(['missing-close-brace.nancy.txt'], 'missing close brace')
+  it('Calling an undefined single-letter macro should cause an error', () => {
+    failingTest([process.cwd()], "no such macro '$f'", 'undefined-short-macro.nancy.txt')
+  })
+
+  it('A macro call with a missing close brace should cause an error', () => {
+    failingTest([process.cwd()], 'missing close brace', 'missing-close-brace.nancy.txt')
   })
 
   // CLI tests
@@ -185,6 +200,10 @@ describe('nancy', function t() {
     const proc = run(['--help'])
     const {stdout} = await proc
     expect(stdout).to.contain('A simple templating system.')
+  })
+
+  it('Running with a single file as INPUT-PATH should work', async () => {
+    await cliTest(['file-root-relative-include.nancy.txt'], 'file-root-relative-include-expected.txt')
   })
 
   it('Missing command-line argument should cause an error', async () => {
@@ -198,7 +217,7 @@ describe('nancy', function t() {
   it('Running on a non-existent path should cause an error (DEBUG=yes coverage)', async () => {
     process.env.DEBUG = 'yes'
     try {
-      await failingCliTest(['a'], "'' matches no path in the inputs")
+      await failingCliTest(['a'], "input 'a' does not exist")
     } finally {
       delete process.env.DEBUG
     }
@@ -209,7 +228,7 @@ describe('nancy', function t() {
     const tempFile = temporaryFile()
     server.listen(tempFile)
     try {
-      await failingCliTest([`${tempFile}`], 'is not a file or directory')
+      await failingCliTest([`--path=${tempFile}`, process.cwd()], 'is not a file or directory')
     } finally {
       server.close()
     }

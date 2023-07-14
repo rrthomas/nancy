@@ -13,8 +13,8 @@ Nancy was originally designed to build simple static web sites, but can be
 used for all sorts of other tasks, similar to more complicated systems like
 [AutoGen] and [TXR].
 
-[AutoGen]: http://autogen.sourceforge.net
-[TXR]: http://www.nongnu.org/txr
+[AutoGen]: https://autogen.sourceforge.net
+[TXR]: https://www.nongnu.org/txr
 
 Nancy is free software, licensed under the GNU GPL version 3 (or, at your
 option, any later version), and written in TypeScript.
@@ -49,8 +49,15 @@ Next, Nancy traverses the input tree, or the tree given by the `--path`
 argument, if any, which is either a relative path denoting a subtree of the
 input tree, or an absolute path.
 
-For each directory, Nancy creates a corresponding directory, if it does not
-already exist.
+As a special case, if the input path is a single file, and no `--path`
+argument is given, then Nancy acts as if the input path were the current
+directory and the `--path` argument were the file name. This makes it
+convenient to expand a single file using the command:
+
+`nancy INPUT-FILE OUTPUT-FILE`
+
+For each directory in the input tree, Nancy creates a corresponding
+directory, if it does not already exist.
 
 For each file, Nancy looks at its name, and:
 

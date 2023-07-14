@@ -27,6 +27,14 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
   if (inputs.length === 0) {
     throw new Error('at least one input must be given')
   }
+  for (const root of inputs) {
+    const stats = statSync(root)
+    if (stats === undefined) {
+      throw new Error(`input '${root}' does not exist`)
+    } else if (!stats.isDirectory()) {
+      throw new Error(`input '${root}' is not a directory`)
+    }
+  }
 
   type FullDirent = fs.Dirent & {path: string}
   type File = string
@@ -54,10 +62,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
       objects.push(object)
     } else {
       for (const root of inputs) {
-        const stats = statSync(root)
-        if (stats !== undefined && (stats.isDirectory() || object === '')) {
-          objects.push(path.join(root, object))
-        }
+        objects.push(path.join(root, object))
       }
     }
     const dirs = []
