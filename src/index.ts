@@ -70,7 +70,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
         if (stats.isDirectory()) {
           dirs.push(object)
         } else {
-          throw new Error(`${object} is not a file or directory`)
+          throw new Error(`'${object}' is not a file or directory`)
         }
       }
     }
@@ -106,14 +106,14 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
         }
 
         const getFile = (leaf: string) => {
-          debug(`Searching for ${leaf}`)
+          debug(`Searching for '${leaf}'`)
           const startPath = path.dirname(baseFile)
           const fileOrExec = findOnPath(startPath.split(path.sep), leaf)
             ?? which.sync(leaf, {nothrow: true})
           if (fileOrExec === null) {
             throw new Error(`cannot find '${leaf}' while expanding '${baseFile}'`)
           }
-          debug(`Found ${fileOrExec}`)
+          debug(`Found '${fileOrExec}'`)
           return fileOrExec
         }
 
@@ -223,9 +223,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
 
   const processFile = (baseFile: File, filePath: string): void => {
     const outputFile = getOutputPath(baseFile)
-    debug(`Processing file ${filePath}`)
+    debug(`Processing file '${filePath}'`)
     if (templateRegex.exec(filePath)) {
-      debug(`Expanding ${baseFile} to ${outputFile}`)
+      debug(`Expanding '${baseFile}' to '${outputFile}'`)
       fs.writeFileSync(outputFile, expandFile(baseFile, filePath))
     } else if (!noCopyRegex.exec(filePath)) {
       fs.copyFileSync(filePath, outputFile)
@@ -239,7 +239,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
     }
     if (isDirectory(dirent)) {
       const outputDir = getOutputPath(object)
-      debug(`Entering directory ${object}`)
+      debug(`Entering directory '${object}'`)
       fs.ensureDirSync(outputDir)
       for (const childDirent of dirent) {
         if (childDirent.name[0] !== '.') {
