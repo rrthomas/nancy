@@ -69,7 +69,7 @@
     "loc": "cloc src/*.ts",
     "diff-check": "git diff --exit-code",
     "prepublishOnly": "npm run diff-check && git push --all",
-    "postpublish": "git push --tags --no-verify && hub release create $(git describe) -m \"Release $(git describe)\"",
+    "postpublish": "git push --tags --no-verify && gh release create $(git describe) -t \"Release $(git describe)\"",
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
     "docs": "./bin/test-run.js README.nancy.md README.md && ./bin/test-run.js Cookbook.nancy.md Cookbook.md"
   },
