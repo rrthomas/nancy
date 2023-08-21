@@ -8,11 +8,7 @@
     "moduleResolution": "node",
     "outDir": "lib",
     "rootDir": "./src",
-    "sourceMap": true,
-    "typeRoots": [
-      "./types",
-      "./node_modules/@types"
-    ]
+    "sourceMap": true
   },
   "include": [
     "src/**/*"
