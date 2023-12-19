@@ -18,18 +18,18 @@
   },
   "devDependencies": {
     "@aweary/alder": "^2.0.0",
-    "@tsconfig/node18": "^1.0.3",
+    "@tsconfig/node20": "^20.0.0",
     "@types/argparse": "^2.0.10",
     "@types/chai": "^4.3.5",
     "@types/chai-as-promised": "^7.1.5",
     "@types/debug": "^4.1.8",
     "@types/fs-extra": "^9.0.13",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^18.16.19",
+    "@types/node": "^20.10.5",
     "@types/strip-final-newline": "^3.0.0",
     "@types/which": "^2.0.2",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
     "c8": "^7.14.0",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
@@ -44,11 +44,12 @@
     "open-cli": "^7.2.0",
     "pre-push": "^0.1.4",
     "tempy": "^3.1.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.9.5"
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.2.0"
   },
   "engines": {
-    "node": "^18.0.0"
+    "node": "^18 || ^20"
   },
   "files": [
     "Cookbook.md",
@@ -72,7 +73,7 @@
     "prepublishOnly": "npm run diff-check && git push --all",
     "postpublish": "git push --tags --no-verify && gh release create $(git describe) -t \"Release $(git describe)\"",
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
-    "docs": "./bin/test-run.js README.nancy.md README.md && ./bin/test-run.js Cookbook.nancy.md Cookbook.md"
+    "docs": "./bin/test-run.sh README.nancy.md README.md && ./bin/test-run.sh Cookbook.nancy.md Cookbook.md"
   },
   "pre-push": [
     "lint",

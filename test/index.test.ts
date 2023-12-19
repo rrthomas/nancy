@@ -13,7 +13,7 @@ import {expand} from '../src/index.js'
 
 chai.use(chaiAsPromised)
 
-const command = process.env.NODE_ENV === 'coverage' ? '../bin/test-run.js' : '../bin/run.js'
+const command = process.env.NODE_ENV === 'coverage' ? '../bin/test-run.sh' : '../bin/run.js'
 
 async function run(args: string[]) {
   return execa(command, args)
