@@ -5,13 +5,10 @@ import net from 'net'
 import {execa} from 'execa'
 import {temporaryFile, temporaryDirectory} from 'tempy'
 import {compareSync, Difference} from 'dir-compare'
-import chai, {assert, expect} from 'chai'
-import chaiAsPromised from 'chai-as-promised'
+import {assert, expect} from 'chai'
 import {check} from 'linkinator'
 
 import {expand} from '../src/index.js'
-
-chai.use(chaiAsPromised)
 
 const command = process.env.NODE_ENV === 'coverage' ? '../bin/test-run.sh' : '../bin/run.js'
 
