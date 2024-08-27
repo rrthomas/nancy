@@ -4,7 +4,7 @@
   "version": "7.3.1",
   "author": "Reuben Thomas",
   "bin": {
-    "nancy": "./bin/run.js"
+    "nancy": "bin/run.js"
   },
   "bugs": "https://github.com/rrthomas/nancy/issues",
   "dependencies": {
@@ -56,7 +56,10 @@
   "homepage": "https://github.com/rrthomas/nancy",
   "license": "GPL-3.0-or-later",
   "main": "lib/index.js",
-  "repository": "rrthomas/nancy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rrthomas/nancy.git"
+  },
   "scripts": {
     "lint": "eslint . --ext .ts && depcheck",
     "prebuild": "node --print \"'export default \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
