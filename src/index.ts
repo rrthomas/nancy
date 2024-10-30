@@ -126,7 +126,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
           let output
           if (isExecutable(file)) {
             debug(`Running ${file} ${args.join(' ')}`)
-            output = execaSync(file, args).stdout
+            output = execaSync(file, args, {stderr: 'inherit'}).stdout
           } else {
             output = fs.readFileSync(file)
           }
