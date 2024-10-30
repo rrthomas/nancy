@@ -27,7 +27,6 @@ interface Args {
   input: string
   output: string
   path?: string
-  verbose: boolean
   expander: string
 }
 const args: Args = parser.parse_args() as Args
