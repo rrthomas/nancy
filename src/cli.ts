@@ -13,7 +13,7 @@ const parser = new ArgumentParser({
     + 'are merged in left-to-right order.',
 })
 parser.add_argument('input', {metavar: 'INPUT-PATH', help: 'list of input directories, or a single file'})
-parser.add_argument('output', {metavar: 'OUTPUT', help: 'output directory, or file'})
+parser.add_argument('output', {metavar: 'OUTPUT', help: "output directory, or file ('-' for stdout)"})
 parser.add_argument('--path', {help: "path to build relative to input tree [default: '']"})
 parser.add_argument('--version', {
   action: 'version',

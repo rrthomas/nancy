@@ -231,9 +231,18 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
     debug(`Processing file '${filePath}'`)
     if (templateRegex.exec(filePath)) {
       debug(`Expanding '${baseFile}' to '${outputFile}'`)
-      fs.writeFileSync(outputFile, expandFile(baseFile, filePath))
+      const output = expandFile(baseFile, filePath)
+      if (outputFile === '-') {
+        process.stdout.write(output)
+      } else {
+        fs.writeFileSync(outputFile, output)
+      }
     } else if (!noCopyRegex.exec(filePath)) {
-      fs.copyFileSync(filePath, outputFile)
+      if (outputFile === '-') {
+        process.stdout.write(fs.readFileSync(filePath))
+      } else {
+        fs.copyFileSync(filePath, outputFile)
+      }
     }
   }
 
@@ -244,6 +253,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
     }
     if (isDirectory(dirent)) {
       const outputDir = getOutputPath(object)
+      if (outputDir === '-') {
+        throw new Error("cannot output multiple files to stdout ('-')")
+      }
       debug(`Entering directory '${object}'`)
       fs.ensureDirSync(outputDir)
       for (const childDirent of dirent) {

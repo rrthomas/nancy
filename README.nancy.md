@@ -56,6 +56,10 @@ convenient to expand a single file using the command:
 
 `nancy INPUT-FILE OUTPUT-FILE`
 
+Also, when the output is a single file, the special filename `-` may be used
+to cause Nancy to print the result to standard output instead of writing it
+to a file.
+
 For each directory in the input tree, Nancy creates a corresponding
 directory, if it does not already exist.
 

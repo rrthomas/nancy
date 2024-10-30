@@ -28,40 +28,65 @@ function assertFileObjEqual(obj: string, expected: string) {
   )
 }
 
-function test(inputDirs: string[], expected: string, buildPath?: string) {
-  const outputDir = temporaryDirectory()
-  const outputObj = path.join(outputDir, 'output')
+function test(inputDirs: string[], expected: string, buildPath?: string, outputDir?: string) {
+  let tmpDir
+  let outputObj
+  if (outputDir === undefined) {
+    tmpDir = temporaryDirectory()
+    outputObj = path.join(tmpDir, 'output')
+  } else {
+    outputObj = outputDir
+  }
   if (buildPath !== undefined) {
     expand(inputDirs, outputObj, buildPath)
   } else {
     expand(inputDirs, outputObj)
   }
   assertFileObjEqual(outputObj, expected)
-  fs.rmSync(outputDir, {recursive: true})
+  if (tmpDir !== undefined) {
+    fs.rmSync(tmpDir, {recursive: true})
+  }
 }
 
-function failingTest(inputDirs: string[], expected: string, buildPath?: string) {
-  const outputDir = temporaryDirectory()
+function failingTest(
+  inputDirs: string[],
+  expected: string,
+  buildPath?: string,
+  outputDir?: string,
+) {
+  const expectedDir = temporaryDirectory()
   try {
-    test(inputDirs, outputDir, buildPath)
+    test(inputDirs, expectedDir, buildPath, outputDir)
   } catch (error: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(error.message).to.contain(expected)
     return
   } finally {
-    fs.rmSync(outputDir, {recursive: true})
+    fs.rmSync(expectedDir, {recursive: true})
   }
   throw new Error('test passed unexpectedly')
 }
 
-async function cliTest(args: string[], expected: string) {
-  const outputDir = temporaryDirectory()
-  const outputObj = path.join(outputDir, 'output')
+async function cliTest(args: string[], expected: string, outputDir?: string) {
+  let tmpDir
+  let outputObj
+  if (outputDir === undefined) {
+    tmpDir = temporaryDirectory()
+    outputObj = path.join(tmpDir, 'output')
+  } else {
+    outputObj = outputDir
+  }
   try {
-    await run(args.concat(outputObj))
-    assertFileObjEqual(outputObj, expected)
+    const res = await run(args.concat(outputObj))
+    if (tmpDir !== undefined) {
+      assertFileObjEqual(outputObj, expected)
+    } else {
+      expect(res.stdout).to.equal(fs.readFileSync(expected, 'utf-8'))
+    }
   } finally {
-    fs.rmSync(outputDir, {recursive: true})
+    if (tmpDir !== undefined) {
+      fs.rmSync(tmpDir, {recursive: true})
+    }
   }
 }
 
@@ -192,6 +217,10 @@ describe('nancy', function t() {
     failingTest([process.cwd()], 'missing close brace', 'missing-close-brace.nancy.txt')
   })
 
+  it('Trying to output multiple files to stdout should cause an error', async () => {
+    failingTest(['webpage-src'], 'cannot output multiple files to stdout', undefined, '-')
+  })
+
   // CLI tests
   it('--help should produce output', async () => {
     const proc = run(['--help'])
@@ -201,6 +230,10 @@ describe('nancy', function t() {
 
   it('Running with a single file as INPUT-PATH should work', async () => {
     await cliTest(['file-root-relative-include.nancy.txt'], 'file-root-relative-include-expected.txt')
+  })
+
+  it('Output to stdout of a single file should work', async () => {
+    await cliTest(['file-root-relative-include.nancy.txt'], 'file-root-relative-include-expected.txt', '-')
   })
 
   it('Missing command-line argument should cause an error', async () => {
