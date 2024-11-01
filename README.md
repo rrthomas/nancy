@@ -64,17 +64,6 @@ Next, Nancy traverses the input tree, or the tree given by the `--path`
 argument, if any, which is a relative path denoting a subtree of the
 input tree.
 
-As a special case, if the input path is a single file, and no `--path`
-argument is given, then Nancy acts as if the input path were the current
-directory and the `--path` argument were the file name. This makes it
-convenient to expand a single file using the command:
-
-`nancy INPUT-FILE OUTPUT-FILE`
-
-Also, when the output is a single file, the special filename `-` may be used
-to cause Nancy to print the result to standard output instead of writing it
-to a file.
-
 For each directory in the input tree, Nancy creates a corresponding
 directory, if it does not already exist.
 
@@ -94,6 +83,16 @@ except for the root directory (or file), which is called `OUTPUT`.
 
 The special suffixes need not end the file name; they can be used as infixes
 before the file type suffix.
+
+### Special cases
+
++ If the input path is a single file, and no `--path` argument is given,
+then Nancy acts as if the input path were the current directory and the
+`--path` argument were the file name. This makes it convenient to expand a
+single file using the command: `nancy INPUT-FILE OUTPUT-FILE`
++ When the output is a single file, the special filename `-` may be used to
+cause Nancy to print the result to standard output instead of writing it to
+a file.
 
 ### Template expansion
 
