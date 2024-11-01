@@ -132,14 +132,6 @@ describe('nancy', function t() {
     await checkLinks('mergetrees-expected', 'index.html')
   })
 
-  it('Absolute --path', () => {
-    test(
-      ['webpage-src/people/adam'],
-      'absolute-build-path-expected.txt',
-      path.join(process.cwd(), 'absolute-build-path.nancy.txt'),
-    )
-  })
-
   it('Test nested macro invocations', () => {
     test(['nested-macro-src'], 'nested-macro-expected')
   })
@@ -258,7 +250,7 @@ describe('nancy', function t() {
     const tempFile = temporaryFile()
     server.listen(tempFile)
     try {
-      await failingCliTest([`--path=${tempFile}`, process.cwd()], 'is not a file or directory')
+      await failingCliTest([`--path=${path.basename(tempFile)}`, path.dirname(tempFile)], 'is not a file or directory')
     } finally {
       server.close()
     }
@@ -268,6 +260,13 @@ describe('nancy', function t() {
     await failingCliTest(
       ['--path', 'nonexistent', 'webpage-src'],
       'matches no path in the inputs',
+    )
+  })
+
+  it('Absolute --path should cause an error', async () => {
+    await failingCliTest(
+      ['--path', '/nonexistent', 'webpage-src'],
+      'build path must be relative',
     )
   })
 

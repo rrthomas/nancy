@@ -61,8 +61,8 @@ input path, the left-most takes precedence. The result is called the “input
 tree”, and all paths are relative to it.
 
 Next, Nancy traverses the input tree, or the tree given by the `--path`
-argument, if any, which is either a relative path denoting a subtree of the
-input tree, or an absolute path.
+argument, if any, which is a relative path denoting a subtree of the
+input tree.
 
 As a special case, if the input path is a single file, and no `--path`
 argument is given, then Nancy acts as if the input path were the current

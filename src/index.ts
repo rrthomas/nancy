@@ -27,6 +27,9 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
   if (inputs.length === 0) {
     throw new Error('at least one input must be given')
   }
+  if (path.isAbsolute(buildPath)) {
+    throw new Error('build path must be relative')
+  }
   for (const root of inputs) {
     const stats = statSync(root)
     if (stats === undefined) {
@@ -48,8 +51,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
   }
 
   // Find the first file or directory with relative path `object` in the
-  // input tree, scanning the roots from left to right, or absolute path
-  // `object`.
+  // input tree, scanning the roots from left to right.
   // If the result is a file, return its file system path.
   // If the result is a directory, return its contents as a list of
   // FullDirents, obtained by similarly scanning the tree from left to
@@ -58,12 +60,8 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
   // If no result is found, return `undefined`.
   function findObject(object: string): Dirent {
     const objects = []
-    if (path.isAbsolute(object)) {
-      objects.push(object)
-    } else {
-      for (const root of inputs) {
-        objects.push(path.join(root, object))
-      }
+    for (const root of inputs) {
+      objects.push(path.join(root, object))
     }
     const dirs = []
     for (const object of objects) {
