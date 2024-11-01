@@ -37,14 +37,17 @@ function test(inputDirs: string[], expected: string, buildPath?: string, outputD
   } else {
     outputObj = outputDir
   }
-  if (buildPath !== undefined) {
-    expand(inputDirs, outputObj, buildPath)
-  } else {
-    expand(inputDirs, outputObj)
-  }
-  assertFileObjEqual(outputObj, expected)
-  if (tmpDir !== undefined) {
-    fs.rmSync(tmpDir, {recursive: true})
+  try {
+    if (buildPath !== undefined) {
+      expand(inputDirs, outputObj, buildPath)
+    } else {
+      expand(inputDirs, outputObj)
+    }
+    assertFileObjEqual(outputObj, expected)
+  } finally {
+    if (tmpDir !== undefined) {
+      fs.rmSync(tmpDir, {recursive: true})
+    }
   }
 }
 
