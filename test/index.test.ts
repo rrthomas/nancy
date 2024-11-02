@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import net from 'net'
 import {execa} from 'execa'
-import {temporaryFile, temporaryDirectory} from 'tempy'
+import {temporaryDirectory} from 'tempy'
 import {compareSync, Difference} from 'dir-compare'
 import {assert, expect} from 'chai'
 import {check} from 'linkinator'
@@ -93,9 +93,9 @@ async function cliTest(args: string[], expected: string, outputDir?: string) {
   }
 }
 
-async function failingCliTest(args: string[], expected: string) {
+async function failingCliTest(args: string[], expected: string, outputDir?: string) {
   try {
-    await cliTest(args, '')
+    await cliTest(args, '', outputDir)
   } catch (error: any) {
     expect(error.stderr).to.contain(expected)
     return
@@ -250,10 +250,11 @@ describe('nancy', function t() {
 
   it('Running on something not a file or directory should cause an error', async () => {
     const server = net.createServer()
-    const tempFile = temporaryFile()
+    const tempDir = temporaryDirectory()
+    const tempFile = path.join(tempDir, 'foo')
     server.listen(tempFile)
     try {
-      await failingCliTest([`--path=${path.basename(tempFile)}`, path.dirname(tempFile)], 'is not a file or directory')
+      await failingCliTest([`--path=${path.basename(tempFile)}`, tempDir], 'is not a file or directory')
     } finally {
       server.close()
     }
@@ -270,6 +271,14 @@ describe('nancy', function t() {
     await failingCliTest(
       ['--path', '/nonexistent', 'webpage-src'],
       'build path must be relative',
+    )
+  })
+
+  it('Output to subdirectory of input should cause an error', async () => {
+    await failingCliTest(
+      ['webpage-src'],
+      'output cannot be in any input directory',
+      'webpage-src/foo',
     )
   })
 

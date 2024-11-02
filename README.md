@@ -49,8 +49,10 @@ optional arguments:
   --path PATH  path to build relative to input tree [default: '']
   --version    show program's version number and exit
 
-The INPUT-PATH is a ':'-separated list; the inputs
-are merged in left-to-right order.
+The INPUT-PATH is a ':'-separated list; the inputs are merged
+in left-to-right order.
+
+OUTPUT cannot be in any input directory.
 ```
 
 ## Operation <a name="operation"></a>
