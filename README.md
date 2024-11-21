@@ -2,7 +2,7 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-© 2002–2023 Reuben Thomas <rrt@sc3d.org>  
+© 2002–2024 Reuben Thomas <rrt@sc3d.org>  
 https://github.com/rrthomas/nancy  
 
 Nancy is a simple macro processor that copies a file or directory, filling
@@ -27,10 +27,10 @@ report them on the project’s web page (see above for addresses).
 
 ## Installation
 
-Install Nancy with npm (part of [Node](https://nodejs.org)):
+Install Nancy with pip (part of [Python](https://python.org)):
 
 ```
-$ npm install -g @sc3d/nancy
+$ pip install nancy
 ```
 
 ## Invocation
@@ -44,7 +44,7 @@ positional arguments:
   INPUT-PATH   list of input directories, or a single file
   OUTPUT       output directory, or file ('-' for stdout)
 
-optional arguments:
+options:
   -h, --help   show this help message and exit
   --path PATH  path to build relative to input tree [default: '']
   --version    show program's version number and exit
@@ -216,15 +216,14 @@ Now I can talk about $paste.
 
 ## Development
 
-Check out the git repository and download dependencies with:
+Check out the git repository with:
 
 ```
 git clone https://github.com/rrthomas/nancy
-npm install
 ```
 
 To run the tests:
 
 ```
-npm test
+make test
 ```

@@ -2,7 +2,7 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-$paste{/bin/sh,-c,./bin/run.js --version | tail +2 | head -2 | sed -e 's/$/  /'}
+$paste{/bin/sh,-c,PYTHONPATH=. python -m nancy --version | tail +2 | head -2 | sed -e 's/$/  /'}
 
 Nancy is a simple macro processor that copies a file or directory, filling
 in templates as it goes. It has just one non-trivial construct:
@@ -26,16 +26,16 @@ report them on the project’s web page (see above for addresses).
 
 ## Installation
 
-Install Nancy with npm (part of [Node](https://nodejs.org)):
+Install Nancy with pip (part of [Python](https://python.org)):
 
 ```
-$ npm install -g @sc3d/nancy
+$ pip install nancy
 ```
 
 ## Invocation
 
 ```
-$paste{/bin/sh,-c,./bin/run.js --help | sed -e 's/usage: run.js/nancy/'}
+$paste{/bin/sh,-c,PYTHONPATH=. python -m nancy --help | sed -e 's/usage: nancy/nancy/'}
 ```
 
 ## Operation <a name="operation"></a>
@@ -199,15 +199,16 @@ Now I can talk about \$paste.
 
 ## Development
 
-Check out the git repository and download dependencies with:
+Check out the git repository with:
 
 ```
 git clone https://github.com/rrthomas/nancy
-npm install
 ```
 
 To run the tests:
 
 ```
-npm test
+make test
 ```
+
+You will need the `tree` utility to build the documentation.

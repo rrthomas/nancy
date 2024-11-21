@@ -1,4 +1,4 @@
 #!/bin/sh
 # Produce pretty plain text directory tree
 
-npx @aweary/alder "$@" | tail -n +3 | head -n -1
+tree --noreport --dirsfirst "$@" | tail -n +2

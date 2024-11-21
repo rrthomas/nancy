@@ -1,0 +1,63 @@
+[project]
+name = "nancy"
+version = "8.0.0"
+description = "Simple templating system"
+license = {text = "GPL v3 or later"}
+authors = [
+    {name = "Reuben Thomas", email = "rrt@sc3d.org"}
+]
+readme = "README.md"
+urls = {Homepage = "https://github.com/rrthomas/nancy"}
+requires-python = ">= 3.9"
+classifiers = [
+    "Environment :: Console",
+    "Programming Language :: Python :: 3",
+]
+
+[project.scripts]
+nancy = "nancy:main"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[build-system]
+requires = [
+    "setuptools >= 60",
+]
+
+[tool.setuptools]
+packages = ["nancy"]
+
+[tool.mypy]
+exclude = ['^dist', '^build']
+strict = true
+
+[tool.pylint.main]
+# Use multiple processes to speed up Pylint: 0 = auto-detect.
+jobs = 0
+
+[tool.pylint.MASTER]
+init-hook = 'import sys; sys.path.append(".")'
+
+[tool.pylint.format]
+const-naming-style = "any"
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "no-member",
+    "fixme",
+    "global-statement",
+    "redefined-outer-name",
+    "too-many-locals",
+    "too-many-branches",
+    "too-many-function-args",
+    "too-many-positional-arguments",
+    "too-many-statements",
+]
+enable = [
+    "useless-suppression",
+]
+
+[tool.pytest.ini_options]
+addopts = "-p no:warnings"

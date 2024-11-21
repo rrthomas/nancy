@@ -18,20 +18,20 @@ line corresponds to a page:
 
 ```
  ├── Home page
-$paste{sh,-c,build-aux/dirtree test/cookbook-example-website-expected | sed -e 's/\.html//g' | grep -v index | grep -v \\.}
+$paste{sh,-c,build-aux/dirtree tests/test-files/cookbook-example-website-expected | sed -e 's/\.html//g' | grep -v index | grep -v \\.}
 ```
 
 The basic page template looks something like this:
 
 ```
-$paste{cat,test/cookbook-example-website-src/template.in.html}
+$paste{cat,tests/test-files/cookbook-example-website-src/template.in.html}
 ```
 
 Making the menu an included file is not strictly necessary, but makes the
 template easier to read. The pages will be laid out as follows:
 
 ```
-$paste{build-aux/dirtree,test/cookbook-example-website-expected}
+$paste{build-aux/dirtree,tests/test-files/cookbook-example-website-expected}
 ```
 
 The corresponding source files are laid out as follows. This may look a
@@ -39,7 +39,7 @@ little confusing at first, but note the similarity to the HTML pages, and
 hold on for the explanation!
 
 ```
-$paste{build-aux/dirtree,test/cookbook-example-website-src}
+$paste{build-aux/dirtree,tests/test-files/cookbook-example-website-src}
 ```
 
 Note that there is only one menu fragment (the main menu is the same for
@@ -51,13 +51,13 @@ Now consider how Nancy builds the page whose URL is
 `Places/Vladivostok/index.html`. Assume the source files are in the
 directory `source`. This page is built from
 `source/Places/Vladivostok/index.nancy.html`, whose contents is
-`$paste{cat,test/cookbook-example-website-src/Places/Vladivostok/index.nancy.html}`. According to the rules given in the
+`$paste{cat,tests/test-files/cookbook-example-website-src/Places/Vladivostok/index.nancy.html}`. According to the rules given in the
 [Operation](README.md#operation) section of the manual, Nancy will look
 first for files in `source/Places/Vladivostok`, then in `source/places`, and
 finally in `source`. Hence, the actual list of files used to assemble the
 page is:
 
-$paste{env,NANCY_TMPDIR=/tmp/cookbook-dest.$$,sh,-c,rm -rf ${NANCY_TMPDIR} && DEBUG="*" ./bin/run.js --path Places/Vladivostok test/cookbook-example-website-src ${NANCY_TMPDIR} 2>&1 | grep Found | cut -d " " -f 4 | sort | uniq | sed -e 's|^'\''test/cookbook-example-website-src\(.*\)'\''$|* `source\1`|' && rm -rf ${NANCY_TMPDIR}}
+$paste{env,NANCY_TMPDIR=/tmp/cookbook-dest.$$,sh,-c,rm -rf ${NANCY_TMPDIR} && DEBUG="*" PYTHONPATH=. python -m nancy --path Places/Vladivostok tests/test-files/cookbook-example-website-src ${NANCY_TMPDIR} 2>&1 | grep Found | cut -d " " -f 4 | sort | uniq | sed -e 's|^'\''tests/test-files/cookbook-example-website-src\(.*\)'\''$|* `source\1`|' && rm -rf ${NANCY_TMPDIR}}
 
 For the site’s index page, the file `index/logo.in.html` will be used for the
 logo fragment, which can refer to the larger graphic desired.
@@ -94,13 +94,13 @@ Given a simple page template, a datestamp can be added by using the `date`
 command with `\$paste`:
 
 ```
-$paste{sh,-c,sed -e 's|\,--date=2016/10/12||' < test/page-template-with-date-src/Page.nancy.md}
+$paste{sh,-c,sed -e 's|\,--date=2016/10/12||' < tests/test-files/page-template-with-date-src/Page.nancy.md}
 ```
 
 This gives a result looking something like:
 
 ```
-$include{cat,test/page-template-with-date-src/Page.nancy.md}
+$include{cat,tests/test-files/page-template-with-date-src/Page.nancy.md}
 ```
 
 ## Adding code examples to Markdown

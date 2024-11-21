@@ -140,15 +140,7 @@ first for files in `source/Places/Vladivostok`, then in `source/places`, and
 finally in `source`. Hence, the actual list of files used to assemble the
 page is:
 
-* `source/breadcrumb.in.html`
-* `source/logo.in.html`
-* `source/menu.in.html`
-* `source/path-to-root.in.sh`
-* `source/Places/breadcrumb.in.html`
-* `source/Places/Vladivostok/breadcrumb.in.html`
-* `source/Places/Vladivostok/main.in.html`
-* `source/Places/Vladivostok/title.in.txt`
-* `source/template.in.html`
+
 
 For the site’s index page, the file `index/logo.in.html` will be used for the
 logo fragment, which can refer to the larger graphic desired.
