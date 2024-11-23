@@ -5,6 +5,10 @@ document shows examples of its use.
 
 ## Generating a web site <a name="website-example"></a>
 
+*Note: the techniques used here, and more, are bundled into a convenient
+tool that builds on Nancy, called
+[Linton](https://rrthomas.github.io/linton).*
+
 Suppose a web site has the following page design:
 
 ![from top to bottom: logo, breadcrumb trail, navigation menu, page body](website.svg)
@@ -168,8 +172,6 @@ The site is built by running Nancy on the `sources` directory:
 ```
 nancy sources site
 ```
-
-[FIXME]: # (Explain how to serve the web site dynamically.)
 
 ## Adding a date to a template using a program <a name="date-example"></a>
 
