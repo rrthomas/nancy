@@ -94,7 +94,7 @@ Given a simple page template, a datestamp can be added by using the `date`
 command with `\$paste`:
 
 ```
-$paste{sh,-c,sed -e 's|\,--date=2016/10/12||' < tests/test-files/page-template-with-date-src/Page.nancy.md}
+$paste{sh,-c,sed -e 's|datetime(2016\\\,10\\\,12)|now()|' < tests/test-files/page-template-with-date-src/Page.nancy.md}
 ```
 
 This gives a result looking something like:

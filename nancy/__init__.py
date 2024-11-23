@@ -161,9 +161,10 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
                     args = [] if arg is None else re.split(r"(?<!\\),", arg)
                     expanded_args: List[str] = []
                     for a in args:
-                        unescaped_arg = re.sub(
-                            r"\,", ",", a
-                        )  # Remove escaping backslashes
+                        # Unescape escaped commas
+                        debug(f"escaped arg {a}")
+                        unescaped_arg = re.sub(r"\\,", ",", a)
+                        debug(f"unescaped arg {unescaped_arg}")
                         expanded_args.append(do_expand(unescaped_arg))
                     if macro not in macros:
                         raise ValueError(f"no such macro '${macro}'")

@@ -18,12 +18,12 @@ line corresponds to a page:
 
 ```
  ├── Home page
- ├── People
- │   ├── Hilary Pilary
- │   ├── Jo Bloggs
- ├── Places
- │   ├── Timbuktu
- │   ├── Vladivostok
+├── People
+│   ├── Hilary Pilary
+│   └── Jo Bloggs
+├── Places
+│   ├── Timbuktu
+│   └── Vladivostok
 ```
 
 The basic page template looks something like this:
@@ -52,25 +52,25 @@ Making the menu an included file is not strictly necessary, but makes the
 template easier to read. The pages will be laid out as follows:
 
 ```
- ├── People
- │   ├── Hilary Pilary
- │   │   └── index.html
- │   ├── Jo Bloggs
- │   │   └── index.html
- │   └── index
- │       └── index.html
- ├── Places
- │   ├── Timbuktu
- │   │   └── index.html
- │   ├── Vladivostok
- │   │   └── index.html
- │   └── index
- │       └── index.html
- ├── index
- │   └── index.html
- ├── nancy-small.png
- ├── nancy-tiny.png
- └── style.css
+├── index
+│   └── index.html
+├── People
+│   ├── Hilary Pilary
+│   │   └── index.html
+│   ├── index
+│   │   └── index.html
+│   └── Jo Bloggs
+│       └── index.html
+├── Places
+│   ├── index
+│   │   └── index.html
+│   ├── Timbuktu
+│   │   └── index.html
+│   └── Vladivostok
+│       └── index.html
+├── nancy-small.png
+├── nancy-tiny.png
+└── style.css
 ```
 
 The corresponding source files are laid out as follows. This may look a
@@ -78,51 +78,51 @@ little confusing at first, but note the similarity to the HTML pages, and
 hold on for the explanation!
 
 ```
- ├── People
- │   ├── Hilary Pilary
- │   │   ├── breadcrumb.in.html
- │   │   ├── index.nancy.html
- │   │   ├── main.in.html
- │   │   └── title.in.txt
- │   ├── Jo Bloggs
- │   │   ├── breadcrumb.in.html
- │   │   ├── index.nancy.html
- │   │   ├── main.in.html
- │   │   └── title.in.txt
- │   ├── breadcrumb.in.html
- │   └── index
- │       ├── index.nancy.html
- │       ├── main.in.html
- │       └── title.in.txt
- ├── Places
- │   ├── Timbuktu
- │   │   ├── breadcrumb.in.html
- │   │   ├── index.nancy.html
- │   │   ├── main.in.html
- │   │   └── title.in.txt
- │   ├── Vladivostok
- │   │   ├── breadcrumb.in.html
- │   │   ├── index.nancy.html
- │   │   ├── main.in.html
- │   │   └── title.in.txt
- │   ├── breadcrumb.in.html
- │   └── index
- │       ├── index.nancy.html
- │       ├── main.in.html
- │       └── title.in.txt
- ├── breadcrumb.in.html
- ├── index
- │   ├── index.nancy.html
- │   ├── logo.in.html
- │   ├── main.in.html
- │   └── title.in.txt
- ├── logo.in.html
- ├── menu.in.html
- ├── nancy-small.png
- ├── nancy-tiny.png
- ├── path-to-root.in.sh
- ├── style.css
- └── template.in.html
+├── index
+│   ├── index.nancy.html
+│   ├── logo.in.html
+│   ├── main.in.html
+│   └── title.in.txt
+├── People
+│   ├── Hilary Pilary
+│   │   ├── breadcrumb.in.html
+│   │   ├── index.nancy.html
+│   │   ├── main.in.html
+│   │   └── title.in.txt
+│   ├── index
+│   │   ├── index.nancy.html
+│   │   ├── main.in.html
+│   │   └── title.in.txt
+│   ├── Jo Bloggs
+│   │   ├── breadcrumb.in.html
+│   │   ├── index.nancy.html
+│   │   ├── main.in.html
+│   │   └── title.in.txt
+│   └── breadcrumb.in.html
+├── Places
+│   ├── index
+│   │   ├── index.nancy.html
+│   │   ├── main.in.html
+│   │   └── title.in.txt
+│   ├── Timbuktu
+│   │   ├── breadcrumb.in.html
+│   │   ├── index.nancy.html
+│   │   ├── main.in.html
+│   │   └── title.in.txt
+│   ├── Vladivostok
+│   │   ├── breadcrumb.in.html
+│   │   ├── index.nancy.html
+│   │   ├── main.in.html
+│   │   └── title.in.txt
+│   └── breadcrumb.in.html
+├── breadcrumb.in.html
+├── logo.in.html
+├── menu.in.html
+├── nancy-small.png -> ../../../logo/nancy-small.png
+├── nancy-tiny.png -> ../../../logo/nancy-tiny.png
+├── path-to-root.in.sh
+├── style.css
+└── template.in.html
 ```
 
 Note that there is only one menu fragment (the main menu is the same for
@@ -183,7 +183,7 @@ Page contents.
 
 --
 
-Last updated: $paste{date,+%Y-%m-%d}
+Last updated: $paste{python,-c,import datetime; print(datetime.now().strftime('%Y-%m-%d'))}
 ```
 
 This gives a result looking something like:

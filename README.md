@@ -227,3 +227,5 @@ To run the tests:
 ```
 make test
 ```
+
+You will need the `tree` utility to build the documentation.
