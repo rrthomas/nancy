@@ -13,7 +13,7 @@ import subprocess
 import shutil
 from logging import debug
 from collections.abc import Callable
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 import logging
 
 from .warnings_util import simple_warning, die
@@ -135,25 +135,24 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
                 macros["path"] = lambda _args: base_file
                 macros["realpath"] = lambda _args: file_path
 
-                def include(args: List[str]) -> str:
-                    debug(f"$include{{{','.join(args)}}}")
+                def get_included_file(command_name: str, args: List[str]) -> Tuple[str, str]:
+                    debug(f"${command_name}{{{','.join(args)}}}")
                     if len(args) < 1:
-                        raise ValueError("$include expects at least one argument")
+                        raise ValueError(f"${command_name} expects at least one argument")
                     file = get_file(args[0])
-                    output = read_file(file, args[1:])
+                    return file, read_file(file, args[1:])
+
+                def include(args: List[str]) -> str:
+                    file, contents = get_included_file("include", args)
                     return strip_final_newline(
-                        inner_expand(output, expand_stack + [file])
+                        inner_expand(contents, expand_stack + [file])
                     )
 
                 macros["include"] = include
 
                 def paste(args: List[str]) -> str:
-                    debug(f"paste{{{','.join(args)}}}")
-                    if len(args) < 1:
-                        raise ValueError("$paste expects at least one argument")
-                    file = get_file(args[0])
-                    output = read_file(file, args[1:])
-                    return strip_final_newline(output)
+                    _file, contents = get_included_file("paste", args)
+                    return strip_final_newline(contents)
 
                 macros["paste"] = paste
 
