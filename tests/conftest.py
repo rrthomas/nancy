@@ -10,7 +10,7 @@ def pytest_addoption(parser: Parser) -> None:
 
 
 @fixture
-def regenerate_expected(request: FixtureRequest) -> bool:
+def regenerate_expected(request: FixtureRequest) -> bool:  # pragma: no cover
     opt = request.config.getoption("--regenerate-expected")
     assert isinstance(opt, bool)
     return opt

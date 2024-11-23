@@ -24,9 +24,9 @@ from testutils import (
 )
 from nancy import main
 
-if sys.version_info[:2] >= (3, 11):
+if sys.version_info[:2] >= (3, 11): # pragma: no cover
     from contextlib import chdir
-else:
+else: # pragma: no cover
     from contextlib import contextmanager
 
     @contextmanager
@@ -213,6 +213,16 @@ def test_output_to_stdout_of_a_single_file_works(capsys: CaptureFixture[str]) ->
             capsys,
             ["file-root-relative-include.nancy.txt"],
             "file-root-relative-include-expected.txt",
+            "-",
+        )
+
+
+def test_copy_to_stdout_of_a_single_file_works(capsys: CaptureFixture[str]) -> None:
+    with chdir(tests_dir):
+        passing_cli_test(
+            capsys,
+            ["random-text.txt"],
+            "random-text.txt",
             "-",
         )
 

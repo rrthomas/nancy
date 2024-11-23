@@ -44,7 +44,7 @@ def file_objects_equal(
                     out_fh.readlines(), exp_fh.readlines(), str(a), str(b)
                 )
             )
-            if len(diff) > 0:
+            if len(diff) > 0:  # pragma: no cover
                 sys.stdout.writelines(diff)
                 return False
             return True
@@ -55,8 +55,8 @@ def file_objects_equal(
         match = re.search("Differing files|Only in", stdout.getvalue())
         if match is None:
             return True
-    print(stdout.getvalue())
-    return False
+    print(stdout.getvalue())  # pragma: no cover
+    return False  # pragma: no cover
 
 
 def passing_test(
@@ -92,7 +92,7 @@ def failing_test(
         except Exception as err:  # pylint: disable=broad-exception-caught
             assert str(err).find(expected) != -1
             return
-        raise ValueError("test passed unexpectedly")
+        raise ValueError("test passed unexpectedly")  # pragma: no cover
 
 
 def passing_cli_test(
@@ -134,7 +134,7 @@ def failing_cli_test(
     err = capsys.readouterr().err
     log = caplog.messages
     match = err.find(expected) != -1 or any(msg.find(expected) != -1 for msg in log)
-    if not match:
+    if not match:  # pragma: no cover
         print(err)
         print(log)
     assert match
