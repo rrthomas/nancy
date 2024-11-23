@@ -58,7 +58,7 @@ def test_part_tree() -> None:
 def test_two_trees() -> None:
     with chdir(tests_dir):
         passing_test(["mergetrees-src", "webpage-src"], "mergetrees-expected")
-    check_links("mergetrees-expected", "index.html")
+        check_links("mergetrees-expected", "index.html")
 
 
 def test_nested_macro_invocations() -> None:

@@ -8,6 +8,7 @@ import contextlib
 import io
 import os
 import sys
+import subprocess
 import re
 import filecmp
 import difflib
@@ -141,9 +142,4 @@ def failing_cli_test(
 
 
 def check_links(root: str, start: str) -> None:
-    pass
-    # FIXME
-    # results = check({"path": start, "serverRoot": root})
-    # if not results.passed:
-    #     warn(results)
-    # assert results.passed == "Broken links in output"
+    subprocess.check_call(["linkchecker", os.path.join(root, start)])
