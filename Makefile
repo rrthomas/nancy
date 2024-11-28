@@ -20,8 +20,7 @@ release:
 	$(MAKE) test && \
 	$(MAKE) dist && \
 	twine upload dist/* && \
-	git tag v$$(grep version pyproject.toml | grep -o "[0-9.]\+") && \
-	git push --tags
+	gh release create v$$version --title "Release v$$version" dist/*
 
 loc:
 	cloc nancy tests/*.py
