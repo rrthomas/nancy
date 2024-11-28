@@ -17,8 +17,8 @@ test:
 	tox
 
 release:
-	make test && \
-	make dist && \
+	$(MAKE) test && \
+	$(MAKE) dist && \
 	twine upload dist/* && \
 	git tag v$$(grep version pyproject.toml | grep -o "[0-9.]\+") && \
 	git push --tags
