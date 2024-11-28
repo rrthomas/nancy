@@ -17,8 +17,8 @@ test:
 	tox
 
 release:
-	make test
-	make dist
+	make test && \
+	make dist && \
 	twine upload dist/* && \
 	git tag v$$(grep version pyproject.toml | grep -o "[0-9.]\+") && \
 	git push --tags
@@ -29,4 +29,4 @@ loc:
 example:
 	python -c "import webbrowser; webbrowser.open(\"file://`pwd`/tests/test-files/cookbook-example-website-expected/index/index.html\")"
 
-.PHONY: dist
+.PHONY: dist build
