@@ -10,8 +10,7 @@ const parser = new ArgumentParser({
   description: 'A simple templating system.',
   formatter_class: RawDescriptionHelpFormatter,
   epilog: `The INPUT-PATH is a '${path.delimiter}'-separated list; the inputs are merged\n`
-    + 'in left-to-right order.\n\n'
-    + 'OUTPUT cannot be in any input directory.',
+    + 'in left-to-right order.',
 })
 parser.add_argument('input', {metavar: 'INPUT-PATH', help: 'list of input directories, or a single file'})
 parser.add_argument('output', {metavar: 'OUTPUT', help: "output directory, or file ('-' for stdout)"})
@@ -41,26 +40,14 @@ try {
 
   // Deal with special case where INPUT is a single file and --path is not
   // given.
-  let singleFileNoPath = false
   if (args.path === undefined && inputs.length === 1) {
     const stat = fs.statSync(inputs[0], {throwIfNoEntry: false})
     if (stat && stat.isFile()) {
-      singleFileNoPath = true
       args.path = inputs[0]
       inputs[0] = process.cwd()
     }
   }
 
-  // Check output is not under an input path provided we're not dealing with
-  // the special case above.
-  if (!singleFileNoPath) {
-    for (const root of inputs) {
-      const relative = path.relative(root, args.output)
-      if (args.output !== '-' && relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative)) {
-        throw new Error('output cannot be in any input directory')
-      }
-    }
-  }
   expand(inputs, args.output, args.path)
 } catch (error) {
   if (process.env.DEBUG) {

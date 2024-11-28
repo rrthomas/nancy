@@ -274,14 +274,6 @@ describe('nancy', function t() {
     )
   })
 
-  it('Output to subdirectory of input should cause an error', async () => {
-    await failingCliTest(
-      ['webpage-src'],
-      'output cannot be in any input directory',
-      'webpage-src/foo',
-    )
-  })
-
   it('Empty INPUT-PATH should cause an error', async () => {
     await failingCliTest([''], 'input path must not be empty')
   })
