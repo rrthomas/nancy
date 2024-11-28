@@ -269,8 +269,7 @@ def main(argv: List[str] = sys.argv[1:]) -> None:
         description="A simple templating system.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"The INPUT-PATH is a '{os.path.pathsep}'-separated list; the inputs are merged\n"
-        + "in left-to-right order.\n\n"
-        + "OUTPUT cannot be in any input directory.",
+        + "in left-to-right order."
     )
     parser.add_argument(
         "input",
@@ -303,25 +302,10 @@ your option) any later version. There is no warranty.""",
 
         # Deal with special case where INPUT is a single file and --path is not
         # given.
-        single_file_no_path = False
-        if args.path is None and len(inputs) == 1:
-            if os.path.isfile(inputs[0]):
-                single_file_no_path = True
-                args.path = inputs[0]
-                inputs[0] = os.getcwd()
+        if args.path is None and len(inputs) == 1 and os.path.isfile(inputs[0]):
+            args.path = inputs[0]
+            inputs[0] = os.getcwd()
 
-        # Check output is not under an input path provided we're not dealing with
-        # the special case above.
-        if not single_file_no_path:
-            for root in inputs:
-                relative = os.path.relpath(args.output, start=root)
-                if (
-                    args.output != "-"
-                    and relative != ""
-                    and not relative.startswith("..")
-                    and not os.path.isabs(relative)
-                ):
-                    raise ValueError("output cannot be in any input directory")
         expand(inputs, args.output, args.path)
     except Exception as err:  # pylint: disable=broad-exception-caught
         if "DEBUG" in os.environ:

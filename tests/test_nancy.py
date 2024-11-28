@@ -292,20 +292,6 @@ def test_absolute_build_path_causes_an_error(
         )
 
 
-def test_output_to_subdirectory_of_input_causes_an_error(
-    capsys: CaptureFixture[str],
-    caplog: LogCaptureFixture,
-) -> None:
-    with chdir(tests_dir):
-        failing_cli_test(
-            capsys,
-            caplog,
-            ["webpage-src"],
-            "output cannot be in any input directory",
-            "webpage-src/foo",
-        )
-
-
 # pylint: disable-next=invalid-name
 def test_empty_INPUT_PATH_causes_an_error(
     capsys: CaptureFixture[str],

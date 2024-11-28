@@ -51,8 +51,6 @@ options:
 
 The INPUT-PATH is a ':'-separated list; the inputs are merged
 in left-to-right order.
-
-OUTPUT cannot be in any input directory.
 ```
 
 ## Operation <a name="operation"></a>
