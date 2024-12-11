@@ -18,8 +18,6 @@ import logging
 
 from .warnings_util import simple_warning, die
 
-logging.basicConfig(level=logging.DEBUG)
-
 VERSION = importlib.metadata.version("nancy")
 
 TEMPLATE_REGEX = re.compile(r"\.nancy(?=\.[^.]+$|$)")
@@ -264,6 +262,9 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
 
 
 def main(argv: List[str] = sys.argv[1:]) -> None:
+    if "DEBUG" in os.environ:
+        logging.basicConfig(level=logging.DEBUG)
+
     # Read and process arguments
     parser = argparse.ArgumentParser(
         description="A simple templating system.",
