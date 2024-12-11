@@ -12,8 +12,7 @@ import re
 import subprocess
 import shutil
 from logging import debug
-from collections.abc import Callable
-from typing import List, Union, Optional, Tuple
+from typing import Callable, List, Union, Optional, Tuple
 import logging
 
 from .warnings_util import simple_warning, die
