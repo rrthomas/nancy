@@ -68,7 +68,7 @@ def passing_test(
 ) -> None:
     ctx_mgr: Union[ContextManager[None], TemporaryDirectory[str]]
     if output_dir is None:
-        ctx_mgr = tempfile.TemporaryDirectory()  # pylint ignore=consider-using-with
+        ctx_mgr = tempfile.TemporaryDirectory()
         output_obj = os.path.join(ctx_mgr.name, "output")
     else:
         ctx_mgr = contextlib.nullcontext()
