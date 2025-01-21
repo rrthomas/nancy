@@ -1,21 +1,21 @@
 # © Reuben Thomas <rrt@sc3d.org> 2024
 # Released under the GPL version 3, or (at your option) any later version.
 
-import importlib.metadata
-import os
-import sys
 import argparse
-import warnings
-from warnings import warn
-import stat
-import re
-import subprocess
-import shutil
-from logging import debug
-from typing import Callable, List, Union, Optional, Tuple
+import importlib.metadata
 import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
+import warnings
+from logging import debug
+from typing import Callable, Optional, Union
+from warnings import warn
 
-from .warnings_util import simple_warning, die
+from .warnings_util import die, simple_warning
+
 
 VERSION = importlib.metadata.version("nancy")
 
@@ -32,7 +32,7 @@ def strip_final_newline(s: str) -> str:
     return re.sub("\n$", "", s)
 
 
-def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") -> None:
+def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") -> None:
     if len(inputs) == 0:
         raise ValueError("at least one input must be given")
     if build_path is None:
@@ -53,9 +53,7 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
     # right.
     # If something neither a file nor directory is found, raise an error.
     # If no result is found, return `None`.
-    NancyDirEntry = Union[str, List[os.DirEntry[str]]]
-
-    def find_object(obj: str) -> Optional[NancyDirEntry]:
+    def find_object(obj: str) -> Optional[Union[str, list[os.DirEntry[str]]]]:
         debug(f"find_object {obj} {inputs}")
         objects = [os.path.join(root, obj) for root in inputs]
         dirs = []
@@ -78,13 +76,13 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
     def expand_file(base_file: str, file_path: str) -> str:
         debug(f"expand_file {base_file} {file_path}")
 
-        def inner_expand(text: str, expand_stack: List[str]) -> str:
+        def inner_expand(text: str, expand_stack: list[str]) -> str:
             debug(f"inner_expand {text} {expand_stack}")
 
             def do_expand(text: str) -> str:
                 # Search for file starting at the given path; if found return its file
                 # name and contents; if not, die.
-                def find_on_path(start_path: List[str], file: str) -> Optional[str]:
+                def find_on_path(start_path: list[str], file: str) -> Optional[str]:
                     debug(f"find_on_path {start_path} {file}")
                     search = start_path[:]
                     file_array = os.path.normpath(file).split(os.pathsep)
@@ -95,7 +93,7 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
                             obj is not None
                             and not isinstance(obj, list)
                             and os.path.isfile(obj)
-                            and not obj in expand_stack
+                            and obj not in expand_stack
                         ):
                             return obj
                         if len(search) == 0:
@@ -115,7 +113,7 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
                     debug(f"Found '{file_or_exec}'")
                     return file_or_exec
 
-                def read_file(file: str, args: List[str]) -> str:
+                def read_file(file: str, args: list[str]) -> str:
                     if is_executable(file):
                         debug(f"Running {file} {' '.join(args)}")
                         output = subprocess.check_output([file] + args, text=True)
@@ -125,21 +123,18 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
                     return output
 
                 # Set up macros
-                Macro = Callable[..., str]
-                Macros = dict[str, Macro]
-
-                macros: Macros = {}
+                macros: dict[str, Callable[..., str]] = {}
                 macros["path"] = lambda _args: base_file
                 macros["realpath"] = lambda _args: file_path
 
-                def get_included_file(command_name: str, args: List[str]) -> Tuple[str, str]:
+                def get_included_file(command_name: str, args: list[str]) -> tuple[str, str]:
                     debug(f"${command_name}{{{','.join(args)}}}")
                     if len(args) < 1:
                         raise ValueError(f"${command_name} expects at least one argument")
                     file = get_file(args[0])
                     return file, read_file(file, args[1:])
 
-                def include(args: List[str]) -> str:
+                def include(args: list[str]) -> str:
                     file, contents = get_included_file("include", args)
                     return strip_final_newline(
                         inner_expand(contents, expand_stack + [file])
@@ -147,7 +142,7 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
 
                 macros["include"] = include
 
-                def paste(args: List[str]) -> str:
+                def paste(args: list[str]) -> str:
                     _file, contents = get_included_file("paste", args)
                     return strip_final_newline(contents)
 
@@ -155,7 +150,7 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
 
                 def do_macro(macro: str, arg: Optional[str]) -> str:
                     args = [] if arg is None else re.split(r"(?<!\\),", arg)
-                    expanded_args: List[str] = []
+                    expanded_args: list[str] = []
                     for a in args:
                         # Unescape escaped commas
                         debug(f"escaped arg {a}")
@@ -260,7 +255,7 @@ def expand(inputs: List[str], output_path: str, build_path: Optional[str] = "") 
     process_path(build_path)
 
 
-def main(argv: List[str] = sys.argv[1:]) -> None:
+def main(argv: list[str] = sys.argv[1:]) -> None:
     if "DEBUG" in os.environ:
         logging.basicConfig(level=logging.DEBUG)
 
