@@ -189,7 +189,7 @@ def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") 
                         if next_index == len(expanded):
                             raise ValueError("missing close brace")
                         startpos = next_index + 1
-                        args = do_expand(expanded[args_start + 1 : next_index])
+                        args = expanded[args_start + 1 : next_index]
                     if escaped != "":
                         # Just remove the leading '\'
                         output = f"${name}{f'{{{args}}}' if args is not None else ''}"
