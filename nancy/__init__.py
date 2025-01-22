@@ -150,6 +150,7 @@ def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") 
 
                 def do_macro(macro: str, arg: Optional[str]) -> str:
                     args = [] if arg is None else re.split(r"(?<!\\),", arg)
+                    debug(f"do_macro {macro} {args}")
                     expanded_args: list[str] = []
                     for a in args:
                         # Unescape escaped commas
