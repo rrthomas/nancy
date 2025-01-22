@@ -302,7 +302,7 @@ your option) any later version. There is no warranty.""",
             inputs[0] = os.getcwd()
 
         expand(inputs, args.output, args.path)
-    except Exception as err:  # pylint: disable=broad-exception-caught
+    except Exception as err:
         if "DEBUG" in os.environ:
             logging.error(err, exc_info=True)
         else:

@@ -28,36 +28,15 @@ requires = [
 [tool.setuptools]
 packages = ["nancy"]
 
-[tool.mypy]
-exclude = ['^dist', '^build']
-strict = true
-
-[tool.pylint.main]
-# Use multiple processes to speed up Pylint: 0 = auto-detect.
-jobs = 0
-
-[tool.pylint.MASTER]
-init-hook = 'import sys; sys.path.append(".")'
-
-[tool.pylint.format]
-const-naming-style = "any"
-disable = [
-    "missing-module-docstring",
-    "missing-class-docstring",
-    "missing-function-docstring",
-    "no-member",
-    "fixme",
-    "global-statement",
-    "redefined-outer-name",
-    "too-many-locals",
-    "too-many-branches",
-    "too-many-function-args",
-    "too-many-positional-arguments",
-    "too-many-statements",
-]
-enable = [
-    "useless-suppression",
-]
-
 [tool.pytest.ini_options]
 addopts = "-p no:warnings"
+
+[tool.ruff.lint]
+select = ["D", "E", "F", "I", "UP"]
+ignore = ["D1", "D401", "D415", "E501"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

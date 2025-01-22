@@ -1,23 +1,23 @@
-"""
-Warning and error routines.
+"""Warning and error routines.
+
 Copyright (c) Reuben Thomas 2023.
 Released under the GPL version 3, or (at your option) any later version.
 """
 
 import sys
+from typing import Callable, NoReturn, Optional, TextIO, Union
 from warnings import warn
-from typing import Callable, Optional, Union, Type, NoReturn, TextIO
 
 
 # Error messages
 def simple_warning(prog: str) -> Callable[..., None]:
-    def _warning(  # pylint: disable=too-many-arguments
+    def _warning(
         message: Union[Warning, str],
-        category: Type[Warning],  # pylint: disable=unused-argument
-        filename: str,  # pylint: disable=unused-argument
-        lineno: int,  # pylint: disable=unused-argument
+        category: type[Warning],
+        filename: str,
+        lineno: int,
         file: Optional[TextIO] = sys.stderr,
-        line: Optional[str] = None,  # pylint: disable=unused-argument
+        line: Optional[str] = None,
     ) -> None:
         print(f"{prog}: {message}", file=file or sys.stderr)
 

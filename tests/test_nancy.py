@@ -1,32 +1,33 @@
-"""
-Nancy tests.
+"""Nancy tests.
+
 Copyright (c) Reuben Thomas 2024.
 Released under the GPL version 3, or (at your option) any later version.
 """
 
 import os
-import sys
 import socket
-from pathlib import Path
+import sys
 from collections.abc import Iterator
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
-
 from testutils import (
-    passing_test,
+    check_links,
+    failing_cli_test,
     failing_test,
     passing_cli_test,
-    failing_cli_test,
-    check_links,
+    passing_test,
 )
+
 from nancy import main
 
-if sys.version_info[:2] >= (3, 11): # pragma: no cover
-    from contextlib import chdir
-else: # pragma: no cover
+
+if sys.version_info[:2] >= (3, 11):  # pragma: no cover
+    from contextlib import chdir  # pyright: ignore
+else:  # pragma: no cover
     from contextlib import contextmanager
 
     @contextmanager
@@ -190,12 +191,11 @@ def test_trying_to_output_multiple_files_to_stdout_causes_an_error() -> None:
 def test_help_option_should_produce_output(capsys: CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as e:
         main(["--help"])
-    assert e.type == SystemExit
+    assert e.type is SystemExit
     assert e.value.code == 0
     assert capsys.readouterr().out.find("A simple templating system.") != -1
 
 
-# pylint: disable-next=invalid-name
 def test_running_with_a_single_file_as_INPUT_PATH_should_work(
     capsys: CaptureFixture[str],
 ) -> None:
@@ -241,7 +241,6 @@ def test_invalid_command_line_argument_causes_an_error(
     failing_cli_test(capsys, caplog, ["--foo", "a"], "unrecognized arguments: --foo")
 
 
-# pylint: disable-next=invalid-name
 def test_running_on_a_nonexistent_path_causes_an_error_DEBUG_coverage(
     capsys: CaptureFixture[str],
     caplog: LogCaptureFixture,
@@ -292,7 +291,6 @@ def test_absolute_build_path_causes_an_error(
         )
 
 
-# pylint: disable-next=invalid-name
 def test_empty_INPUT_PATH_causes_an_error(
     capsys: CaptureFixture[str],
     caplog: LogCaptureFixture,

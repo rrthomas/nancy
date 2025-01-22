@@ -1,21 +1,22 @@
-"""
-Nancy tests utility routines.
+"""Nancy tests utility routines.
+
 Copyright (c) Reuben Thomas 2023-2024.
 Released under the GPL version 3, or (at your option) any later version.
 """
 
 import contextlib
+import difflib
+import filecmp
 import io
 import os
-import sys
-import subprocess
 import re
-import filecmp
-import difflib
+import subprocess
+import sys
 import tempfile
-from tempfile import TemporaryDirectory
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from typing import AnyStr, Callable, List, Optional, Union, ContextManager
+from tempfile import TemporaryDirectory
+from typing import Callable, Optional, Union
 
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
@@ -26,7 +27,7 @@ from nancy import expand, main
 @dataclass
 class Case:
     name: str
-    args: List[str]
+    args: list[str]
     expected: str
     path: Optional[str] = None
     error: Optional[int] = None
@@ -34,7 +35,7 @@ class Case:
 
 
 def file_objects_equal(
-    a: Union[AnyStr, os.PathLike[AnyStr]], b: Union[os.PathLike[AnyStr], AnyStr]
+    a: Union[os.PathLike[str], str], b: Union[os.PathLike[str], str]
 ) -> bool:
     if os.path.isfile(a):
         with contextlib.ExitStack() as stack:
@@ -61,12 +62,12 @@ def file_objects_equal(
 
 
 def passing_test(
-    input_dirs: List[str],
+    input_dirs: list[str],
     expected: str,
     build_path: Optional[str] = None,
     output_dir: Optional[str] = None,
 ) -> None:
-    ctx_mgr: Union[ContextManager[None], TemporaryDirectory[str]]
+    ctx_mgr: Union[AbstractContextManager[None], TemporaryDirectory[str]]
     if output_dir is None:
         ctx_mgr = tempfile.TemporaryDirectory()
         output_obj = os.path.join(ctx_mgr.name, "output")
@@ -82,7 +83,7 @@ def passing_test(
 
 
 def failing_test(
-    input_dirs: List[str],
+    input_dirs: list[str],
     expected: str,
     build_path: Optional[str] = None,
     output_dir: Optional[str] = None,
@@ -90,7 +91,7 @@ def failing_test(
     with TemporaryDirectory() as expected_dir:
         try:
             passing_test(input_dirs, expected_dir, build_path, output_dir)
-        except Exception as err:  # pylint: disable=broad-exception-caught
+        except Exception as err:
             assert str(err).find(expected) != -1
             return
         raise ValueError("test passed unexpectedly")  # pragma: no cover
@@ -98,13 +99,13 @@ def failing_test(
 
 def passing_cli_test(
     capsys: CaptureFixture[str],
-    args: List[str],
+    args: list[str],
     expected: str,
     output_dir: Optional[str] = None,
 ) -> None:
     tmp_dir = None
     if output_dir is None:
-        tmp_dir = TemporaryDirectory()  # pylint: disable=consider-using-with
+        tmp_dir = TemporaryDirectory()
         output_obj = os.path.join(tmp_dir.name, "output")
     else:
         output_obj = output_dir
@@ -124,13 +125,13 @@ def passing_cli_test(
 def failing_cli_test(
     capsys: CaptureFixture[str],
     caplog: LogCaptureFixture,
-    args: List[str],
+    args: list[str],
     expected: str,
     output_dir: Optional[str] = None,
 ) -> None:
     with pytest.raises(SystemExit) as e:
         passing_cli_test(capsys, args, "", output_dir)
-    assert e.type == SystemExit
+    assert e.type is SystemExit
     assert e.value.code != 0
     err = capsys.readouterr().err
     log = caplog.messages
