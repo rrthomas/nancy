@@ -197,7 +197,7 @@ export function expand(inputs: string[], outputPath: string, buildPath = ''): vo
             }
             // Update re to restart matching past close brace
             re.lastIndex = nextIndex + 1
-            args = doExpand(expanded.slice(argsStart + 1, nextIndex))
+            args = expanded.slice(argsStart + 1, nextIndex)
           }
           let output
           if (escaped !== '') {
