@@ -127,10 +127,14 @@ def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") 
                 macros["path"] = lambda _args: base_file
                 macros["realpath"] = lambda _args: file_path
 
-                def get_included_file(command_name: str, args: list[str]) -> tuple[str, str]:
+                def get_included_file(
+                    command_name: str, args: list[str]
+                ) -> tuple[str, str]:
                     debug(f"${command_name}{{{','.join(args)}}}")
                     if len(args) < 1:
-                        raise ValueError(f"${command_name} expects at least one argument")
+                        raise ValueError(
+                            f"${command_name} expects at least one argument"
+                        )
                     file = get_file(args[0])
                     return file, read_file(file, args[1:])
 
@@ -148,8 +152,7 @@ def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") 
 
                 macros["paste"] = paste
 
-                def do_macro(macro: str, arg: Optional[str]) -> str:
-                    args = [] if arg is None else re.split(r"(?<!\\),", arg)
+                def do_macro(macro: str, args: list[str]) -> str:
                     debug(f"do_macro {macro} {args}")
                     expanded_args: list[str] = []
                     for a in args:
@@ -172,27 +175,36 @@ def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") 
                     debug(f"match: {res} {res.end()}")
                     escaped = res[1]
                     name = res[2]
-                    args_start = res.end()
-                    startpos = args_start
-                    args = None
-                    if args_start < len(expanded) and expanded[args_start] == "{":
+                    arg_start = res.end()
+                    startpos = arg_start
+                    args = []
+                    # Parse arguments, respecting nested commands
+                    if arg_start < len(expanded) and expanded[arg_start] == "{":
                         depth = 1
-                        next_index = args_start + 1
+                        next_index = arg_start + 1
                         while next_index < len(expanded):
                             if expanded[next_index] == "}":
                                 depth -= 1
                                 if depth == 0:
+                                    args.append(expanded[arg_start + 1 : next_index])
                                     break
                             elif expanded[next_index] == "{":
                                 depth += 1
+                            elif (
+                                depth == 1
+                                and expanded[next_index] == ","
+                                and expanded[next_index - 1] != "\\"
+                            ):
+                                args.append(expanded[arg_start + 1 : next_index])
+                                arg_start = next_index
                             next_index += 1
                         if next_index == len(expanded):
                             raise ValueError("missing close brace")
                         startpos = next_index + 1
-                        args = expanded[args_start + 1 : next_index]
                     if escaped != "":
                         # Just remove the leading '\'
-                        output = f"${name}{f'{{{args}}}' if args is not None else ''}"
+                        args_string = f"{{{'.'.join(args)}}}"
+                        output = f"${name}{args_string if len(args) > 0 else ''}"
                     else:
                         output = do_macro(name, args)
                     expanded = expanded[: res.start()] + output + expanded[startpos:]
@@ -265,7 +277,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         description="A simple templating system.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"The INPUT-PATH is a '{os.path.pathsep}'-separated list; the inputs are merged\n"
-        + "in left-to-right order."
+        + "in left-to-right order.",
     )
     parser.add_argument(
         "input",

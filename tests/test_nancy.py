@@ -141,6 +141,14 @@ def test_expanding_a_file_with_relative_includes() -> None:
         )
 
 
+def test_nested_argument_in_comma_list_works() -> None:
+    with chdir(tests_dir):
+        passing_test(
+            ["nested-argument-in-comma-list-src"],
+            "nested-argument-in-comma-list-expected",
+        )
+
+
 def test_empty_input_path_causes_an_error() -> None:
     with chdir(tests_dir):
         failing_test([], "at least one input must be given")
