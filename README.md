@@ -2,7 +2,7 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-© 2002–2024 Reuben Thomas <rrt@sc3d.org>  
+© 2002–2025 Reuben Thomas <rrt@sc3d.org>  
 https://github.com/rrthomas/nancy  
 
 Nancy is a simple macro processor that copies a file or directory, filling
@@ -18,7 +18,7 @@ used for all sorts of other tasks, similar to more complicated systems like
 [TXR]: https://www.nongnu.org/txr
 
 Nancy is free software, licensed under the GNU GPL version 3 (or, at your
-option, any later version), and written in TypeScript.
+option, any later version), and written in TypeScript. See the file COPYING.
 
 See the [Cookbook](Cookbook.md) for examples.
 
