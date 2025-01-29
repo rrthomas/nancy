@@ -203,7 +203,7 @@ def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") 
                         startpos = next_index + 1
                     if escaped != "":
                         # Just remove the leading '\'
-                        args_string = f"{{{'.'.join(args)}}}"
+                        args_string = f"{{{','.join(args)}}}"
                         output = f"${name}{args_string if len(args) > 0 else ''}"
                     else:
                         output = do_macro(name, args)
