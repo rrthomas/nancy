@@ -21,7 +21,7 @@ Suppose further that the web site has the following structure, where each
 line corresponds to a page:
 
 ```
- ├── Home page
+├── Home page
 $paste{sh,-c,build-aux/dirtree tests/test-files/cookbook-example-website-expected | sed -e 's/\.html//g' | grep -v index | grep -v \\.}
 ```
 

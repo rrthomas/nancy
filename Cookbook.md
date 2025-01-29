@@ -21,7 +21,7 @@ Suppose further that the web site has the following structure, where each
 line corresponds to a page:
 
 ```
- ├── Home page
+├── Home page
 ├── People
 │   ├── Hilary Pilary
 │   └── Jo Bloggs
