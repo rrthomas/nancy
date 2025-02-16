@@ -1,4 +1,4 @@
-# © Reuben Thomas <rrt@sc3d.org> 2024
+# © Reuben Thomas <rrt@sc3d.org> 2024-2025
 # Released under the GPL version 3, or (at your option) any later version.
 
 import argparse
@@ -11,8 +11,8 @@ import subprocess
 import sys
 import warnings
 from logging import debug
+from pathlib import Path
 from typing import Callable, Optional, Union
-from warnings import warn
 
 from .warnings_util import die, simple_warning
 
@@ -24,7 +24,7 @@ NO_COPY_REGEX = re.compile(r"\.in(?=\.[^.]+$|$)")
 MACRO_REGEX = re.compile(r"(\\?)\$([^\W\d_]\w*)")
 
 
-def is_executable(file: str) -> bool:
+def is_executable(file: Path) -> bool:
     return os.access(file, os.X_OK)
 
 
@@ -32,88 +32,90 @@ def strip_final_newline(s: str) -> str:
     return re.sub("\n$", "", s)
 
 
-def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") -> None:
+def expand(
+    inputs: list[Path], output_path: Path, build_path: Optional[Path] = Path()
+) -> None:
     if len(inputs) == 0:
         raise ValueError("at least one input must be given")
     if build_path is None:
-        build_path = ""
-    if os.path.isabs(build_path):
+        build_path = Path()
+    if build_path.is_absolute():
         raise ValueError("build path must be relative")
     for root in inputs:
-        if not os.path.exists(root):
+        if not root.exists():
             raise ValueError(f"input '{root}' does not exist")
-        if not os.path.isdir(root):
+        if not root.is_dir():
             raise ValueError(f"input '{root}' is not a directory")
 
     # Find the first file or directory with relative path `object` in the
     # input tree, scanning the roots from left to right.
-    # If the result is a file, return its os.DirEntry.
+    # If the result is a file, return its path.
     # If the result is a directory, return its contents as a list of
     # os.DirEntry, obtained by similarly scanning the tree from left to
     # right.
     # If something neither a file nor directory is found, raise an error.
     # If no result is found, return `None`.
-    def find_object(obj: str) -> Optional[Union[str, list[os.DirEntry[str]]]]:
+    def find_object(obj: Path) -> Optional[Union[Path, list[os.DirEntry[str]]]]:
         debug(f"find_object {obj} {inputs}")
-        objects = [os.path.join(root, obj) for root in inputs]
+        objects = [root / obj for root in inputs]
         dirs = []
         debug(f"objects to consider: {objects}")
         for o in objects:
             debug(f"considering {o}")
-            if os.path.exists(o):
-                if os.path.isfile(o):
+            if o.exists():
+                if o.is_file():
                     return o
-                if os.path.isdir(o):
+                if o.is_dir():
                     dirs.append(o)
                 else:
                     raise ValueError(f"'{o}' is not a file or directory")
-        dirents: dict[str, os.DirEntry[str]] = {}
+        dirents: dict[Path, os.DirEntry[str]] = {}
         for d in reversed(dirs):
             for dirent in os.scandir(d):
-                dirents[os.path.join(obj, dirent.name)] = dirent
+                dirents[obj / dirent.name] = dirent
         return list(dirents.values()) if len(dirs) > 0 else None
 
-    def expand_file(base_file: str, file_path: str) -> str:
+    def expand_file(base_file: Path, file_path: Path) -> str:
         debug(f"expand_file {base_file} {file_path}")
 
-        def inner_expand(text: str, expand_stack: list[str]) -> str:
+        def inner_expand(text: str, expand_stack: list[Path]) -> str:
             debug(f"inner_expand {text} {expand_stack}")
 
             def do_expand(text: str) -> str:
                 # Search for file starting at the given path; if found return its file
                 # name and contents; if not, die.
-                def find_on_path(start_path: list[str], file: str) -> Optional[str]:
+                def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
                     debug(f"find_on_path {start_path} {file}")
-                    search = start_path[:]
-                    file_array = os.path.normpath(file).split(os.pathsep)
-                    while True:
-                        this_search = search + file_array
-                        obj = find_object(os.path.join(*this_search))
+                    norm_file = Path(os.path.normpath(file))
+                    for parent in (start_path / "_").parents:
+                        this_search = parent / norm_file
+                        obj = find_object(this_search)
                         if (
                             obj is not None
                             and not isinstance(obj, list)
-                            and os.path.isfile(obj)
+                            and obj.is_file()
                             and obj not in expand_stack
                         ):
                             return obj
-                        if len(search) == 0:
+                        next_path = start_path.parent
+                        if next_path == start_path:
                             return None
-                        search.pop()
+                        start_path = next_path
 
-                def get_file(leaf: str) -> str:
+                def get_file(leaf: Path) -> Path:
                     debug(f"Searching for '{leaf}'")
-                    start_path = os.path.dirname(base_file) or "."
-                    file_or_exec = find_on_path(
-                        start_path.split(os.path.sep), leaf
-                    ) or shutil.which(leaf)
+                    file_or_exec = find_on_path(base_file.parent, leaf)
                     if file_or_exec is None:
-                        raise ValueError(
-                            f"cannot find '{leaf}' while expanding '{base_file}'"
-                        )
+                        executable = shutil.which(leaf)
+                        if executable is None:
+                            raise ValueError(
+                                f"cannot find '{leaf}' while expanding '{base_file}'"
+                            )
+                        file_or_exec = Path(executable)
                     debug(f"Found '{file_or_exec}'")
                     return file_or_exec
 
-                def read_file(file: str, args: list[str]) -> str:
+                def read_file(file: Path, args: list[str]) -> str:
                     if is_executable(file):
                         debug(f"Running {file} {' '.join(args)}")
                         output = subprocess.check_output([file] + args, text=True)
@@ -124,18 +126,18 @@ def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") 
 
                 # Set up macros
                 macros: dict[str, Callable[..., str]] = {}
-                macros["path"] = lambda _args: base_file
-                macros["realpath"] = lambda _args: file_path
+                macros["path"] = lambda _args: str(base_file)
+                macros["realpath"] = lambda _args: str(file_path)
 
                 def get_included_file(
                     command_name: str, args: list[str]
-                ) -> tuple[str, str]:
+                ) -> tuple[Path, str]:
                     debug(f"${command_name}{{{','.join(args)}}}")
                     if len(args) < 1:
                         raise ValueError(
                             f"${command_name} expects at least one argument"
                         )
-                    file = get_file(args[0])
+                    file = get_file(Path(args[0]))
                     return file, read_file(file, args[1:])
 
                 def include(args: list[str]) -> str:
@@ -219,47 +221,49 @@ def expand(inputs: list[str], output_path: str, build_path: Optional[str] = "") 
         with open(file_path, encoding="utf-8") as fh:
             return inner_expand(fh.read(), [file_path])
 
-    def get_output_path(base_file: str) -> str:
-        relpath = base_file[len(build_path) + 1 :] if build_path != "" else base_file
-        output_file = re.sub(TEMPLATE_REGEX, "", relpath)
-        return (
-            os.path.join(output_path, output_file) if output_file != "" else output_path
-        )
+    def get_output_path(base_file: Path) -> Path:
+        relpath = base_file.relative_to(build_path)
+        output_file = relpath
+        if output_file.name != "":
+            output_file = output_file.with_name(
+                re.sub(TEMPLATE_REGEX, "", relpath.name)
+            )
+        return output_path / output_file
 
-    def process_file(base_file: str, file_path: str) -> None:
+    def process_file(base_file: Path, file_path: Path) -> None:
         output_file = get_output_path(base_file)
         debug(f"Processing file '{file_path}'")
-        if re.search(TEMPLATE_REGEX, file_path):
+        if re.search(TEMPLATE_REGEX, file_path.name):
             debug(f"Expanding '{base_file}' to '{output_file}'")
             output = expand_file(base_file, file_path)
-            if output_file == "-":
+            if output_file == Path("-"):
                 sys.stdout.write(output)
             else:
                 with open(output_file, "w", encoding="utf-8") as fh:
                     fh.write(output)
-        elif not re.search(NO_COPY_REGEX, file_path):
-            if output_file == "-":
+        elif not re.search(NO_COPY_REGEX, file_path.name):
+            if output_file == Path("-"):
                 with open(file_path, encoding="utf-8") as fh:
                     file_contents = fh.read()
                 sys.stdout.write(file_contents)
             else:
                 shutil.copy2(file_path, output_file)
 
-    def process_path(obj: str) -> None:
+    def process_path(obj: Path) -> None:
         dirent = find_object(obj)
         if dirent is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
         if isinstance(dirent, list):
             output_dir = get_output_path(obj)
-            if output_dir == "-":
+            if output_dir == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
             os.makedirs(output_dir, exist_ok=True)
             for child_dirent in dirent:
                 if child_dirent.name[0] != ".":
-                    child_object = os.path.join(obj, child_dirent.name)
+                    child_object = obj / child_dirent.name
                     if child_dirent.is_file():
-                        process_file(child_object, child_dirent.path)
+                        process_file(child_object, Path(child_dirent.path))
                     else:
                         process_path(child_object)
         else:
@@ -306,18 +310,18 @@ your option) any later version. There is no warranty.""",
     try:
         if args.input == "":
             die("input path must not be empty")
-        inputs = args.input.split(os.path.pathsep)
+        inputs = list(map(Path, args.input.split(os.path.pathsep)))
 
         # Deal with special case where INPUT is a single file and --path is not
         # given.
-        if args.path is None and len(inputs) == 1 and os.path.isfile(inputs[0]):
+        if args.path is None and len(inputs) == 1 and inputs[0].is_file():
             args.path = inputs[0]
-            inputs[0] = os.getcwd()
+            inputs[0] = Path.cwd()
 
-        expand(inputs, args.output, args.path)
+        expand(inputs, Path(args.output), Path(args.path) if args.path else None)
     except Exception as err:
         if "DEBUG" in os.environ:
             logging.error(err, exc_info=True)
         else:
-            warn(f"{os.path.basename(argv[1])}: {err}")
+            die(f"{err}")
         sys.exit(1)

@@ -1,6 +1,6 @@
 """Nancy tests utility routines.
 
-Copyright (c) Reuben Thomas 2023-2024.
+Copyright (c) Reuben Thomas 2023-2025.
 Released under the GPL version 3, or (at your option) any later version.
 """
 
@@ -15,6 +15,7 @@ import sys
 import tempfile
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Callable, Optional, Union
 
@@ -67,6 +68,7 @@ def passing_test(
     build_path: Optional[str] = None,
     output_dir: Optional[str] = None,
 ) -> None:
+    input_dir_paths = list(map(Path, input_dirs))
     ctx_mgr: Union[AbstractContextManager[None], TemporaryDirectory[str]]
     if output_dir is None:
         ctx_mgr = tempfile.TemporaryDirectory()
@@ -76,9 +78,9 @@ def passing_test(
         output_obj = output_dir
     with ctx_mgr:
         if build_path is not None:
-            expand(input_dirs, output_obj, build_path)
+            expand(input_dir_paths, Path(output_obj), Path(build_path))
         else:
-            expand(input_dirs, output_obj)
+            expand(input_dir_paths, Path(output_obj))
         assert file_objects_equal(output_obj, expected)
 
 
