@@ -105,6 +105,12 @@ This gives a result looking something like:
 $include{cat,tests/test-files/page-template-with-date-src/Page.nancy.md}
 ```
 
+## Dynamically naming output files and directories according
+
+Since output file and directory names are expanded from input names, you can use commands to determine the name of an output file or directory.
+
+For example, given a file called `author.in.txt` containing the text `Jo Bloggs`, an input file in the same directory called `\$include{author.in.txt}.txt` would be called `Jo Bloggs.txt` in the output.
+
 ## Adding code examples to Markdown
 [FIXME]: # (Explain the techniques)
 

@@ -200,6 +200,10 @@ Page contents.
 Last updated: 2016-10-12
 ```
 
+## Dynamically naming output files and directories according
+
+Since filenames are 
+
 ## Adding code examples to Markdown
 [FIXME]: # (Explain the techniques)
 

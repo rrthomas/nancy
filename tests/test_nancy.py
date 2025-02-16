@@ -149,6 +149,14 @@ def test_nested_argument_in_comma_list_works() -> None:
         )
 
 
+def test_expanding_macros_in_file_names() -> None:
+    with chdir(tests_dir):
+        passing_test(
+            ["expanding-macros-in-file-names-src"],
+            "expanding-macros-in-file-names-expected",
+        )
+
+
 def test_empty_input_path_causes_an_error() -> None:
     with chdir(tests_dir):
         failing_test([], "at least one input must be given")

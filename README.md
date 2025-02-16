@@ -5,7 +5,7 @@
 © 2002–2025 Reuben Thomas <rrt@sc3d.org>  
 https://github.com/rrthomas/nancy  
 
-Nancy is a simple macro processor that copies a file or directory, filling
+Nancy is a simple templating system that copies a file or directory, filling
 in templates as it goes. It has just one non-trivial construct:
 context-dependent file inclusion. A file can either be included literally,
 or run as a command and its output included.
@@ -18,7 +18,7 @@ used for all sorts of other tasks, similar to more complicated systems like
 [TXR]: https://www.nongnu.org/txr
 
 Nancy is free software, licensed under the GNU GPL version 3 (or, at your
-option, any later version), and written in TypeScript. See the file COPYING.
+option, any later version), and written in Python. See the file COPYING.
 
 See the [Cookbook](Cookbook.md) for examples.
 
@@ -70,16 +70,17 @@ directory, if it does not already exist.
 For each file, Nancy looks at its name, and:
 
 + If the name contains the suffix `.nancy`, the file’s contents is expanded
-  (see below), and the result is then written to a file of the same name,
-  but with `.nancy` removed, in the corresponding place in the output
-  directory.
+  (see below), and the result is then written to the corresponding place in
+  the output directory.
 + Else, if the name contains the suffix `.in`, the file is skipped. (It may
-  be used by macros in other files.)
+  be used by commands in other files.)
 + Otherwise, the file is copied verbatim to the corresponding place in the
   output.
 
-Files and directories in the output have the same name as in the input tree,
-except for the root directory (or file), which is called `OUTPUT`.
+To get the name of a file or directory in the output, the name in the input
+tree is expanded, and any `.nancy` suffix is removed. There is one
+exception: the root directory (or file) is called `OUTPUT` (that is, the
+`OUTPUT` argument to Nancy).
 
 The special suffixes need not end the file name; they can be used as infixes
 before the file type suffix.

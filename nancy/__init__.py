@@ -223,17 +223,18 @@ def expand(
         with open(file_path, encoding="utf-8") as fh:
             return expand_text(fh.read(), base_file, file_path)
 
-    def get_output_path(base_file: Path) -> Path:
+    def get_output_path(base_file: Path, file_path: Path) -> Path:
         relpath = base_file.relative_to(build_path)
         output_file = relpath
         if output_file.name != "":
             output_file = output_file.with_name(
                 re.sub(TEMPLATE_REGEX, "", relpath.name)
             )
+            output_file = expand_text(str(output_file), output_file, file_path)
         return output_path / output_file
 
     def process_file(base_file: Path, file_path: Path) -> None:
-        output_file = get_output_path(base_file)
+        output_file = get_output_path(base_file, file_path)
         debug(f"Processing file '{file_path}'")
         if re.search(TEMPLATE_REGEX, file_path.name):
             debug(f"Expanding '{base_file}' to '{output_file}'")
@@ -256,7 +257,7 @@ def expand(
         if dirent is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
         if isinstance(dirent, list):
-            output_dir = get_output_path(obj)
+            output_dir = get_output_path(obj, obj)
             if output_dir == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
