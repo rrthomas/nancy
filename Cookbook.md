@@ -207,4 +207,4 @@ Look at the [source](Cookbook.nancy.md) for the Cookbook to see how Nancy is
 used to include example source code, and the output of other commands, such
 as directory listings.
 
-[FIXME]: # (Add an example about uniquely numbered invoices)
+[FIXME]: # (Mention more applications (invoice, python-package-template))
