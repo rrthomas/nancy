@@ -75,9 +75,7 @@ def expand(
                 dirents[obj / dirent.name] = dirent
         return list(dirents.values()) if len(dirs) > 0 else None
 
-    def expand_file(base_file: Path, file_path: Path) -> str:
-        debug(f"expand_file {base_file} {file_path}")
-
+    def expand_text(text: str, base_file: Path, file_path: Path) -> str:
         def inner_expand(text: str, expand_stack: list[Path]) -> str:
             debug(f"inner_expand {text} {expand_stack}")
 
@@ -218,8 +216,12 @@ def expand(
 
             return do_expand(text)
 
+        return inner_expand(text, [file_path])
+
+    def expand_file(base_file: Path, file_path: Path) -> str:
+        debug(f"expand_file {base_file} {file_path}")
         with open(file_path, encoding="utf-8") as fh:
-            return inner_expand(fh.read(), [file_path])
+            return expand_text(fh.read(), base_file, file_path)
 
     def get_output_path(base_file: Path) -> Path:
         relpath = base_file.relative_to(build_path)
