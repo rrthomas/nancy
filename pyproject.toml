@@ -1,6 +1,6 @@
 [project]
 name = "nancy"
-version = "8.1.0"
+version = "8.1.1"
 description = "Simple templating system"
 license = {text = "GPL v3 or later"}
 authors = [
