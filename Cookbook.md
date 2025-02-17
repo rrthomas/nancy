@@ -223,9 +223,10 @@ env VARIABLE1=value1 VARIABLE2=value2 … nancy …
 
 Then, you can use `$include{printenv,VARIABLE1}` (or the equivalent in Python or other languages) in the template files. [python-project-template](https://github.com/rrthomas/python-project-template) uses this technique to generate skeleton Python projects.
 
-## Adding code examples to Markdown
-[FIXME]: # (Explain the techniques)
+## Adding code examples and command output to Markdown
 
-Look at the [source](Cookbook.nancy.md) for the Cookbook to see how Nancy is
-used to include example source code, and the output of other commands, such
-as directory listings.
+Source code examples can be added inline as normal in Markdown [code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks), but it’s often more convenient to include code directly from a source file. This can be done directly with `$paste`, or you can use the `cat` command to include a file that is not in the Nancy input tree: `$paste{cat,/path/to/source.js}`.
+
+The output of commands can similarly be included in documents. The output of terminal commands may be better included in a code block, to preserve formatting that depends on a fixed-width font.
+
+Look at the [source](Cookbook.nancy.md) for the Cookbook for more examples of these techniques, including the use of `sed` and `grep` to filter the contents of files and output of commands.
