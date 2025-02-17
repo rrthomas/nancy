@@ -3,6 +3,11 @@
 See the [README](README.md) for installation and usage. The rest of this
 document shows examples of its use.
 
+There are other projects that use Nancy, and further illustrate its use:
+
++ [python-project-template](https://github.com/rrthomas/python-project-template) is a simple customizable Python project template
+[FIXME]: # (Add 'invoice' if/when released)
+
 ## Generating a web site <a name="website-example"></a>
 
 *Note: the techniques used here, and more, are bundled into a convenient
@@ -111,11 +116,21 @@ Since output file and directory names are expanded from input names, you can use
 
 For example, given a file called `author.in.txt` containing the text `Jo Bloggs`, an input file in the same directory called `\$include{author.in.txt}.txt` would be called `Jo Bloggs.txt` in the output.
 
+## Dynamic customization
+
+Sometimes it is more convenient to customize a Nancy template on the command line than by putting information into files; for example, when Nancy is run to set up a project that does not itself use Nancy.
+
+This can be done conveniently with environment variables, by invoking Nancy as follows:
+
+```
+env VARIABLE1=value1 VARIABLE2=value2 … nancy …
+```
+
+Then, you can use `\$include{printenv,VARIABLE1}` (or the equivalent in Python or other languages) in the template files. [python-project-template](https://github.com/rrthomas/python-project-template) uses this technique to generate skeleton Python projects.
+
 ## Adding code examples to Markdown
 [FIXME]: # (Explain the techniques)
 
 Look at the [source](Cookbook.nancy.md) for the Cookbook to see how Nancy is
 used to include example source code, and the output of other commands, such
 as directory listings.
-
-[FIXME]: # (Mention more applications (invoice, python-package-template))
