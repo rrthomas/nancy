@@ -6,7 +6,6 @@ document shows examples of its use.
 There are other projects that use Nancy, and further illustrate its use:
 
 + [python-project-template](https://github.com/rrthomas/python-project-template) is a simple customizable Python project template
-[FIXME]: # (Add 'invoice' if/when released)
 
 ## Generating a web site <a name="website-example"></a>
 
