@@ -1,0 +1,1 @@
+$paste{sh,-c,printf '\a' > $paste{dirname,$outputpath}/bell.bin}

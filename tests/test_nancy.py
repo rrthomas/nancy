@@ -157,6 +157,14 @@ def test_expanding_macros_in_file_names() -> None:
         )
 
 
+def test_writing_a_file_to_outputpath(capsys: CaptureFixture[str]) -> None:
+    with chdir(tests_dir):
+        passing_test(
+            ["writing-file-to-outputpath-src"],
+            "writing-file-to-outputpath-expected",
+        )
+
+
 def test_empty_input_path_causes_an_error() -> None:
     with chdir(tests_dir):
         failing_test([], "at least one input must be given")

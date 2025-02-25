@@ -20,7 +20,7 @@ from .warnings_util import die, simple_warning
 VERSION = importlib.metadata.version("nancy")
 
 TEMPLATE_REGEX = re.compile(r"\.nancy(?=\.[^.]+$|$)")
-NO_COPY_REGEX = re.compile(r"\.in(?=\.[^.]+$|$)")
+NO_COPY_REGEX = re.compile(r"\.in(?=\.(nancy.)?[^.]+$|$)")
 MACRO_REGEX = re.compile(r"(\\?)\$([^\W\d_]\w*)")
 
 
@@ -30,6 +30,15 @@ def is_executable(file: Path) -> bool:
 
 def strip_final_newline(s: str) -> str:
     return re.sub("\n$", "", s)
+
+
+# Turn a filename into a sort key.
+def sorting_name(n: str) -> str:
+    if re.search(NO_COPY_REGEX, n):
+        return f"2 {n}"
+    elif re.search(TEMPLATE_REGEX, n):
+        return f"1 {n}"
+    return f"0 {n}"
 
 
 def expand(
@@ -73,9 +82,13 @@ def expand(
         for d in reversed(dirs):
             for dirent in os.scandir(d):
                 dirents[obj / dirent.name] = dirent
-        return list(dirents.values()) if len(dirs) > 0 else None
+        if len(dirs) == 0:
+            return None
+        return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
 
-    def expand_text(text: str, base_file: Path, file_path: Path) -> str:
+    def expand_text(
+        text: str, base_file: Path, file_path: Path, output_path: Optional[Path] = None
+    ) -> str:
         def inner_expand(text: str, expand_stack: list[Path]) -> str:
             debug(f"inner_expand {text} {expand_stack}")
 
@@ -126,6 +139,9 @@ def expand(
                 macros: dict[str, Callable[..., str]] = {}
                 macros["path"] = lambda _args: str(base_file)
                 macros["realpath"] = lambda _args: str(file_path)
+                macros["outputpath"] = (
+                    lambda _args: str(output_path) if output_path is not None else ""
+                )
 
                 def get_included_file(
                     command_name: str, args: list[str]
@@ -218,10 +234,10 @@ def expand(
 
         return inner_expand(text, [file_path])
 
-    def expand_file(base_file: Path, file_path: Path) -> str:
-        debug(f"expand_file {base_file} {file_path}")
+    def expand_file(base_file: Path, file_path: Path, output_file: Path) -> str:
+        debug(f"expand_file {base_file} on path {file_path} to {output_file}")
         with open(file_path, encoding="utf-8") as fh:
-            return expand_text(fh.read(), base_file, file_path)
+            return expand_text(fh.read(), base_file, file_path, output_file)
 
     def get_output_path(base_file: Path, file_path: Path) -> Path:
         relpath = base_file.relative_to(build_path)
@@ -238,12 +254,13 @@ def expand(
         debug(f"Processing file '{file_path}'")
         if re.search(TEMPLATE_REGEX, file_path.name):
             debug(f"Expanding '{base_file}' to '{output_file}'")
-            output = expand_file(base_file, file_path)
-            if output_file == Path("-"):
-                sys.stdout.write(output)
-            else:
-                with open(output_file, "w", encoding="utf-8") as fh:
-                    fh.write(output)
+            output = expand_file(base_file, file_path, output_file)
+            if not re.search(NO_COPY_REGEX, str(output_file)):
+                if output_file == Path("-"):
+                    sys.stdout.write(output)
+                else:
+                    with open(output_file, "w", encoding="utf-8") as fh:
+                        fh.write(output)
         elif not re.search(NO_COPY_REGEX, file_path.name):
             if output_file == Path("-"):
                 with open(file_path, encoding="utf-8") as fh:

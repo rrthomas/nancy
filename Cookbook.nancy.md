@@ -134,3 +134,27 @@ Source code examples can be added inline as normal in Markdown [code blocks](htt
 The output of commands can similarly be included in documents. The output of terminal commands may be better included in a code block, to preserve formatting that depends on a fixed-width font.
 
 Look at the [source](Cookbook.nancy.md) for the Cookbook for more examples of these techniques, including the use of `sed` and `grep` to filter the contents of files and output of commands.
+
+## Creating binary files in the output
+
+Nancy’s file expansion is entirely text-based, so it cannot be used to
+create binary files. Sometimes this would be desirable: for example, to
+create an image that contains context-dependent text. This can be achieved
+by using the `\$realpath` command to construct a filename in the output
+directory, and a `.in.nancy` file to run commands without creating a file in
+the output directory.
+
+The following script, given a directory on the command line, creates a Zip file of a directory in that directory:
+
+```
+#!/bin/sh
+cd $1
+zip -r archive.zip .
+```
+
+Assuming it is called `make-zip.in.sh`, it can be used thus, from a file called `make-zip.in.nancy`:
+
+```
+\$paste{make-zip.in.sh,$outputpath}
+```
+
