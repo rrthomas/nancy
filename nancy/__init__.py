@@ -129,7 +129,7 @@ def expand(
                 def read_file(file: Path, args: list[str]) -> str:
                     if is_executable(file):
                         debug(f"Running {file} {' '.join(args)}")
-                        output = subprocess.check_output([file] + args, text=True)
+                        output = subprocess.check_output([file.resolve(strict=True)] + args, text=True)
                     else:
                         with open(file, encoding="utf-8") as fh:
                             output = fh.read()

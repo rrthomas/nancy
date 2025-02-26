@@ -86,6 +86,12 @@ def test_executable_test() -> None:
         )
 
 
+def test_executable_in_cwd_test() -> None:
+    with chdir(tests_dir):
+        passing_test(["."], "executable-in-cwd-expected.txt", "executable-in-cwd.nancy.txt")
+
+
+
 def test_macros_not_expanded_in_command_line_arguments() -> None:
     with chdir(tests_dir):
         passing_test(["$path-src"], "$path-expected")
