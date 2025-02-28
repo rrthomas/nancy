@@ -126,14 +126,23 @@ def expand(
                     debug(f"Found '{file_or_exec}'")
                     return file_or_exec
 
-                def read_file(file: Path, args: list[str]) -> str:
+                # Read or run file and return the output, with either the
+                # file if it was read, so as to exclude it from recursive
+                # expansion, or `None` if the file was an executable, as
+                # executables may be used repeatedly in a nested expansion.
+                def read_file(
+                    file: Path, args: list[str]
+                ) -> tuple[Optional[Path], str]:
                     if is_executable(file):
                         debug(f"Running {file} {' '.join(args)}")
-                        output = subprocess.check_output([file.resolve(strict=True)] + args, text=True)
+                        output = subprocess.check_output(
+                            [file.resolve(strict=True)] + args, text=True
+                        )
+                        return (None, output)
                     else:
                         with open(file, encoding="utf-8") as fh:
                             output = fh.read()
-                    return output
+                        return (file, output)
 
                 # Set up macros
                 macros: dict[str, Callable[..., str]] = {}
@@ -145,19 +154,21 @@ def expand(
 
                 def get_included_file(
                     command_name: str, args: list[str]
-                ) -> tuple[Path, str]:
+                ) -> tuple[Optional[Path], str]:
                     debug(f"${command_name}{{{','.join(args)}}}")
                     if len(args) < 1:
                         raise ValueError(
                             f"${command_name} expects at least one argument"
                         )
                     file = get_file(Path(args[0]))
-                    return file, read_file(file, args[1:])
+                    return read_file(file, args[1:])
 
                 def include(args: list[str]) -> str:
                     file, contents = get_included_file("include", args)
                     return strip_final_newline(
-                        inner_expand(contents, expand_stack + [file])
+                        inner_expand(
+                            contents, expand_stack + [file] if file is not None else []
+                        )
                     )
 
                 macros["include"] = include
