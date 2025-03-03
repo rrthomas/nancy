@@ -155,6 +155,5 @@ zip -r archive.zip .
 Assuming it is called `make-zip.in.sh`, it can be used thus, from a file called `make-zip.in.nancy`:
 
 ```
-\$paste{make-zip.in.sh,$outputpath}
+\$paste{make-zip.in.sh,\$outputpath}
 ```
-
