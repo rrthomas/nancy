@@ -110,13 +110,15 @@ a file.
 
 Nancy expands a template file as follows:
 
-1. Scan the text for commands. Expand any arguments to the command, run each
-   command, and replace the command by the result, eliding any final
-   newline. (This elision may look tricky, but it almost always does what
-   you want, and makes `$include` behave better in various contexts.)
-2. Output the resultant text.
+1. Scan the file for commands. Expand any arguments to the command, run
+   each command, and replace the command by the result.
+2. Output the result.
 
 A command takes the form `$COMMAND` or `$COMMAND{ARGUMENT, ...}`.
+
+Nancy treats its input as 8-bit ASCII, but command names and other
+punctuation only use the 7-bit subset. This means that any text encoding
+that is a superset of 7-bit ASCII can be used, such as UTF-8.
 
 ### Built-in commands
 
@@ -124,7 +126,9 @@ Nancy recognises these commands:
 
 * *`$include{FILE}`* Look up the given source file in the input tree (see
   below); read its contents, then expand them (that is, execute any commands
-  it contains) and return the result.
+  it contains) and return the result, eliding any final newline. (This
+  elision may look tricky, but it almost always does what you want, and
+  makes $include behave better in various contexts.)
 * *`$paste{FILE}`* Like `$include`, but does not expand its result before
   returning it.
 * *`$path`* Expands to the file currently being expanded, relative to the

@@ -226,20 +226,27 @@ Then, you can use `$include{printenv,VARIABLE1}` (or the equivalent in Python or
 
 Source code examples can be added inline as normal in Markdown [code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks), but it’s often more convenient to include code directly from a source file. This can be done directly with `$paste`, or you can use the `cat` command to include a file that is not in the Nancy input tree: `$paste{cat,/path/to/source.js}`.
 
-The output of commands can similarly be included in documents. The output of terminal commands may be better included in a code block, to preserve formatting that depends on a fixed-width font.
+The output of commands can similarly be included in documents. The output of
+terminal commands may be better included in a code block, to preserve
+formatting that depends on a fixed-width font.
 
-Look at the [source](Cookbook.nancy.md) for the Cookbook for more examples of these techniques, including the use of `sed` and `grep` to filter the contents of files and output of commands.
+Look at the [source](Cookbook.nancy.md) for the Cookbook for more examples
+of these techniques, including the use of `sed` and `grep` to filter the
+contents of files and output of commands.
 
 ## Creating binary files in the output
 
-Nancy’s file expansion is entirely text-based, so it cannot be used to
-create binary files. Sometimes this would be desirable: for example, to
-create an image that contains context-dependent text. This can be achieved
-by using the `$realpath` command to construct a filename in the output
-directory, and a `.in.nancy` file to run commands without creating a file in
-the output directory.
+Nancy is mostly intended for templating text files. Sometimes, we would like
+to create binary files, for example an image containing context-dependent
+text. In theory, one could use `$paste` to do this, but since any trailing
+newline is stripped from the output, this is not a good technique in
+general. Also, it may be desirable to create binary files based on other
+outputs. This can be achieved by using the `$realpath` command to construct
+a filename in the output directory, and a `.in.nancy` file to run commands
+without creating a file in the output directory.
 
-The following script, given a directory on the command line, creates a Zip file of a directory in that directory:
+The following script, given a directory on the command line, creates a Zip
+file of a directory in that directory:
 
 ```
 #!/bin/sh

@@ -21,15 +21,15 @@ VERSION = importlib.metadata.version("nancy")
 
 TEMPLATE_REGEX = re.compile(r"\.nancy(?=\.[^.]+$|$)")
 NO_COPY_REGEX = re.compile(r"\.in(?=\.(nancy.)?[^.]+$|$)")
-MACRO_REGEX = re.compile(r"(\\?)\$([^\W\d_]\w*)")
+MACRO_REGEX = re.compile(rb"(\\?)\$([^\W\d_]\w*)")
 
 
 def is_executable(file: Path) -> bool:
     return os.access(file, os.X_OK)
 
 
-def strip_final_newline(s: str) -> str:
-    return re.sub("\n$", "", s)
+def strip_final_newline(s: bytes) -> bytes:
+    return re.sub(b"\n$", b"", s)
 
 
 # Turn a filename into a sort key.
@@ -86,13 +86,16 @@ def expand(
             return None
         return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
 
-    def expand_text(
-        text: str, base_file: Path, file_path: Path, output_path: Optional[Path] = None
-    ) -> str:
-        def inner_expand(text: str, expand_stack: list[Path]) -> str:
+    def expand_bytes(
+        text: bytes,
+        base_file: Path,
+        file_path: Path,
+        output_path: Optional[Path] = None,
+    ) -> bytes:
+        def inner_expand(text: bytes, expand_stack: list[Path]) -> bytes:
             debug(f"inner_expand {text} {expand_stack}")
 
-            def do_expand(text: str) -> str:
+            def do_expand(text: bytes) -> bytes:
                 # Search for file starting at the given path; if found return its file
                 # name and contents; if not, die.
                 def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
@@ -131,39 +134,39 @@ def expand(
                 # expansion, or `None` if the file was an executable, as
                 # executables may be used repeatedly in a nested expansion.
                 def read_file(
-                    file: Path, args: list[str]
-                ) -> tuple[Optional[Path], str]:
+                    file: Path, args: list[bytes]
+                ) -> tuple[Optional[Path], bytes]:
                     if is_executable(file):
-                        debug(f"Running {file} {' '.join(args)}")
+                        debug(f"Running {file} {b' '.join(args)}")
                         output = subprocess.check_output(
-                            [file.resolve(strict=True)] + args, text=True
+                            [file.resolve(strict=True)] + args,
                         )
                         return (None, output)
                     else:
-                        with open(file, encoding="utf-8") as fh:
+                        with open(file, "rb") as fh:
                             output = fh.read()
                         return (file, output)
 
                 # Set up macros
-                macros: dict[str, Callable[..., str]] = {}
-                macros["path"] = lambda _args: str(base_file)
-                macros["realpath"] = lambda _args: str(file_path)
-                macros["outputpath"] = (
-                    lambda _args: str(output_path) if output_path is not None else ""
+                macros: dict[bytes, Callable[..., bytes]] = {}
+                macros[b"path"] = lambda _args: bytes(base_file)
+                macros[b"realpath"] = lambda _args: bytes(file_path)
+                macros[b"outputpath"] = (
+                    lambda _args: bytes(output_path) if output_path is not None else b""
                 )
 
                 def get_included_file(
-                    command_name: str, args: list[str]
-                ) -> tuple[Optional[Path], str]:
-                    debug(f"${command_name}{{{','.join(args)}}}")
+                    command_name: str, args: list[bytes]
+                ) -> tuple[Optional[Path], bytes]:
+                    debug(f"${command_name}{{{b','.join(args)}}}")
                     if len(args) < 1:
                         raise ValueError(
                             f"${command_name} expects at least one argument"
                         )
-                    file = get_file(Path(args[0]))
+                    file = get_file(Path(os.fsdecode(args[0])))
                     return read_file(file, args[1:])
 
-                def include(args: list[str]) -> str:
+                def include(args: list[bytes]) -> bytes:
                     file, contents = get_included_file("include", args)
                     return strip_final_newline(
                         inner_expand(
@@ -171,25 +174,26 @@ def expand(
                         )
                     )
 
-                macros["include"] = include
+                macros[b"include"] = include
 
-                def paste(args: list[str]) -> str:
+                def paste(args: list[bytes]) -> bytes:
                     _file, contents = get_included_file("paste", args)
                     return strip_final_newline(contents)
 
-                macros["paste"] = paste
+                macros[b"paste"] = paste
 
-                def do_macro(macro: str, args: list[str]) -> str:
+                def do_macro(macro: bytes, args: list[bytes]) -> bytes:
                     debug(f"do_macro {macro} {args}")
-                    expanded_args: list[str] = []
+                    expanded_args: list[bytes] = []
                     for a in args:
                         # Unescape escaped commas
                         debug(f"escaped arg {a}")
-                        unescaped_arg = re.sub(r"\\,", ",", a)
+                        unescaped_arg = re.sub(rb"\\,", b",", a)
                         debug(f"unescaped arg {unescaped_arg}")
                         expanded_args.append(do_expand(unescaped_arg))
                     if macro not in macros:
-                        raise ValueError(f"no such macro '${macro}'")
+                        decoded_macro = macro.decode("iso-8859-1")
+                        raise ValueError(f"no such macro '${decoded_macro}'")
                     return macros[macro](expanded_args)
 
                 debug("do_match")
@@ -206,21 +210,21 @@ def expand(
                     startpos = arg_start
                     args = []
                     # Parse arguments, respecting nested commands
-                    if arg_start < len(expanded) and expanded[arg_start] == "{":
+                    if arg_start < len(expanded) and expanded[arg_start] == ord(b"{"):
                         depth = 1
                         next_index = arg_start + 1
                         while next_index < len(expanded):
-                            if expanded[next_index] == "}":
+                            if expanded[next_index] == ord(b"}"):
                                 depth -= 1
                                 if depth == 0:
                                     args.append(expanded[arg_start + 1 : next_index])
                                     break
-                            elif expanded[next_index] == "{":
+                            elif expanded[next_index] == ord(b"{"):
                                 depth += 1
                             elif (
                                 depth == 1
-                                and expanded[next_index] == ","
-                                and expanded[next_index - 1] != "\\"
+                                and expanded[next_index] == ord(b",")
+                                and expanded[next_index - 1] != ord(b"\\")
                             ):
                                 args.append(expanded[arg_start + 1 : next_index])
                                 arg_start = next_index
@@ -228,10 +232,10 @@ def expand(
                         if next_index == len(expanded):
                             raise ValueError("missing close brace")
                         startpos = next_index + 1
-                    if escaped != "":
+                    if escaped != b"":
                         # Just remove the leading '\'
-                        args_string = f"{{{','.join(args)}}}"
-                        output = f"${name}{args_string if len(args) > 0 else ''}"
+                        args_string = b"{" + b",".join(args) + b"}"
+                        output = b"$" + name + (args_string if len(args) > 0 else b"")
                     else:
                         output = do_macro(name, args)
                     expanded = expanded[: res.start()] + output + expanded[startpos:]
@@ -245,19 +249,20 @@ def expand(
 
         return inner_expand(text, [file_path])
 
-    def expand_file(base_file: Path, file_path: Path, output_file: Path) -> str:
+    def expand_file(base_file: Path, file_path: Path, output_file: Path) -> bytes:
         debug(f"expand_file {base_file} on path {file_path} to {output_file}")
-        with open(file_path, encoding="utf-8") as fh:
-            return expand_text(fh.read(), base_file, file_path, output_file)
+        return expand_bytes(file_path.read_bytes(), base_file, file_path, output_file)
 
     def get_output_path(base_file: Path, file_path: Path) -> Path:
         relpath = base_file.relative_to(build_path)
         output_file = relpath
         if output_file.name != "":
             output_file = output_file.with_name(
-                re.sub(TEMPLATE_REGEX, "", relpath.name)
+                os.fsdecode(re.sub(TEMPLATE_REGEX, "", relpath.name))
             )
-            output_file = expand_text(str(output_file), output_file, file_path)
+            output_file = os.fsdecode(
+                expand_bytes(bytes(output_file), output_file, file_path)
+            )
         return output_path / output_file
 
     def process_file(base_file: Path, file_path: Path) -> None:
@@ -268,15 +273,14 @@ def expand(
             output = expand_file(base_file, file_path, output_file)
             if not re.search(NO_COPY_REGEX, str(output_file)):
                 if output_file == Path("-"):
-                    sys.stdout.write(output)
+                    sys.stdout.buffer.write(output)
                 else:
-                    with open(output_file, "w", encoding="utf-8") as fh:
+                    with open(output_file, "wb") as fh:
                         fh.write(output)
         elif not re.search(NO_COPY_REGEX, file_path.name):
             if output_file == Path("-"):
-                with open(file_path, encoding="utf-8") as fh:
-                    file_contents = fh.read()
-                sys.stdout.write(file_contents)
+                file_contents = file_path.read_bytes()
+                sys.stdout.buffer.write(file_contents)
             else:
                 shutil.copy2(file_path, output_file)
 
