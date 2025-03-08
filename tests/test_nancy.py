@@ -1,6 +1,6 @@
 """Nancy tests.
 
-Copyright (c) Reuben Thomas 2024.
+Copyright (c) Reuben Thomas 2024-2025.
 Released under the GPL version 3, or (at your option) any later version.
 """
 
@@ -88,8 +88,9 @@ def test_executable_test() -> None:
 
 def test_executable_in_cwd_test() -> None:
     with chdir(tests_dir):
-        passing_test(["."], "executable-in-cwd-expected.txt", "executable-in-cwd.nancy.txt")
-
+        passing_test(
+            ["."], "executable-in-cwd-expected.txt", "executable-in-cwd.nancy.txt"
+        )
 
 
 def test_macros_not_expanded_in_command_line_arguments() -> None:
@@ -205,8 +206,15 @@ def test_calling_an_undefined_single_letter_macro_causes_an_error() -> None:
 
 def test_a_macro_call_with_a_missing_close_brace_causes_an_error() -> None:
     with chdir(tests_dir):
+        failing_test([os.getcwd()], "missing }", "missing-close-brace.nancy.txt")
+
+
+def test_a_macro_call_with_mismatched_heterogeneous_brackets_causes_correct_error() -> (
+    None
+):
+    with chdir(tests_dir):
         failing_test(
-            [os.getcwd()], "missing close brace", "missing-close-brace.nancy.txt"
+            [os.getcwd()], "missing )", "missing-close-paren.nancy.txt"
         )
 
 

@@ -1,1 +1,1 @@
-$include{echo,$include{foo.in.txt}}
+$include(echo,$include{foo.in.txt})

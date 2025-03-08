@@ -2,7 +2,7 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-$paste{/bin/sh,-c,PYTHONPATH=. python -m nancy --version | tail +2 | head -2 | sed -e 's/$/  /'}
+$paste(/bin/sh,-c,PYTHONPATH=. python -m nancy --version | tail +2 | head -2 | sed -e 's/$/  /')
 
 Nancy is a simple templating system that copies a file or directory, filling
 in templates as it goes. It has just one non-trivial construct:
@@ -35,7 +35,7 @@ $ pip install nancy
 ## Invocation
 
 ```
-$paste{/bin/sh,-c,PYTHONPATH=. python -m nancy --help | sed -e 's/usage: nancy/nancy/'}
+$paste(/bin/sh,-c,PYTHONPATH=. python -m nancy --help | sed -e 's/usage: nancy/nancy/')
 ```
 
 ## Operation <a name="operation"></a>
@@ -99,7 +99,11 @@ Nancy expands a template file as follows:
    each command, and replace the command by the result.
 2. Output the result.
 
-A command takes the form `\$COMMAND` or `\$COMMAND{ARGUMENT, ...}`.
+A command is written as its name prefixed with a dollar sign: `\$COMMAND`.
+Some commands take an argument, given in braces: `\$COMMAND{ARGUMENT}`.
+Finally, some commands also take an optional external command and arguments:
+`\$COMMAND(EXTERNAL-COMMAND, ARGUMENT, …){ARGUMENT}`; the argument in braces
+is optional in this case.
 
 Nancy treats its input as 8-bit ASCII, but command names and other
 punctuation only use the 7-bit subset. This means that any text encoding
@@ -152,27 +156,24 @@ worked example.
 ### Running other programs
 
 In addition to the rules given above, Nancy also allows `\$include` and
-`\$paste` to take their input from programs. This can be useful in a variety
-of ways: to insert the current date or time, to make a calculation, or to
-convert a file to a different format.
+`\$paste` to run external programs, whose output becomes the result of the
+command. If an input is given, it is supplied to the program’s standard
+input. This can be useful in a variety of ways: to insert the current date
+or time, to make a calculation, or to convert a file to a different format.
 
-Nancy can run a program in two ways:
+Nancy looks for programs in two ways:
 
-1. If a file found by an `\$include` or `\$paste` command has the “execute”
-   permission, it is run.
+1. Using the same rules as for finding an `\$include` or `\$paste` input,
+   Nancy looks for a file which has the “execute” permission.
 
 2. If no file of the given name can be found using the rules in the previous
    section, Nancy looks for an executable file on the user’s `PATH` (the
-   list of directories specified by the `PATH` environment variable). If one
-   is found, it is run.
-
-In either case, arguments may be passed to the program: use
-`\$include{FILE,ARGUMENT_1,ARGUMENT_2,…}`, or the equivalent for `\$paste`.
+   list of directories specified by the `PATH` environment variable).
 
 For example, to insert the current date:
 
 ```
-\$paste{date,+%Y-%m-%d}
+\$paste(date,+%Y-%m-%d)
 ```
 
 See the [date example](Cookbook.md#date-example) in the Cookbook for more
@@ -188,14 +189,13 @@ To prevent a comma from being interpreted as an argument separator, put a
 backslash in front of it:
 
 ```
-\$include{cat,I\, Robot.txt,3 Rules of Robotics.txt}
+\$include(cat,I\, Robot.txt,3 Rules of Robotics.txt)
 ```
 
-This will run the `\$include` command with the following arguments:
+This will run the `cat` command with the following arguments:
 
-1. `cat`
-2. `I, Robot.txt`
-3. `3 Rules of Robotics.txt`
+1. `I, Robot.txt`
+2. `3 Rules of Robotics.txt`
 
 Note that the filenames supplied to `cat` refer not to the input tree, but
 to the file system.

@@ -24,10 +24,6 @@ NO_COPY_REGEX = re.compile(r"\.in(?=\.(nancy.)?[^.]+$|$)")
 MACRO_REGEX = re.compile(rb"(\\?)\$([^\W\d_]\w*)")
 
 
-def is_executable(file: Path) -> bool:
-    return os.access(file, os.X_OK)
-
-
 def strip_final_newline(s: bytes) -> bytes:
     return re.sub(b"\n$", b"", s)
 
@@ -86,6 +82,34 @@ def expand(
             return None
         return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
 
+    def parse_arguments(
+        text: bytes, arg_start: int, initial_closing: int
+    ) -> tuple[list[bytes], int]:
+        args = []
+        closing = [initial_closing]
+        next_index = arg_start + 1
+        while next_index < len(text):
+            if text[next_index] == closing[-1]:
+                closing.pop()
+                if len(closing) == 0:
+                    args.append(text[arg_start + 1 : next_index])
+                    break
+            elif text[next_index] in {ord(b"("), ord(b"{")}:
+                closing.append(
+                    ord(b")") if text[next_index] == ord(b"(") else ord(b"}")
+                )
+            elif (
+                len(closing) == 1
+                and text[next_index] == ord(b",")
+                and text[next_index - 1] != ord(b"\\")
+            ):
+                args.append(text[arg_start + 1 : next_index])
+                arg_start = next_index
+            next_index += 1
+        if next_index == len(text):
+            raise ValueError(f"missing {chr(closing[-1])}")
+        return args, next_index + 1
+
     def expand_bytes(
         text: bytes,
         base_file: Path,
@@ -97,9 +121,9 @@ def expand(
 
             def do_expand(text: bytes) -> bytes:
                 # Search for file starting at the given path; if found return its file
-                # name and contents; if not, die.
+                # name and contents; if not, raise an error.
                 def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
-                    debug(f"find_on_path {start_path} {file}")
+                    debug(f"Searching for '{file}' on {start_path}")
                     norm_file = Path(os.path.normpath(file))
                     for parent in (start_path / "_").parents:
                         this_search = parent / norm_file
@@ -110,64 +134,82 @@ def expand(
                             and obj.is_file()
                             and obj not in expand_stack
                         ):
+                            debug(f"Found '{obj}'")
                             return obj
                         next_path = start_path.parent
                         if next_path == start_path:
-                            return None
+                            break
                         start_path = next_path
+                    return None
 
-                def get_file(leaf: Path) -> Path:
-                    debug(f"Searching for '{leaf}'")
-                    file_or_exec = find_on_path(base_file.parent, leaf)
-                    if file_or_exec is None:
-                        executable = shutil.which(leaf)
-                        if executable is None:
-                            raise ValueError(
-                                f"cannot find '{leaf}' while expanding '{base_file}'"
-                            )
-                        file_or_exec = Path(executable)
-                    debug(f"Found '{file_or_exec}'")
-                    return file_or_exec
-
-                # Read or run file and return the output, with either the
-                # file if it was read, so as to exclude it from recursive
-                # expansion, or `None` if the file was an executable, as
-                # executables may be used repeatedly in a nested expansion.
-                def read_file(
-                    file: Path, args: list[bytes]
-                ) -> tuple[Optional[Path], bytes]:
-                    if is_executable(file):
-                        debug(f"Running {file} {b' '.join(args)}")
-                        output = subprocess.check_output(
-                            [file.resolve(strict=True)] + args,
-                        )
-                        return (None, output)
-                    else:
-                        with open(file, "rb") as fh:
-                            output = fh.read()
-                        return (file, output)
+                def filter_bytes(
+                    program: Path, args: list[bytes], input: bytes
+                ) -> bytes:
+                    debug(f"Running {program} {b' '.join(args)}")
+                    res = subprocess.run(
+                        [program.resolve(strict=True)] + args,
+                        capture_output=True,
+                        check=True,
+                        input=input,
+                    )
+                    return res.stdout
 
                 # Set up macros
                 macros: dict[bytes, Callable[..., bytes]] = {}
-                macros[b"path"] = lambda _args: bytes(base_file)
-                macros[b"realpath"] = lambda _args: bytes(file_path)
+                macros[b"path"] = lambda _args, _external_args: bytes(base_file)
+                macros[b"realpath"] = lambda _args, _external_args: bytes(file_path)
                 macros[b"outputpath"] = (
-                    lambda _args: bytes(output_path) if output_path is not None else b""
+                    lambda _args, _external_args: bytes(output_path)
+                    if output_path is not None
+                    else b""
                 )
 
-                def get_included_file(
-                    command_name: str, args: list[bytes]
+                # Find the given file and read it, optionally filtering it
+                # through a command, and return the output, with the file
+                # name actually read, so as to exclude it from recursive
+                # expansion.
+                def read_filtered_file(
+                    command_name: str,
+                    args: list[bytes],
+                    external_args: Optional[list[bytes]],
                 ) -> tuple[Optional[Path], bytes]:
                     debug(f"${command_name}{{{b','.join(args)}}}")
-                    if len(args) < 1:
+                    if len(args) < 1 and (
+                        external_args is None or len(external_args) < 1
+                    ):
                         raise ValueError(
                             f"${command_name} expects at least one argument"
                         )
-                    file = get_file(Path(os.fsdecode(args[0])))
-                    return read_file(file, args[1:])
+                    file = None
+                    output = b""
+                    if len(args) > 0:
+                        basename = os.fsdecode(args[0])
+                        file = find_on_path(base_file.parent, Path(basename))
+                        if file is None:
+                            raise ValueError(
+                                f"cannot find '{basename}' while expanding '{base_file.parent}'"
+                            )
+                        with open(file, "rb") as fh:
+                            output = fh.read()
+                    if external_args is not None:
+                        exe_name = Path(os.fsdecode(external_args[0]))
+                        exe_path = find_on_path(base_file.parent, exe_name)
+                        if exe_path is None:
+                            exe_path_str = shutil.which(exe_name)
+                            if exe_path_str is None:
+                                raise ValueError(f"cannot find program '{exe_name}'")
+                            exe_path = Path(exe_path_str)
+                        output = filter_bytes(
+                            exe_path.resolve(strict=True),
+                            external_args[1:],
+                            output,
+                        )
+                    return (file, output)
 
-                def include(args: list[bytes]) -> bytes:
-                    file, contents = get_included_file("include", args)
+                def include(
+                    args: list[bytes], external_args: Optional[list[bytes]]
+                ) -> bytes:
+                    file, contents = read_filtered_file("include", args, external_args)
                     return strip_final_newline(
                         inner_expand(
                             contents, expand_stack + [file] if file is not None else []
@@ -176,14 +218,15 @@ def expand(
 
                 macros[b"include"] = include
 
-                def paste(args: list[bytes]) -> bytes:
-                    _file, contents = get_included_file("paste", args)
+                def paste(
+                    args: list[bytes], external_args: Optional[list[bytes]]
+                ) -> bytes:
+                    _file, contents = read_filtered_file("paste", args, external_args)
                     return strip_final_newline(contents)
 
                 macros[b"paste"] = paste
 
-                def do_macro(macro: bytes, args: list[bytes]) -> bytes:
-                    debug(f"do_macro {macro} {args}")
+                def expand_args(args: list[bytes]) -> list[bytes]:
                     expanded_args: list[bytes] = []
                     for a in args:
                         # Unescape escaped commas
@@ -191,10 +234,24 @@ def expand(
                         unescaped_arg = re.sub(rb"\\,", b",", a)
                         debug(f"unescaped arg {unescaped_arg}")
                         expanded_args.append(do_expand(unescaped_arg))
+                    return expanded_args
+
+                def do_macro(
+                    macro: bytes,
+                    args: list[bytes],
+                    external_args: Optional[list[bytes]],
+                ) -> bytes:
+                    debug(f"do_macro {macro} {args} {external_args}")
+                    expanded_args = expand_args(args)
+                    expanded_external_args = (
+                        expand_args(external_args)
+                        if external_args is not None
+                        else None
+                    )
                     if macro not in macros:
                         decoded_macro = macro.decode("iso-8859-1")
                         raise ValueError(f"no such macro '${decoded_macro}'")
-                    return macros[macro](expanded_args)
+                    return macros[macro](expanded_args, expanded_external_args)
 
                 debug("do_match")
                 startpos = 0
@@ -206,38 +263,32 @@ def expand(
                     debug(f"match: {res} {res.end()}")
                     escaped = res[1]
                     name = res[2]
-                    arg_start = res.end()
-                    startpos = arg_start
+                    startpos = res.end()
                     args = []
-                    # Parse arguments, respecting nested commands
-                    if arg_start < len(expanded) and expanded[arg_start] == ord(b"{"):
-                        depth = 1
-                        next_index = arg_start + 1
-                        while next_index < len(expanded):
-                            if expanded[next_index] == ord(b"}"):
-                                depth -= 1
-                                if depth == 0:
-                                    args.append(expanded[arg_start + 1 : next_index])
-                                    break
-                            elif expanded[next_index] == ord(b"{"):
-                                depth += 1
-                            elif (
-                                depth == 1
-                                and expanded[next_index] == ord(b",")
-                                and expanded[next_index - 1] != ord(b"\\")
-                            ):
-                                args.append(expanded[arg_start + 1 : next_index])
-                                arg_start = next_index
-                            next_index += 1
-                        if next_index == len(expanded):
-                            raise ValueError("missing close brace")
-                        startpos = next_index + 1
+                    external_args = None
+                    # Parse external program arguments
+                    if startpos < len(expanded) and expanded[startpos] == ord(b"("):
+                        external_args, startpos = parse_arguments(
+                            expanded, startpos, ord(")")
+                        )
+                    if startpos < len(expanded) and expanded[startpos] == ord(b"{"):
+                        args, startpos = parse_arguments(expanded, startpos, ord("}"))
                     if escaped != b"":
                         # Just remove the leading '\'
+                        external_args_string = (
+                            b"(" + b",".join(external_args) + b")"
+                            if external_args is not None
+                            else b""
+                        )
                         args_string = b"{" + b",".join(args) + b"}"
-                        output = b"$" + name + (args_string if len(args) > 0 else b"")
+                        output = (
+                            b"$"
+                            + name
+                            + external_args_string
+                            + (args_string if len(args) > 0 else b"")
+                        )
                     else:
-                        output = do_macro(name, args)
+                        output = do_macro(name, args, external_args)
                     expanded = expanded[: res.start()] + output + expanded[startpos:]
                     # Update search position to restart matching after output of macro
                     startpos = res.start() + len(output)

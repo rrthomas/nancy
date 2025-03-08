@@ -35,7 +35,7 @@ The basic page template looks something like this:
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" type="text/css" href="$paste{path-to-root.in.sh,$path}/style.css">
+    <link rel="stylesheet" type="text/css" href="$paste(path-to-root.in.sh,$path)/style.css">
     <title>$include{title.in.txt}</title>
   </head>
   <body>
@@ -163,7 +163,7 @@ Page contents.
 
 --
 
-Last updated: $paste{python,-c,import datetime; print(datetime.now().strftime('%Y-%m-%d'))}
+Last updated: $paste(python,-c,import datetime; print(datetime.now().strftime('%Y-%m-%d')))
 ```
 
 This gives a result looking something like:
@@ -194,11 +194,11 @@ This can be done conveniently with environment variables, by invoking Nancy as f
 env VARIABLE1=value1 VARIABLE2=value2 … nancy …
 ```
 
-Then, you can use `$include{printenv,VARIABLE1}` (or the equivalent in Python or other languages) in the template files. [python-project-template](https://github.com/rrthomas/python-project-template) uses this technique to generate skeleton Python projects.
+Then, you can use `$include(printenv,VARIABLE1)` (or the equivalent in Python or other languages) in the template files. [python-project-template](https://github.com/rrthomas/python-project-template) uses this technique to generate skeleton Python projects.
 
 ## Adding code examples and command output to Markdown
 
-Source code examples can be added inline as normal in Markdown [code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks), but it’s often more convenient to include code directly from a source file. This can be done directly with `$paste`, or you can use the `cat` command to include a file that is not in the Nancy input tree: `$paste{cat,/path/to/source.js}`.
+Source code examples can be added inline as normal in Markdown [code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks), but it’s often more convenient to include code directly from a source file. This can be done directly with `$paste`, or you can use the `cat` command to include a file that is not in the Nancy input tree: `$paste(cat,/path/to/source.js)`.
 
 The output of commands can similarly be included in documents. The output of terminal commands may be better included in a code block, to preserve formatting that depends on a fixed-width font.
 
@@ -219,5 +219,5 @@ zip -r archive.zip .
 Assuming it is called `make-zip.in.sh`, it can be used thus, from a file called `make-zip.in.nancy`:
 
 ```
-$paste{make-zip.in.sh,\$outputpath}
+$paste(make-zip.in.sh,\$outputpath)
 ```
