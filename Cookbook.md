@@ -175,7 +175,7 @@ Page contents.
 
 --
 
-Last updated: 2016-10-12
+Last updated: $paste(python,-c,import datetime; print(datetime.datetime(2016\,10\,12).strftime('%Y-%m-%d')))
 ```
 
 ## Dynamically naming output files and directories according

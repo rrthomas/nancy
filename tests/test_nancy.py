@@ -74,6 +74,13 @@ def test_failing_executable_test() -> None:
         )
 
 
+def test_non_existent_executable_test() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()], "cannot find program 'foo'", "foo.nancy.txt"
+        )
+
+
 def test_passing_executable_test() -> None:
     with chdir(tests_dir):
         passing_test([os.getcwd()], "true-expected.txt", "true.nancy.txt")
@@ -107,7 +114,7 @@ def test_include_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
             [os.getcwd()],
-            "$include expects at least one argument",
+            "$include needs arguments or external arguments",
             "include-no-arg.nancy.txt",
         )
 
@@ -116,8 +123,17 @@ def test_paste_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
             [os.getcwd()],
-            "$paste expects at least one argument",
+            "$paste needs arguments or external arguments",
             "paste-no-arg.nancy.txt",
+        )
+
+
+def test_paste_with_too_many_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$paste needs exactly one argument",
+            "paste-too-many-args.nancy.txt",
         )
 
 
@@ -213,9 +229,7 @@ def test_a_macro_call_with_mismatched_heterogeneous_brackets_causes_correct_erro
     None
 ):
     with chdir(tests_dir):
-        failing_test(
-            [os.getcwd()], "missing )", "missing-close-paren.nancy.txt"
-        )
+        failing_test([os.getcwd()], "missing )", "missing-close-paren.nancy.txt")
 
 
 def test_trying_to_output_multiple_files_to_stdout_causes_an_error() -> None:

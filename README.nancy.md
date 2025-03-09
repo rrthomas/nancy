@@ -179,6 +179,9 @@ For example, to insert the current date:
 See the [date example](Cookbook.md#date-example) in the Cookbook for more
 detail.
 
+When `\$include` runs a program, any input is fully expanded before being
+passed to the program. The program’s output is again expanded, in case it has inserted any commands in its output.
+
 When commands that run programs are nested inside each other, the order in
 which they are run may matter. Nancy only guarantees that if one command is
 nested inside another, the inner command will be processed first. This means that if, for example, `\$realpath` is passed as an argument to a program, the program will be given the actual path, rather than the string `\$realpath`.
