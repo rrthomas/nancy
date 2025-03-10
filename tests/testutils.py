@@ -55,9 +55,9 @@ def file_objects_equal(
     stdout = io.StringIO()
     with contextlib.redirect_stdout(stdout):
         filecmp.dircmp(a, b).report_full_closure()
-        match = re.search("Differing files|Only in", stdout.getvalue())
-        if match is None:
-            return True
+    match = re.search("Differing files|Only in", stdout.getvalue())
+    if match is None:
+        return True
     print(stdout.getvalue())  # pragma: no cover
     return False  # pragma: no cover
 
