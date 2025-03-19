@@ -6,9 +6,10 @@
 https://github.com/rrthomas/nancy  
 
 Nancy is a simple templating system that copies a file or directory, filling
-in templates as it goes. It has just one non-trivial construct:
-context-dependent file inclusion. A file can either be included literally,
-or run as a command and its output included.
+in templates as it goes. Two simple mechanisms, context-dependent file
+inclusion and the invocation of external commands, allow for a wide range of
+uses, from simple template filling to generating a web site or software
+project.
 
 Nancy was originally designed to build simple static web sites, but can be
 used for all sorts of other tasks, similar to more complicated systems like
@@ -93,32 +94,35 @@ in lexical order:
 
 Input files, which are not copied to the output in any form, can be used by
 commands in other files, or in the case of `.in.nancy` files, have other
-side-effects, as commands they contain are executed. They can also be used for documentation or other files which you’d like to keep with the inputs, but not form part of the output.
+side-effects, as commands they contain are executed. They can also be used
+for documentation or other files which you’d like to keep with the inputs,
+but not form part of the output.
 
 
 ### Special cases
 
 + If the input path is a single file, and no `--path` argument is given,
-then Nancy acts as if the input path were the current directory and the
-`--path` argument were the file name. This makes it convenient to expand a
-single file using the command: `nancy INPUT-FILE OUTPUT-FILE`
+  then Nancy acts as if the input path were the current directory and the
+  `--path` argument were the file name. This makes it convenient to expand a
+  single file using the command: `nancy INPUT-FILE OUTPUT-FILE`
 + When the output is a single file, the special filename `-` may be used to
-cause Nancy to print the result to standard output instead of writing it to
-a file.
+  cause Nancy to print the result to standard output instead of writing it to
+  a file.
 
 ### Template expansion
 
 Nancy expands a template file as follows:
 
-1. Scan the file for commands. Expand any arguments to the command, run
-   each command, and replace the command by the result.
+1. Scan the file for commands. Expand any arguments to the command, run each
+   command, and replace the command by the result. If the result ends in a
+  newline, it is removed. (This is almost always does what you want, and
+  makes `$include` behave better in various contexts.)
 2. Output the result.
 
 A command is written as its name prefixed with a dollar sign: `$COMMAND`.
-Some commands take an argument, given in braces: `$COMMAND{ARGUMENT}`.
-Finally, some commands also take an optional external command and arguments:
-`$COMMAND(EXTERNAL-COMMAND, ARGUMENT, …){ARGUMENT}`; the argument in braces
-is optional in this case.
+Some commands take an input, given in braces: `$COMMAND{INPUT}`, and
+some take arguments, given in parentheses:
+`$COMMAND(ARGUMENT,…)`.
 
 Nancy treats its input as 8-bit ASCII, but command names and other
 punctuation only use the 7-bit subset. This means that any text encoding
@@ -128,24 +132,27 @@ that is a superset of 7-bit ASCII can be used, such as UTF-8.
 
 Nancy recognises these commands:
 
-* *`$include{FILE}`* Look up the given source file in the input tree (see
++ *`$include(FILE)`* Look up the given source file in the input tree (see
   below); read its contents, then expand them (that is, execute any commands
-  it contains) and return the result, eliding any final newline. (This
-  elision may look tricky, but it almost always does what you want, and
-  makes $include behave better in various contexts.)
-* *`$paste{FILE}`* Like `$include`, but does not expand its result before
-  returning it.
-* *`$path`* Expands to the file currently being expanded, relative to the
+  it contains) and return the result.
++ *`$paste(FILE)`* Look up the given source file like `$include`, and
+  return its contents.
++ *`$run(PROGRAM,ARGUMENT…){INPUT}`* Run the given program with the given
+  arguments and return its result. If an input is given, it is expanded,
+  then supplied to the program’s standard input. This can be useful in a
+  variety of ways: to insert the current date or time, to make a
+  calculation, or to convert a file to a different format.
++ *`$expand{INPUT}`* Expand the input, returning the result. This can be
+  used to expand the output of a program run with `$run`.
++ *`$path`* Expands to the file currently being expanded, relative to the
   input tree.
-* *`$realpath`* Expands to the real path of the file currently being
-  expanded.
-* *`$outputpath`* Expands to the path of the output for the file currently
++ *`$realpath`* Returns the real path of the file currently being expanded.
++ *`$outputpath`* Returns the path of the output for the file currently
   being expanded.
 
-The last two commands are mostly useful as arguments to external programs
-(see below).
+The last two commands are mostly useful in arguments to `$run`.
 
-To find the file specified by a `$include{FILE}` command, Nancy proceeds
+To find the file specified by a `$include(FILE)` command, Nancy proceeds
 thus:
 
 1. Set `path` to the value of `$path`.
@@ -168,13 +175,7 @@ subdirectory `foo/bar/baz`, it will try the following files, in order:
 See the [website example](Cookbook.md#website-example) in the Cookbook for a
 worked example.
 
-### Running other programs
-
-In addition to the rules given above, Nancy also allows `$include` and
-`$paste` to run external programs, whose output becomes the result of the
-command. If an input is given, it is supplied to the program’s standard
-input. This can be useful in a variety of ways: to insert the current date
-or time, to make a calculation, or to convert a file to a different format.
+### How `$run` finds and runs programs
 
 Nancy looks for programs in two ways:
 
@@ -188,18 +189,17 @@ Nancy looks for programs in two ways:
 For example, to insert the current date:
 
 ```
-$paste(date,+%Y-%m-%d)
+$run(date,+%Y-%m-%d)
 ```
 
 See the [date example](Cookbook.md#date-example) in the Cookbook for more
 detail.
 
-When `$include` runs a program, any input is fully expanded before being
-passed to the program.
-
-When commands that run programs are nested inside each other, the order in
-which they are run may matter. Nancy only guarantees that if one command is
-nested inside another, the inner command will be processed first. This means that if, for example, `$realpath` is passed as an argument to a program, the program will be given the actual path, rather than the string `$realpath`.
+If one command is nested inside another, the inner command will be processed
+first. This means that if, for example, `$realpath` is passed as an
+argument to a program, the program will be given the actual path, rather
+than the string `$realpath`. Arguments and command inputs are processed
+from left to right.
 
 ### Escaping
 
@@ -207,7 +207,7 @@ To prevent a comma from being interpreted as an argument separator, put a
 backslash in front of it:
 
 ```
-$include(cat,I\, Robot.txt,3 Rules of Robotics.txt)
+$run(cat,I\, Robot.txt,3 Rules of Robotics.txt)
 ```
 
 This will run the `cat` command with the following arguments:

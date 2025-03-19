@@ -1,1 +1,1 @@
-$include{random-text.txt}
+$include(random-text.txt)

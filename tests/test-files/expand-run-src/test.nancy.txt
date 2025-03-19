@@ -1,0 +1,1 @@
+$expand{$run(python,-c,print('$include(foo.in.txt)'))}

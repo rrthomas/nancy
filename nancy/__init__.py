@@ -169,7 +169,7 @@ def expand(
                     return (file, output)
 
                 def filter_bytes(
-                    input: bytes,
+                    input: Optional[bytes],
                     external_args: list[bytes],
                 ):
                     exe_name = Path(os.fsdecode(external_args[0]))
@@ -191,107 +191,99 @@ def expand(
 
                 def command_to_str(
                     name: bytes,
-                    external_args: Optional[list[bytes]],
                     args: Optional[list[bytes]],
+                    input: Optional[bytes],
                 ):
-                    external_args_string = (
-                        b"(" + b",".join(external_args) + b")"
-                        if external_args is not None
-                        else b""
-                    )
                     args_string = (
-                        b"{" + b",".join(args) + b"}" if args is not None else b""
+                        b"(" + b",".join(args) + b")" if args is not None else b""
                     )
-                    return b"$" + name + external_args_string + args_string
+                    input_string = b"{" + input + b"}" if input is not None else b""
+                    return b"$" + name + args_string + input_string
 
-                def check_file_command_args(
-                    command_name: bytes,
-                    args: Optional[list[bytes]],
-                    external_args: Optional[list[bytes]],
-                ):
-                    command_name_str = command_name.decode("iso-8859-1")
-                    if args is None and external_args is None:
-                        raise ValueError(
-                            f"${command_name_str} needs arguments or external arguments"
-                        )
-                    if args is not None and len(args) != 1:
-                        raise ValueError(
-                            f"${command_name_str} needs exactly one argument"
-                        )
-                    debug(command_to_str(command_name, external_args, args))
-
-                def maybe_file_arg(
-                    args: Optional[list[bytes]],
-                ) -> tuple[Optional[Path], bytes]:
+                def file_arg(filename: bytes) -> tuple[Optional[Path], bytes]:
                     file = None
                     contents = b""
                     if args is not None:
-                        basename = Path(os.fsdecode(args[0]))
+                        basename = Path(os.fsdecode(filename))
                         file, contents = read_file(basename)
                     return (file, contents)
 
-                def maybe_filter_bytes(
-                    input: bytes, external_args: Optional[list[bytes]]
+                def expand(
+                    args: Optional[list[bytes]], input: Optional[bytes]
                 ) -> bytes:
-                    return (
-                        filter_bytes(input, external_args)
-                        if external_args is not None
-                        else input
-                    )
+                    if args is not None:
+                        raise ValueError("$expand does not take arguments")
+                    if input is None:
+                        raise ValueError("$expand takes an input")
+                    debug(command_to_str(b"expand", args, input))
+
+                    return strip_final_newline(inner_expand(input, expand_stack))
+
+                macros[b"expand"] = expand
+
+                def paste(args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+                    if args is None or len(args) != 1:
+                        raise ValueError("$paste needs exactly one argument")
+                    if input is not None:
+                        raise ValueError("$paste does not take an input")
+                    debug(command_to_str(b"paste", args, input))
+
+                    _file, contents = file_arg(args[0])
+                    return contents
+
+                macros[b"paste"] = paste
 
                 def include(
-                    args: Optional[list[bytes]], external_args: Optional[list[bytes]]
+                    args: Optional[list[bytes]], input: Optional[bytes]
                 ) -> bytes:
-                    check_file_command_args(b"include", args, external_args)
-                    file, contents = maybe_file_arg(args)
-                    expanded_contents = inner_expand(
-                        contents, expand_stack + [file] if file is not None else []
-                    )
-                    filtered_contents = maybe_filter_bytes(
-                        expanded_contents, external_args
-                    )
+                    if args is None or len(args) != 1:
+                        raise ValueError("$include needs exactly one argument")
+                    if input is not None:
+                        raise ValueError("$include does not take an input")
+                    debug(command_to_str(b"include", args, input))
+
+                    file, contents = file_arg(args[0])
                     return strip_final_newline(
-                        inner_expand(filtered_contents, expand_stack)
+                        inner_expand(
+                            contents, expand_stack + [file] if file is not None else []
+                        )
                     )
 
                 macros[b"include"] = include
 
-                def paste(
-                    args: Optional[list[bytes]], external_args: Optional[list[bytes]]
-                ) -> bytes:
-                    check_file_command_args(b"paste", args, external_args)
-                    _file, contents = maybe_file_arg(args)
-                    filtered_contents = maybe_filter_bytes(contents, external_args)
-                    return strip_final_newline(filtered_contents)
+                def run(args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+                    if args is None:
+                        raise ValueError("$run needs at least one argument")
+                    debug(command_to_str(b"run", args, input))
 
-                macros[b"paste"] = paste
+                    expanded_input = None
+                    if input is not None:
+                        expanded_input = inner_expand(input, expand_stack)
+                    return filter_bytes(expanded_input, args)
 
-                def expand_args(args: list[bytes]) -> list[bytes]:
-                    expanded_args: list[bytes] = []
-                    for a in args:
-                        # Unescape escaped commas
-                        debug(f"escaped arg {a}")
-                        unescaped_arg = re.sub(rb"\\,", b",", a)
-                        debug(f"unescaped arg {unescaped_arg}")
-                        expanded_args.append(do_expand(unescaped_arg))
-                    return expanded_args
+                macros[b"run"] = run
+
+                def expand_arg(arg: bytes) -> bytes:
+                    # Unescape escaped commas
+                    debug(f"escaped arg {arg}")
+                    unescaped_arg = re.sub(rb"\\,", b",", arg)
+                    debug(f"unescaped arg {unescaped_arg}")
+                    return do_expand(unescaped_arg)
 
                 def do_macro(
                     macro: bytes,
                     args: Optional[list[bytes]],
-                    external_args: Optional[list[bytes]],
+                    input: Optional[bytes],
                 ) -> bytes:
-                    debug(f"do_macro {command_to_str(macro, external_args, args)}")
-                    expanded_args = expand_args(args) if args is not None else None
-                    expanded_external_args = (
-                        expand_args(external_args)
-                        if external_args is not None
-                        else None
+                    debug(f"do_macro {command_to_str(macro, args, input)}")
+                    expanded_args = (
+                        list(map(expand_arg, args)) if args is not None else None
                     )
+                    expanded_input = expand_arg(input) if input is not None else None
                     if macro not in macros:
                         decoded_macro = macro.decode("iso-8859-1")
                         raise ValueError(f"no such macro '${decoded_macro}'")
-                    return macros[macro](expanded_args, expanded_external_args)
+                    return macros[macro](expanded_args, expanded_input)
 
                 debug("do_match")
                 startpos = 0
@@ -305,19 +297,21 @@ def expand(
                     name = res[2]
                     startpos = res.end()
                     args = None
-                    external_args = None
-                    # Parse external program arguments
+                    input = None
+                    # Parse arguments
                     if startpos < len(expanded) and expanded[startpos] == ord(b"("):
-                        external_args, startpos = parse_arguments(
-                            expanded, startpos, ord(")")
-                        )
+                        args, startpos = parse_arguments(expanded, startpos, ord(")"))
+                    # Parse input
                     if startpos < len(expanded) and expanded[startpos] == ord(b"{"):
-                        args, startpos = parse_arguments(expanded, startpos, ord("}"))
+                        input_args, startpos = parse_arguments(
+                            expanded, startpos, ord("}")
+                        )
+                        input = input_args[0]
                     if escaped != b"":
                         # Just remove the leading '\'
-                        output = command_to_str(name, external_args, args)
+                        output = command_to_str(name, args, input)
                     else:
-                        output = do_macro(name, args, external_args)
+                        output = do_macro(name, args, input)
                     expanded = expanded[: res.start()] + output + expanded[startpos:]
                     # Update search position to restart matching after output of macro
                     startpos = res.start() + len(output)

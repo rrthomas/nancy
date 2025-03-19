@@ -1,1 +1,1 @@
-$paste{foo.in.txt}
+$paste(foo.in.txt)

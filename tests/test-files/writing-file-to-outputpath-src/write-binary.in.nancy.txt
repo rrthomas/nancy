@@ -1,1 +1,1 @@
-$paste(sh,-c,printf '\a' > $paste(dirname,$outputpath)/bell.bin)
+$run(sh,-c,printf '\a' > $expand{$run(dirname,$outputpath)}/bell.bin)

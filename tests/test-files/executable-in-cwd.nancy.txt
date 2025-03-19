@@ -1,1 +1,1 @@
-$include(path-to-root.in.sh)
+$expand{$run(path-to-root.in.sh)}

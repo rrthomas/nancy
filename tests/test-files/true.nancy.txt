@@ -1,1 +1,1 @@
-$include(true)
+$run(true)

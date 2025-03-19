@@ -1,1 +1,1 @@
-$include{$include{nested-macro-src.in}}
+$include($include(nested-macro-src.in))

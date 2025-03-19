@@ -1,1 +1,1 @@
-$include{$paste(foo}
+$include($run(foo)

@@ -67,6 +67,11 @@ def test_nested_macro_invocations() -> None:
         passing_test(["nested-macro-src"], "nested-macro-expected")
 
 
+def test_expand_of_run_output() -> None:
+    with chdir(tests_dir):
+        passing_test(["expand-run-src"], "expand-run-expected")
+
+
 def test_failing_executable_test() -> None:
     with chdir(tests_dir):
         failing_test(
@@ -76,9 +81,7 @@ def test_failing_executable_test() -> None:
 
 def test_non_existent_executable_test() -> None:
     with chdir(tests_dir):
-        failing_test(
-            [os.getcwd()], "cannot find program 'foo'", "foo.nancy.txt"
-        )
+        failing_test([os.getcwd()], "cannot find program 'foo'", "foo.nancy.txt")
 
 
 def test_passing_executable_test() -> None:
@@ -114,8 +117,17 @@ def test_include_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
             [os.getcwd()],
-            "$include needs arguments or external arguments",
+            "$include needs exactly one argument",
             "include-no-arg.nancy.txt",
+        )
+
+
+def test_include_with_input_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$include does not take an input",
+            "include-input.nancy.txt",
         )
 
 
@@ -123,8 +135,17 @@ def test_paste_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
             [os.getcwd()],
-            "$paste needs arguments or external arguments",
+            "$paste needs exactly one argument",
             "paste-no-arg.nancy.txt",
+        )
+
+
+def test_paste_with_input_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$paste does not take an input",
+            "paste-input.nancy.txt",
         )
 
 
@@ -134,6 +155,33 @@ def test_paste_with_too_many_arguments_gives_an_error() -> None:
             [os.getcwd()],
             "$paste needs exactly one argument",
             "paste-too-many-args.nancy.txt",
+        )
+
+
+def test_expand_with_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$expand does not take arguments",
+            "expand-arguments.nancy.txt",
+        )
+
+
+def test_expand_without_input_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$expand takes an input",
+            "expand-no-input.nancy.txt",
+        )
+
+
+def test_run_with_no_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$run needs at least one argument",
+            "run-no-arg.nancy.txt",
         )
 
 
@@ -177,6 +225,15 @@ def test_expanding_macros_in_file_names() -> None:
         passing_test(
             ["expanding-macros-in-file-names-src"],
             "expanding-macros-in-file-names-expected",
+        )
+
+
+def test_run_with_input() -> None:
+    with chdir(tests_dir):
+        passing_test(
+            [os.getcwd()],
+            "lines-expected.txt",
+            "filter.nancy.txt",
         )
 
 
