@@ -2,6 +2,8 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
+*NOTE: Nancy has been rewritten in Python; see its [web page](https://github.com/rrthomas/nancy) for newer versions.*
+
 $paste{/bin/sh,-c,./bin/run.js --version | tail +2 | head -2 | sed -e 's/$/  /'}
 
 Nancy is a simple macro processor that copies a file or directory, filling

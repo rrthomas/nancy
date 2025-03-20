@@ -2,6 +2,8 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
+*NOTE: Nancy has been rewritten in Python; see its [web page](https://github.com/rrthomas/nancy) for newer versions.*
+
 © 2002–2023 Reuben Thomas <rrt@sc3d.org>  
 https://github.com/rrthomas/nancy  
 
