@@ -70,7 +70,7 @@
     "coverage": "NODE_ENV=coverage c8 --extension .ts npm test",
     "loc": "cloc src/*.ts",
     "diff-check": "git diff --exit-code",
-    "prepublishOnly": "npm run diff-check && git push --all",
+    "prepublishOnly": "npm run diff-check && git push --tags origin HEAD",
     "postpublish": "git push --tags --no-verify && gh release create $(git describe) -t \"Release $(git describe)\"",
     "example": "open-cli file://$(pwd)/test/cookbook-example-website-expected/index/index.html",
     "docs": "./bin/test-run.sh README.nancy.md README.md && ./bin/test-run.sh Cookbook.nancy.md Cookbook.md"
