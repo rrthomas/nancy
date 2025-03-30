@@ -361,7 +361,7 @@ def expand(
                 file_contents = file_path.read_bytes()
                 sys.stdout.buffer.write(file_contents)
             else:
-                shutil.copy2(file_path, output_file)
+                shutil.copyfile(file_path, output_file)
 
     def process_path(obj: Path) -> None:
         dirent = find_object(obj)
