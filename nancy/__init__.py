@@ -181,13 +181,18 @@ def expand(
                         exe_path = Path(exe_path_str)
                     exe_args = external_args[1:]
                     debug(f"Running {exe_path} {b' '.join(exe_args)}")
-                    res = subprocess.run(
-                        [exe_path.resolve(strict=True)] + exe_args,
-                        capture_output=True,
-                        check=True,
-                        input=input,
-                    )
-                    return res.stdout
+                    try:
+                        res = subprocess.run(
+                            [exe_path.resolve(strict=True)] + exe_args,
+                            capture_output=True,
+                            check=True,
+                            input=input,
+                        )
+                        return res.stdout
+                    except subprocess.CalledProcessError as err:
+                        if err.stderr is not None:
+                            print(err.stderr.decode("iso-8859-1"), file=sys.stderr)
+                        die(f"Error code {err.returncode} running: {' '.join(map(str, err.cmd))}")
 
                 def command_to_str(
                     name: bytes,

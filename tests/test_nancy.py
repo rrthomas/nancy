@@ -13,16 +13,11 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
-from pytest import CaptureFixture, LogCaptureFixture
-from testutils import (
-    check_links,
-    failing_cli_test,
-    failing_test,
-    passing_cli_test,
-    passing_test,
-)
-
 from nancy import main
+from pytest import CaptureFixture, LogCaptureFixture
+
+from testutils import (check_links, failing_cli_test, failing_test,
+                       passing_cli_test, passing_test)
 
 
 if sys.version_info[:2] >= (3, 11):  # pragma: no cover
@@ -70,13 +65,6 @@ def test_nested_macro_invocations() -> None:
 def test_expand_of_run_output() -> None:
     with chdir(tests_dir):
         passing_test(["expand-run-src"], "expand-run-expected")
-
-
-def test_failing_executable_test() -> None:
-    with chdir(tests_dir):
-        failing_test(
-            [os.getcwd()], "returned non-zero exit status 1", "false.nancy.txt"
-        )
 
 
 def test_non_existent_executable_test() -> None:
@@ -348,6 +336,27 @@ def test_invalid_command_line_argument_causes_an_error(
     caplog: LogCaptureFixture,
 ) -> None:
     failing_cli_test(capsys, caplog, ["--foo", "a"], "unrecognized arguments: --foo")
+
+
+def test_failing_executable_test(
+    capsys: CaptureFixture[str],
+    caplog: LogCaptureFixture,
+) -> None:
+    with chdir(tests_dir):
+        failing_cli_test(capsys, caplog, ["false.nancy.txt"], "Error code 1")
+
+
+def test_failing_executable_error_message_test(
+    capsys: CaptureFixture[str],
+    caplog: LogCaptureFixture,
+) -> None:
+    with chdir(tests_dir):
+        failing_cli_test(
+            capsys,
+            caplog,
+            ["fail-with-error.nancy.txt"],
+            "oh no!",
+        )
 
 
 def test_running_on_a_nonexistent_path_causes_an_error_DEBUG_coverage(

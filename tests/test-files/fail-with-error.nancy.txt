@@ -1,0 +1,1 @@
+$run(fail-with-error.in.sh)
