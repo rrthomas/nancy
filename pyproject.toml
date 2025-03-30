@@ -2,7 +2,7 @@
 name = "nancy"
 version = "10.1.0"
 description = "Simple templating system"
-license = {text = "GPL v3 or later"}
+license = "GPL-3.0-or-later"
 authors = [
     {name = "Reuben Thomas", email = "rrt@sc3d.org"}
 ]
