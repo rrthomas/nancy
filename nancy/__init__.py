@@ -151,6 +151,27 @@ def expand(
                         return obj
                 return None
 
+            def read_file(file: Path) -> tuple[Optional[Path], bytes]:
+                '''
+                Try to find and read `file`.
+
+                Args:
+                    file (Path): the `Path` to look for
+
+                Returns:
+                    tuple[Optional[Path], bytes]:
+                        - The filename found; otherwise `None`
+                        - The contents of the file; otherwise empty
+                '''
+                found_file = find_on_path(base_file.parent, file)
+                if found_file is None:
+                    raise ValueError(
+                        f"cannot find '{file}' while expanding '{base_file.parent}'"
+                    )
+                with open(found_file, "rb") as fh:
+                    output = fh.read()
+                return (found_file, output)
+
             def do_expand(text: bytes) -> bytes:
                 # Set up macros
                 macros: dict[bytes, Callable[..., bytes]] = {}
@@ -161,22 +182,6 @@ def expand(
                     if output_path is not None
                     else b""
                 )
-
-                # Try to find the given file. If it is found, return its
-                # contents, with the file name actually read, so as to
-                # exclude it from recursive expansion; otherwise, return
-                # `None` and an empty bytes.
-                def read_file(
-                    basename: Path,
-                ) -> tuple[Optional[Path], bytes]:
-                    file = find_on_path(base_file.parent, basename)
-                    if file is None:
-                        raise ValueError(
-                            f"cannot find '{basename}' while expanding '{base_file.parent}'"
-                        )
-                    with open(file, "rb") as fh:
-                        output = fh.read()
-                    return (file, output)
 
                 def filter_bytes(
                     input: Optional[bytes],
