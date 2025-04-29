@@ -37,6 +37,50 @@ def sorting_name(n: str) -> str:
     return f"0 {n}"
 
 
+def parse_arguments(
+    text: bytes, arg_start: int, initial_closing: int
+) -> tuple[list[bytes], int]:
+    """Parse macro arguments.
+
+    Parse macro arguments from `text[arg_start + 1:]` until the first
+    unpaired occurrence of `initial_closing`.
+
+    Args:
+        text (bytes): the string to parse
+        arg_start (int): the start position
+        initial_closing (int): the ASCII code of the closing bracket
+
+    Returns:
+        tuple[list[bytes], int]:
+        - list of arguments
+        - position within `text` of the character after closing delimiter
+    """
+    args = []
+    closing = [initial_closing] # Stack of expected close brackets
+    next_index = arg_start + 1
+    while next_index < len(text):
+        if text[next_index] == closing[-1]:
+            closing.pop()
+            if len(closing) == 0:
+                args.append(text[arg_start + 1 : next_index])
+                break
+        elif text[next_index] in {ord(b"("), ord(b"{")}:
+            closing.append(
+                ord(b")") if text[next_index] == ord(b"(") else ord(b"}")
+            )
+        elif (
+            len(closing) == 1
+            and text[next_index] == ord(b",")
+            and text[next_index - 1] != ord(b"\\")
+        ):
+            args.append(text[arg_start + 1 : next_index])
+            arg_start = next_index
+        next_index += 1
+    if next_index == len(text):
+        raise ValueError(f"missing {chr(closing[-1])}")
+    return args, next_index + 1
+
+
 def expand(
     inputs: list[Path], output_path: Path, build_path: Optional[Path] = Path()
 ) -> None:
@@ -93,49 +137,6 @@ def expand(
             for dirent in os.scandir(d):
                 dirents[obj / dirent.name] = dirent
         return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
-
-    def parse_arguments(
-        text: bytes, arg_start: int, initial_closing: int
-    ) -> tuple[list[bytes], int]:
-        """Parse macro arguments.
-
-        Parse macro arguments from `text[arg_start + 1:]` until the first
-        unpaired occurrence of `initial_closing`.
-
-        Args:
-            text (bytes): the string to parse
-            arg_start (int): the start position
-            initial_closing (int): the ASCII code of the closing bracket
-
-        Returns:
-            tuple[list[bytes], int]:
-            - list of arguments
-            - position within `text` of the character after closing delimiter
-        """
-        args = []
-        closing = [initial_closing] # Stack of expected close brackets
-        next_index = arg_start + 1
-        while next_index < len(text):
-            if text[next_index] == closing[-1]:
-                closing.pop()
-                if len(closing) == 0:
-                    args.append(text[arg_start + 1 : next_index])
-                    break
-            elif text[next_index] in {ord(b"("), ord(b"{")}:
-                closing.append(
-                    ord(b")") if text[next_index] == ord(b"(") else ord(b"}")
-                )
-            elif (
-                len(closing) == 1
-                and text[next_index] == ord(b",")
-                and text[next_index - 1] != ord(b"\\")
-            ):
-                args.append(text[arg_start + 1 : next_index])
-                arg_start = next_index
-            next_index += 1
-        if next_index == len(text):
-            raise ValueError(f"missing {chr(closing[-1])}")
-        return args, next_index + 1
 
     def expand_bytes(
         text: bytes,
