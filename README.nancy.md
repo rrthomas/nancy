@@ -120,9 +120,10 @@ Nancy recognises these commands:
 
 + *`\$include(FILE)`* Look up the given source file in the input tree (see
   below); read its contents, then expand them (that is, execute any commands
-  it contains) and return the result. If the result ends in a newline, it is
-  removed. (This almost always does what you want, and makes `\$include`
-  behave better in various contexts.)
+  it contains) and return the result. Note that the value of `\$path` does
+  not change during the expansion of an included file’s content. If the
+  result ends in a newline, it is removed. (This almost always does what you
+  want, and makes `\$include` behave better in various contexts.)
 + *`\$paste(FILE)`* Look up the given source file like `\$include`, and
   return its contents.
 + *`\$run(PROGRAM,ARGUMENT…){INPUT}`* Run the given program with the given
@@ -134,7 +135,7 @@ Nancy recognises these commands:
   trailing newline removed. This can be used to expand the output of a
   program run with `\$run`.
 + *`\$path`* Expands to the file currently being expanded, relative to the
-  input tree.
+  input tree. This is always a template file, unless the current input path is a single file.
 + *`\$realpath`* Returns the real path of the file currently being expanded.
 + *`\$outputpath`* Returns the path of the output for the file currently
   being expanded.
