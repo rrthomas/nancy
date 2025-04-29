@@ -109,14 +109,13 @@ but not form part of the output.
   cause Nancy to print the result to standard output instead of writing it to
   a file.
 
-### Template expansion
+### Expansion
 
 Nancy expands a template file as follows:
 
-1. Scan the file for commands. Expand any arguments to the command, run each
-   command, and replace the command by the result. If the result ends in a
-  newline, it is removed. (This is almost always does what you want, and
-  makes `$include` behave better in various contexts.)
+1. Scan the file for commands. For each command, unescape and expand any
+  arguments and input, execute the command, and replace the command by the
+  result.
 2. Output the result.
 
 A command is written as its name prefixed with a dollar sign: `$COMMAND`.
@@ -128,13 +127,17 @@ Nancy treats its input as 8-bit ASCII, but command names and other
 punctuation only use the 7-bit subset. This means that any text encoding
 that is a superset of 7-bit ASCII can be used, such as UTF-8.
 
+The same method is used to expand the arguments of and inputs to commands.
+
 ### Built-in commands
 
 Nancy recognises these commands:
 
 + *`$include(FILE)`* Look up the given source file in the input tree (see
   below); read its contents, then expand them (that is, execute any commands
-  it contains) and return the result.
+  it contains) and return the result. If the result ends in a newline, it is
+  removed. (This almost always does what you want, and makes `$include`
+  behave better in various contexts.)
 + *`$paste(FILE)`* Look up the given source file like `$include`, and
   return its contents.
 + *`$run(PROGRAM,ARGUMENT…){INPUT}`* Run the given program with the given
@@ -142,8 +145,9 @@ Nancy recognises these commands:
   then supplied to the program’s standard input. This can be useful in a
   variety of ways: to insert the current date or time, to make a
   calculation, or to convert a file to a different format.
-+ *`$expand{INPUT}`* Expand the input, returning the result. This can be
-  used to expand the output of a program run with `$run`.
++ *`$expand{INPUT}`* Re-expand the input, returning the result, with any
+  trailing newline removed. This can be used to expand the output of a
+  program run with `$run`.
 + *`$path`* Expands to the file currently being expanded, relative to the
   input tree.
 + *`$realpath`* Returns the real path of the file currently being expanded.
