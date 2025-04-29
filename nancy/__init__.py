@@ -40,6 +40,15 @@ def sorting_name(n: str) -> str:
 def expand(
     inputs: list[Path], output_path: Path, build_path: Optional[Path] = Path()
 ) -> None:
+    """Expand the input tree.
+
+    Args:
+        inputs (list[Path]): a list of filesystem `Path`s to overlay to make
+            an abstract input tree
+        output_path (Path): the filesystem `Path` of the output directory
+        build_path (Optional[Path]): the subtree of `inputs` to process.
+            Defaults to the whole tree.
+    """
     if len(inputs) == 0:
         raise ValueError("at least one input must be given")
     if build_path is None:
@@ -52,15 +61,18 @@ def expand(
         if not root.is_dir():
             raise ValueError(f"input '{root}' is not a directory")
 
-    # Find the first file or directory with relative path `object` in the
-    # input tree, scanning the roots from left to right.
-    # If the result is a file, return its path.
-    # If the result is a directory, return its contents as a list of
-    # os.DirEntry, obtained by similarly scanning the tree from left to
-    # right.
-    # If something neither a file nor directory is found, raise an error.
-    # If no result is found, return `None`.
     def find_object(obj: Path) -> Optional[Union[Path, list[os.DirEntry[str]]]]:
+        """Find an object in the input tree.
+
+        Find the first file or directory with relative path `obj` in the
+        input tree, scanning the roots from left to right.
+        If the result is a file, return its path.
+        If the result is a directory, return its contents as a list of
+        os.DirEntry, obtained by similarly scanning the tree from left to
+        right.
+        If something neither a file nor directory is found, raise an error.
+        If no result is found, return `None`.
+        """
         debug(f"find_object {obj} {inputs}")
         objects = [root / obj for root in inputs]
         dirs = []
@@ -85,8 +97,23 @@ def expand(
     def parse_arguments(
         text: bytes, arg_start: int, initial_closing: int
     ) -> tuple[list[bytes], int]:
+        """Parse macro arguments.
+
+        Parse macro arguments from `text[arg_start + 1:]` until the first
+        unpaired occurrence of `initial_closing`.
+
+        Args:
+            text (bytes): the string to parse
+            arg_start (int): the start position
+            initial_closing (int): the ASCII code of the closing bracket
+
+        Returns:
+            tuple[list[bytes], int]:
+            - list of arguments
+            - position within `text` of the character after closing delimiter
+        """
         args = []
-        closing = [initial_closing]
+        closing = [initial_closing] # Stack of expected close brackets
         next_index = arg_start + 1
         while next_index < len(text):
             if text[next_index] == closing[-1]:
@@ -116,13 +143,36 @@ def expand(
         file_path: Path,
         output_path: Optional[Path] = None,
     ) -> bytes:
+        """Expand `text`.
+
+        Args:
+            text (bytes): the text to expand
+            base_file (Path): the filesystem input `Path`
+            file_path (Path): the `inputs`-relative `Path`
+            output_path (Path): the filesystem output `Path`
+
+        Returns:
+            bytes
+        """
+
         def inner_expand(text: bytes, expand_stack: list[Path]) -> bytes:
+            """Expand `text`.
+
+            Args:
+                text (bytes): the text to expand
+                expand_stack (list[Path]): a list of `inputs`-relative `Path`s
+                    which are currently being expanded. This is used to avoid
+                    infinite loops.
+
+            Returns:
+                bytes
+            """
             debug(f"inner_expand {text} {expand_stack}")
 
             def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
-                '''
-                Search for file starting at the given path; if found return
-                its file name and contents; if not, raise an error.
+                """Search for file starting at the given path.
+
+                If none found, raise an error.
 
                 Args:
                     start_path (Path): `inputs`-relative `Path` to search
@@ -135,7 +185,7 @@ def expand(
                         - `ancestor/file` exists and is a file
                         - not in `expand_stack`
                         otherwise `None`.
-                '''
+                """
                 debug(f"Searching for '{file}' on {start_path}")
                 norm_file = Path(os.path.normpath(file))
                 for parent in (start_path / "_").parents:
@@ -152,8 +202,7 @@ def expand(
                 return None
 
             def read_file(file: Path) -> tuple[Optional[Path], bytes]:
-                '''
-                Try to find and read `file`.
+                """Try to find and read `file`.
 
                 Args:
                     file (Path): the `Path` to look for
@@ -162,7 +211,7 @@ def expand(
                     tuple[Optional[Path], bytes]:
                         - The filename found; otherwise `None`
                         - The contents of the file; otherwise empty
-                '''
+                """
                 found_file = find_on_path(base_file.parent, file)
                 if found_file is None:
                     raise ValueError(
@@ -173,6 +222,8 @@ def expand(
                 return (found_file, output)
 
             def do_expand(text: bytes) -> bytes:
+                debug("do_expand")
+
                 # Set up macros
                 macros: dict[bytes, Callable[..., bytes]] = {}
                 macros[b"path"] = lambda _args, _external_args: bytes(base_file)
@@ -185,16 +236,25 @@ def expand(
 
                 def filter_bytes(
                     input: Optional[bytes],
-                    external_args: list[bytes],
-                ):
-                    exe_name = Path(os.fsdecode(external_args[0]))
+                    external_command: list[bytes],
+                ) -> bytes:
+                    """Run `external_command` passing `input` on stdin.
+
+                    Args:
+                        input (Optional[bytes]): passed to `stdin`
+                        external_command (list[bytes]): command and arguments
+
+                    Returns:
+                        bytes: stdout of the command
+                    """
+                    exe_name = Path(os.fsdecode(external_command[0]))
                     exe_path = find_on_path(base_file.parent, exe_name)
                     if exe_path is None:
                         exe_path_str = shutil.which(exe_name)
                         if exe_path_str is None:
                             raise ValueError(f"cannot find program '{exe_name}'")
                         exe_path = Path(exe_path_str)
-                    exe_args = external_args[1:]
+                    exe_args = external_command[1:]
                     debug(f"Running {exe_path} {b' '.join(exe_args)}")
                     try:
                         res = subprocess.run(
@@ -213,7 +273,8 @@ def expand(
                     name: bytes,
                     args: Optional[list[bytes]],
                     input: Optional[bytes],
-                ):
+                ) -> bytes:
+                    """Reconstitute a macro call from its parsed form."""
                     args_string = (
                         b"(" + b",".join(args) + b")" if args is not None else b""
                     )
@@ -305,7 +366,6 @@ def expand(
                         raise ValueError(f"no such macro '${decoded_macro}'")
                     return macros[macro](expanded_args, expanded_input)
 
-                debug("do_match")
                 startpos = 0
                 expanded = text
                 while True:
@@ -344,10 +404,26 @@ def expand(
         return inner_expand(text, [file_path])
 
     def expand_file(base_file: Path, file_path: Path, output_file: Path) -> bytes:
+        """Expand a file given its filesystem `Path`.
+
+        Args:
+            base_file (Path): the filesystem input `Path`
+            file_path (Path): the `inputs`-relative `Path`
+            output_file (Path): the filesystem output `Path`
+        """
         debug(f"expand_file {base_file} on path {file_path} to {output_file}")
         return expand_bytes(file_path.read_bytes(), base_file, file_path, output_file)
 
     def get_output_path(base_file: Path, file_path: Path) -> Path:
+        """Compute the output path of an input file.
+
+        Args:
+            base_file (Path): the filesystem input `Path`
+            file_path (Path): the `inputs`-relative `Path`
+
+        Returns:
+            Path
+        """
         relpath = base_file.relative_to(build_path)
         output_file = relpath
         if output_file.name != "":
@@ -360,6 +436,12 @@ def expand(
         return output_path / output_file
 
     def process_file(base_file: Path, file_path: Path) -> None:
+        """Expand, copy or ignore a single file.
+
+        Args:
+            base_file (Path): the filesystem `Path`
+            file_path (Path): the `inputs`-relative `Path`
+        """
         output_file = get_output_path(base_file, file_path)
         debug(f"Processing file '{file_path}'")
         if re.search(TEMPLATE_REGEX, file_path.name):
@@ -379,6 +461,7 @@ def expand(
                 shutil.copyfile(file_path, output_file)
 
     def process_path(obj: Path) -> None:
+        """Recursively scan `obj` and pass every file to `process_file`."""
         dirent = find_object(obj)
         if dirent is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
