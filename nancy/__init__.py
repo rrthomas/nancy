@@ -149,7 +149,7 @@ def expand(
             text (bytes): the text to expand
             base_file (Path): the filesystem input `Path`
             file_path (Path): the `inputs`-relative `Path`
-            output_path (Path): the filesystem output `Path`
+            output_path (Optional[Path]): the filesystem output `Path`
 
         Returns:
             bytes
