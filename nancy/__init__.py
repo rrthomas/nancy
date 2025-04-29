@@ -20,7 +20,7 @@ from .warnings_util import die, simple_warning
 VERSION = importlib.metadata.version("nancy")
 
 TEMPLATE_REGEX = re.compile(r"\.nancy(?=\.[^.]+$|$)")
-NO_COPY_REGEX = re.compile(r"\.in(?=\.(nancy.)?[^.]+$|$)")
+NO_COPY_REGEX = re.compile(r"\.in(?=\.(nancy\.)?[^.]+$|$)")
 MACRO_REGEX = re.compile(rb"(\\?)\$([^\W\d_]\w*)")
 
 
