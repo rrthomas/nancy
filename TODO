@@ -1,1 +1,0 @@
-Make expandFile and doExpand externally callable. To do this, need to construct an object with the outer arguments to expand as properties.
