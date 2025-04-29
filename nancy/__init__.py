@@ -119,25 +119,39 @@ def expand(
         def inner_expand(text: bytes, expand_stack: list[Path]) -> bytes:
             debug(f"inner_expand {text} {expand_stack}")
 
-            def do_expand(text: bytes) -> bytes:
-                # Search for file starting at the given path; if found return its file
-                # name and contents; if not, raise an error.
-                def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
-                    debug(f"Searching for '{file}' on {start_path}")
-                    norm_file = Path(os.path.normpath(file))
-                    for parent in (start_path / "_").parents:
-                        this_search = parent / norm_file
-                        obj = find_object(this_search)
-                        if (
-                            obj is not None
-                            and not isinstance(obj, list)
-                            and obj.is_file()
-                            and obj not in expand_stack
-                        ):
-                            debug(f"Found '{obj}'")
-                            return obj
-                    return None
+            def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
+                '''
+                Search for file starting at the given path; if found return
+                its file name and contents; if not, raise an error.
 
+                Args:
+                    start_path (Path): `inputs`-relative `Path` to search
+                        up from
+                    file (Path): the `Path` to look for.
+
+                Returns:
+                    Optional[Path]: `ancestor/file` where `ancestor` is the
+                        longest possible prefix of `start_path` satisfying:
+                        - `ancestor/file` exists and is a file
+                        - not in `expand_stack`
+                        otherwise `None`.
+                '''
+                debug(f"Searching for '{file}' on {start_path}")
+                norm_file = Path(os.path.normpath(file))
+                for parent in (start_path / "_").parents:
+                    this_search = parent / norm_file
+                    obj = find_object(this_search)
+                    if (
+                        obj is not None
+                        and not isinstance(obj, list)
+                        and obj.is_file()
+                        and obj not in expand_stack
+                    ):
+                        debug(f"Found '{obj}'")
+                        return obj
+                return None
+
+            def do_expand(text: bytes) -> bytes:
                 # Set up macros
                 macros: dict[bytes, Callable[..., bytes]] = {}
                 macros[b"path"] = lambda _args, _external_args: bytes(base_file)
