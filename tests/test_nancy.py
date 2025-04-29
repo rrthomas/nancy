@@ -13,11 +13,16 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
-from nancy import main
 from pytest import CaptureFixture, LogCaptureFixture
+from testutils import (
+    check_links,
+    failing_cli_test,
+    failing_test,
+    passing_cli_test,
+    passing_test,
+)
 
-from testutils import (check_links, failing_cli_test, failing_test,
-                       passing_cli_test, passing_test)
+from nancy import main
 
 
 if sys.version_info[:2] >= (3, 11):  # pragma: no cover
