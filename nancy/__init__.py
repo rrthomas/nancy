@@ -74,12 +74,12 @@ def expand(
                     dirs.append(o)
                 else:
                     raise ValueError(f"'{o}' is not a file or directory")
+        if len(dirs) == 0:
+            return None
         dirents: dict[Path, os.DirEntry[str]] = {}
         for d in reversed(dirs):
             for dirent in os.scandir(d):
                 dirents[obj / dirent.name] = dirent
-        if len(dirs) == 0:
-            return None
         return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
 
     def parse_arguments(
