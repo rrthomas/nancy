@@ -81,31 +81,40 @@ def parse_arguments(
     return args, next_index + 1
 
 
-def expand(
-    inputs: list[Path], output_path: Path, build_path: Optional[Path] = Path()
-) -> None:
-    """Expand the input tree.
+class Trees:
+    def __init__(
+        self,
+        inputs: list[Path],
+        output_path: Path,
+        build_path: Optional[Path]=None,
+    ):
+        """The state that is constant for a whole invocation of Nancy.
 
-    Args:
-        inputs (list[Path]): a list of filesystem `Path`s to overlay to make
-            an abstract input tree
-        output_path (Path): the filesystem `Path` of the output directory
-        build_path (Optional[Path]): the subtree of `inputs` to process.
-            Defaults to the whole tree.
-    """
-    if len(inputs) == 0:
-        raise ValueError("at least one input must be given")
-    if build_path is None:
-        build_path = Path()
-    if build_path.is_absolute():
-        raise ValueError("build path must be relative")
-    for root in inputs:
-        if not root.exists():
-            raise ValueError(f"input '{root}' does not exist")
-        if not root.is_dir():
-            raise ValueError(f"input '{root}' is not a directory")
+        Args:
+            inputs (list[Path]): a list of filesystem `Path`s to overlay to
+                make an abstract input tree
+            output_path (Path): the filesystem `Path` of the output directory
+            build_path (Optional[Path]): the subtree of `inputs` to process.
+                Defaults to the whole tree.
+        """
+        if len(inputs) == 0:
+            raise ValueError("at least one input must be given")
+        for root in inputs:
+            if not root.exists():
+                raise ValueError(f"input '{root}' does not exist")
+            if not root.is_dir():
+                raise ValueError(f"input '{root}' is not a directory")
+        self.inputs = inputs
+        self.output_path = output_path
+        if build_path is None:
+            build_path = Path()
+        if build_path.is_absolute():
+            raise ValueError("build path must be relative")
+        self.build_path = build_path
 
-    def find_object(obj: Path) -> Optional[Union[Path, list[os.DirEntry[str]]]]:
+    def find_object(
+        self, obj: Path,
+    ) -> Optional[Union[Path, list[os.DirEntry[str]]]]:
         """Find an object in the input tree.
 
         Find the first file or directory with relative path `obj` in the
@@ -117,8 +126,8 @@ def expand(
         If something neither a file nor directory is found, raise an error.
         If no result is found, return `None`.
         """
-        debug(f"find_object {obj} {inputs}")
-        objects = [root / obj for root in inputs]
+        debug(f"find_object {obj} {self.inputs}")
+        objects = [root / obj for root in self.inputs]
         dirs = []
         debug(f"objects to consider: {objects}")
         for o in objects:
@@ -139,6 +148,7 @@ def expand(
         return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
 
     def expand_bytes(
+        self,
         text: bytes,
         base_file: Path,
         file_path: Path,
@@ -191,7 +201,7 @@ def expand(
                 norm_file = Path(os.path.normpath(file))
                 for parent in (start_path / "_").parents:
                     this_search = parent / norm_file
-                    obj = find_object(this_search)
+                    obj = self.find_object(this_search)
                     if (
                         obj is not None
                         and not isinstance(obj, list)
@@ -404,7 +414,7 @@ def expand(
 
         return inner_expand(text, [file_path])
 
-    def expand_file(base_file: Path, file_path: Path, output_file: Path) -> bytes:
+    def expand_file(self, base_file: Path, file_path: Path, output_file: Path) -> bytes:
         """Expand a file given its filesystem `Path`.
 
         Args:
@@ -413,9 +423,9 @@ def expand(
             output_file (Path): the filesystem output `Path`
         """
         debug(f"expand_file {base_file} on path {file_path} to {output_file}")
-        return expand_bytes(file_path.read_bytes(), base_file, file_path, output_file)
+        return self.expand_bytes(file_path.read_bytes(), base_file, file_path, output_file)
 
-    def get_output_path(base_file: Path, file_path: Path) -> Path:
+    def get_output_path(self, base_file: Path, file_path: Path) -> Path:
         """Compute the output path of an input file.
 
         Args:
@@ -425,29 +435,29 @@ def expand(
         Returns:
             Path
         """
-        relpath = base_file.relative_to(build_path)
+        relpath = base_file.relative_to(self.build_path)
         output_file = relpath
         if output_file.name != "":
             output_file = output_file.with_name(
                 os.fsdecode(re.sub(TEMPLATE_REGEX, "", relpath.name))
             )
             output_file = os.fsdecode(
-                expand_bytes(bytes(output_file), output_file, file_path)
+                self.expand_bytes(bytes(output_file), output_file, file_path)
             )
-        return output_path / output_file
+        return self.output_path / output_file
 
-    def process_file(base_file: Path, file_path: Path) -> None:
+    def process_file(self, base_file: Path, file_path: Path) -> None:
         """Expand, copy or ignore a single file.
 
         Args:
             base_file (Path): the filesystem `Path`
             file_path (Path): the `inputs`-relative `Path`
         """
-        output_file = get_output_path(base_file, file_path)
+        output_file = self.get_output_path(base_file, file_path)
         debug(f"Processing file '{file_path}'")
         if re.search(TEMPLATE_REGEX, file_path.name):
             debug(f"Expanding '{base_file}' to '{output_file}'")
-            output = expand_file(base_file, file_path, output_file)
+            output = self.expand_file(base_file, file_path, output_file)
             if not re.search(NO_COPY_REGEX, str(output_file)):
                 if output_file == Path("-"):
                     sys.stdout.buffer.write(output)
@@ -461,13 +471,13 @@ def expand(
             else:
                 shutil.copyfile(file_path, output_file)
 
-    def process_path(obj: Path) -> None:
+    def process_path(self, obj: Path) -> None:
         """Recursively scan `obj` and pass every file to `process_file`."""
-        dirent = find_object(obj)
+        dirent = self.find_object(obj)
         if dirent is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
         if isinstance(dirent, list):
-            output_dir = get_output_path(obj, obj)
+            output_dir = self.get_output_path(obj, obj)
             if output_dir == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
@@ -476,13 +486,19 @@ def expand(
                 if child_dirent.name[0] != ".":
                     child_object = obj / child_dirent.name
                     if child_dirent.is_file():
-                        process_file(child_object, Path(child_dirent.path))
+                        self.process_file(child_object, Path(child_dirent.path))
                     else:
-                        process_path(child_object)
+                        self.process_path(child_object)
         else:
-            process_file(obj, dirent)
+            self.process_file(obj, dirent)
 
-    process_path(build_path)
+
+# TODO: Inline into callers, and remove.
+def expand(
+    inputs: list[Path], output_path: Path, build_path: Optional[Path] = Path()
+) -> None:
+    trees = Trees(inputs, output_path, build_path)
+    trees.process_path(trees.build_path)
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:
@@ -531,7 +547,12 @@ your option) any later version. There is no warranty.""",
             args.path = inputs[0]
             inputs[0] = Path.cwd()
 
-        expand(inputs, Path(args.output), Path(args.path) if args.path else None)
+        trees = Trees(
+            inputs,
+            Path(args.output),
+            Path(args.path) if args.path else None,
+        )
+        trees.process_path(trees.build_path)
     except Exception as err:
         if "DEBUG" in os.environ:
             logging.error(err, exc_info=True)
