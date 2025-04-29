@@ -136,10 +136,6 @@ def expand(
                         ):
                             debug(f"Found '{obj}'")
                             return obj
-                        next_path = start_path.parent
-                        if next_path == start_path:
-                            break
-                        start_path = next_path
                     return None
 
                 # Set up macros
