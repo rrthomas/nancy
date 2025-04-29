@@ -326,7 +326,7 @@ def expand(
                         input_args, startpos = parse_arguments(
                             expanded, startpos, ord("}")
                         )
-                        input = input_args[0]
+                        input = b','.join(input_args)
                     if escaped != b"":
                         # Just remove the leading '\'
                         output = command_to_str(name, args, input)
