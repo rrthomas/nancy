@@ -225,7 +225,16 @@ def test_run_with_input() -> None:
         )
 
 
-def test_writing_a_file_to_outputpath(capsys: CaptureFixture[str]) -> None:
+def test_run_with_input_containing_commas() -> None:
+    with chdir(tests_dir):
+        passing_test(
+            [os.getcwd()],
+            "run-input-with-commas-expected.txt",
+            "run-input-with-commas.nancy.txt",
+        )
+
+
+def test_writing_a_file_to_outputpath() -> None:
     with chdir(tests_dir):
         passing_test(
             ["writing-file-to-outputpath-src"],
