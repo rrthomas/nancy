@@ -498,9 +498,6 @@ class Expand:
 
         Args:
             text (bytes): the text to expand
-            base_file (Path): the filesystem input `Path`
-            file_path (Path): the `inputs`-relative `Path`
-            output_file (Optional[Path]): the filesystem output `Path`
 
         Returns:
             bytes
