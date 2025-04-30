@@ -157,18 +157,6 @@ class Trees:
     ) -> bytes:
         return Expand(self, base_file, file_path, output_file).expand_bytes(text)
 
-    # TODO: Inline into callers, and remove.
-    def expand_file(self, base_file: Path, file_path: Path, output_file: Path) -> bytes:
-        """Expand a file given its filesystem `Path`.
-
-        Args:
-            base_file (Path): the filesystem input `Path`
-            file_path (Path): the `inputs`-relative `Path`
-            output_file (Path): the filesystem output `Path`
-        """
-        debug(f"expand_file {base_file} on path {file_path} to {output_file}")
-        return self.expand_bytes(file_path.read_bytes(), base_file, file_path, output_file)
-
     def get_output_path(self, base_file: Path, file_path: Path) -> Path:
         """Compute the output path of an input file.
 
@@ -201,7 +189,8 @@ class Trees:
         debug(f"Processing file '{file_path}'")
         if re.search(TEMPLATE_REGEX, file_path.name):
             debug(f"Expanding '{base_file}' to '{output_file}'")
-            output = self.expand_file(base_file, file_path, output_file)
+            text = file_path.read_bytes()
+            output = self.expand_bytes(text, base_file, file_path, output_file)
             if not re.search(NO_COPY_REGEX, str(output_file)):
                 if output_file == Path("-"):
                     sys.stdout.buffer.write(output)
