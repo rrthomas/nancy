@@ -222,7 +222,7 @@ class Trees:
 
 # TODO: Inline into callers, and remove.
 def expand(
-    inputs: list[Path], output_path: Path, build_path: Optional[Path] = Path()
+    inputs: list[Path], output_path: Path, build_path: Optional[Path] = None
 ) -> None:
     trees = Trees(inputs, output_path, build_path)
     trees.process_path(trees.build_path)
