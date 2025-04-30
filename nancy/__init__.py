@@ -147,16 +147,6 @@ class Trees:
                 dirents[obj / dirent.name] = dirent
         return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
 
-    # TODO: Inline into callers, and remove.
-    def expand_bytes(
-        self,
-        text: bytes,
-        base_file: Path,
-        file_path: Path,
-        output_file: Optional[Path] = None,
-    ) -> bytes:
-        return Expand(self, base_file, file_path, output_file).expand_bytes(text)
-
     def get_output_path(self, base_file: Path, file_path: Path) -> Path:
         """Compute the output path of an input file.
 
@@ -174,7 +164,7 @@ class Trees:
                 os.fsdecode(re.sub(TEMPLATE_REGEX, "", relpath.name))
             )
             output_file = os.fsdecode(
-                self.expand_bytes(bytes(output_file), output_file, file_path)
+                Expand(self, output_file, file_path).expand_bytes(bytes(output_file))
             )
         return self.output_path / output_file
 
@@ -190,7 +180,7 @@ class Trees:
         if re.search(TEMPLATE_REGEX, file_path.name):
             debug(f"Expanding '{base_file}' to '{output_file}'")
             text = file_path.read_bytes()
-            output = self.expand_bytes(text, base_file, file_path, output_file)
+            output = Expand(self, base_file, file_path, output_file).expand_bytes(text)
             if not re.search(NO_COPY_REGEX, str(output_file)):
                 if output_file == Path("-"):
                     sys.stdout.buffer.write(output)
