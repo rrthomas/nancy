@@ -175,14 +175,15 @@ class Trees:
             base_file (Path): the `inputs`-relative `Path`
             file_path (Path): the filesystem input `Path`
         """
-        output_file = self.get_output_path(base_file, file_path)
         debug(f"Processing file '{file_path}'")
+        output_file = self.get_output_path(base_file, file_path)
+        os.makedirs(output_file.parent, exist_ok=True)
         if re.search(TEMPLATE_REGEX, file_path.name):
             debug(f"Expanding '{base_file}' to '{output_file}'")
             text = file_path.read_bytes()
             output = Expand(self, base_file, file_path, output_file).expand_bytes(text)
             if not re.search(NO_COPY_REGEX, str(output_file)):
-                if output_file == Path("-"):
+                if self.output_path == Path("-"):
                     sys.stdout.buffer.write(output)
                 else:
                     with open(output_file, "wb") as fh:
@@ -204,11 +205,9 @@ class Trees:
         if dirent is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
         if isinstance(dirent, list):
-            output_dir = self.get_output_path(obj, obj)
-            if output_dir == Path("-"):
+            if self.output_path == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
-            os.makedirs(output_dir, exist_ok=True)
             for child_dirent in dirent:
                 if child_dirent.name[0] != ".":
                     child_object = obj / child_dirent.name
