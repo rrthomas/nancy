@@ -151,8 +151,8 @@ class Trees:
         """Compute the output path of an input file.
 
         Args:
-            base_file (Path): the filesystem input `Path`
-            file_path (Path): the `inputs`-relative `Path`
+            base_file (Path): the `inputs`-relative `Path`
+            file_path (Path): the filesystem input `Path`
 
         Returns:
             Path
@@ -172,8 +172,8 @@ class Trees:
         """Expand, copy or ignore a single file.
 
         Args:
-            base_file (Path): the filesystem `Path`
-            file_path (Path): the `inputs`-relative `Path`
+            base_file (Path): the `inputs`-relative `Path`
+            file_path (Path): the filesystem input `Path`
         """
         output_file = self.get_output_path(base_file, file_path)
         debug(f"Processing file '{file_path}'")
@@ -195,7 +195,11 @@ class Trees:
                 shutil.copyfile(file_path, output_file)
 
     def process_path(self, obj: Path) -> None:
-        """Recursively scan `obj` and pass every file to `process_file`."""
+        """Recursively scan `obj` and pass every file to `process_file`.
+
+        Args:
+            obj (Path): the `inputs`-relative `Path` to scan.
+        """
         dirent = self.find_object(obj)
         if dirent is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
@@ -228,8 +232,8 @@ class Expand:
     """State while expanding a file.
 
     Args:
-        base_file (Path): the filesystem input `Path`
-        file_path (Path): the `inputs`-relative `Path`
+        base_file (Path): the `inputs`-relative `Path`
+        file_path (Path): the filesystem input `Path`
         output_file (Optional[Path]): the filesystem output `Path`
     """
     def __init__(
