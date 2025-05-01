@@ -206,7 +206,7 @@ class Trees:
         if output_file.name != "":
             output_file = output_file.with_name(re.sub(TEMPLATE_REGEX, "", output_file.name))
             output_file = os.fsdecode(
-                Expand(self, output_file, file_path).inner_expand(bytes(output_file))
+                Expand(self, output_file, file_path).expand(bytes(output_file))
             )
         return self.output_path / output_file
 
@@ -303,13 +303,12 @@ class Expand:
         """Search for file starting at the given path.
 
         Args:
-            start_path (Path): `inputs`-relative `Path` to search
-                up from
+            start_path (Path): `inputs`-relative `Path` to search up from
             file (Path): the `Path` to look for.
 
         Returns:
-            Optional[Path]: `ancestor/file` where `ancestor` is the
-                longest possible prefix of `start_path` satisfying:
+            Optional[Path]: `ancestor/file` where `ancestor` is the longest
+                possible prefix of `start_path` satisfying:
                 - `ancestor/file` exists and is a file
                 - not in `self._stack`
                 otherwise `None`.
@@ -332,8 +331,8 @@ class Expand:
     def file_arg(self, arg: bytes, exe=False) -> Path:
         """Find a file with the given name, or raise an error.
 
-        The input tree is searched first. If no file is found there, and
-        `exe`, the system `PATH` is searched for an executable file.
+        The input tree is searched first. If no file is found there, and `exe`,
+        the system `PATH` is searched for an executable file.
 
         Args:
             arg (bytes): the name to search for.
@@ -355,7 +354,7 @@ class Expand:
             return Path(exe_path_str)
         raise ValueError(f"cannot find program '{filename}'")
 
-    def inner_expand(self, text: bytes) -> bytes:
+    def expand(self, text: bytes) -> bytes:
         """Expand `text`.
 
         Args:
@@ -364,130 +363,125 @@ class Expand:
         Returns:
             bytes
         """
-        debug(f"inner_expand {text} {self._stack}")
+        debug(f"expand {text} {self._stack}")
 
-        def do_expand(text: bytes) -> bytes:
-            debug("do_expand")
+        # Set up macros
+        macros: dict[bytes, Callable[..., bytes]] = {}
+        macros[b"path"] = lambda _args, _external_args: bytes(self.base_file)
+        macros[b"realpath"] = lambda _args, _external_args: bytes(self.file_path)
+        macros[b"outputpath"] = (
+            lambda _args, _external_args: bytes(self.output_file)
+            if self.output_file is not None
+            else b""
+        )
 
-            # Set up macros
-            macros: dict[bytes, Callable[..., bytes]] = {}
-            macros[b"path"] = lambda _args, _external_args: bytes(self.base_file)
-            macros[b"realpath"] = lambda _args, _external_args: bytes(self.file_path)
-            macros[b"outputpath"] = (
-                lambda _args, _external_args: bytes(self.output_file)
-                if self.output_file is not None
-                else b""
+        def expand(
+            args: Optional[list[bytes]], input: Optional[bytes]
+        ) -> bytes:
+            if args is not None:
+                raise ValueError("$expand does not take arguments")
+            if input is None:
+                raise ValueError("$expand takes an input")
+            debug(command_to_str(b"expand", args, input))
+
+            return strip_final_newline(self.expand(input))
+
+        macros[b"expand"] = expand
+
+        def paste(args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+            if args is None or len(args) != 1:
+                raise ValueError("$paste needs exactly one argument")
+            if input is not None:
+                raise ValueError("$paste does not take an input")
+            debug(command_to_str(b"paste", args, input))
+
+            with open(self.file_arg(args[0]), "rb") as fh:
+                return fh.read()
+
+        macros[b"paste"] = paste
+
+        def include(
+            args: Optional[list[bytes]], input: Optional[bytes]
+        ) -> bytes:
+            if args is None or len(args) != 1:
+                raise ValueError("$include needs exactly one argument")
+            if input is not None:
+                raise ValueError("$include does not take an input")
+            debug(command_to_str(b"include", args, input))
+
+            file_path = self.file_arg(args[0])
+            return strip_final_newline(self.include(file_path))
+
+        macros[b"include"] = include
+
+        def run(args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+            if args is None:
+                raise ValueError("$run needs at least one argument")
+            debug(command_to_str(b"run", args, input))
+            exe_path = self.file_arg(args[0], exe=True)
+            exe_args = args[1:]
+
+            expanded_input = None
+            if input is not None:
+                expanded_input = self.expand(input)
+            return filter_bytes(expanded_input, exe_path, exe_args)
+
+        macros[b"run"] = run
+
+        def expand_arg(arg: bytes) -> bytes:
+            # Unescape escaped commas
+            debug(f"escaped arg {arg}")
+            unescaped_arg = re.sub(rb"\\,", b",", arg)
+            debug(f"unescaped arg {unescaped_arg}")
+            return self.expand(unescaped_arg)
+
+        def do_macro(
+            macro: bytes,
+            args: Optional[list[bytes]],
+            input: Optional[bytes],
+        ) -> bytes:
+            debug(f"do_macro {command_to_str(macro, args, input)}")
+            expanded_args = (
+                list(map(expand_arg, args)) if args is not None else None
             )
+            expanded_input = expand_arg(input) if input is not None else None
+            if macro not in macros:
+                decoded_macro = macro.decode("iso-8859-1")
+                raise ValueError(f"no such macro '${decoded_macro}'")
+            return macros[macro](expanded_args, expanded_input)
 
-            def expand(
-                args: Optional[list[bytes]], input: Optional[bytes]
-            ) -> bytes:
-                if args is not None:
-                    raise ValueError("$expand does not take arguments")
-                if input is None:
-                    raise ValueError("$expand takes an input")
-                debug(command_to_str(b"expand", args, input))
-
-                return strip_final_newline(self.inner_expand(input))
-
-            macros[b"expand"] = expand
-
-            def paste(args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
-                if args is None or len(args) != 1:
-                    raise ValueError("$paste needs exactly one argument")
-                if input is not None:
-                    raise ValueError("$paste does not take an input")
-                debug(command_to_str(b"paste", args, input))
-
-                with open(self.file_arg(args[0]), "rb") as fh:
-                    return fh.read()
-
-            macros[b"paste"] = paste
-
-            def include(
-                args: Optional[list[bytes]], input: Optional[bytes]
-            ) -> bytes:
-                if args is None or len(args) != 1:
-                    raise ValueError("$include needs exactly one argument")
-                if input is not None:
-                    raise ValueError("$include does not take an input")
-                debug(command_to_str(b"include", args, input))
-
-                file_path = self.file_arg(args[0])
-                return strip_final_newline(self.include(file_path))
-
-            macros[b"include"] = include
-
-            def run(args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
-                if args is None:
-                    raise ValueError("$run needs at least one argument")
-                debug(command_to_str(b"run", args, input))
-                exe_path = self.file_arg(args[0], exe=True)
-                exe_args = args[1:]
-
-                expanded_input = None
-                if input is not None:
-                    expanded_input = self.inner_expand(input)
-                return filter_bytes(expanded_input, exe_path, exe_args)
-
-            macros[b"run"] = run
-
-            def expand_arg(arg: bytes) -> bytes:
-                # Unescape escaped commas
-                debug(f"escaped arg {arg}")
-                unescaped_arg = re.sub(rb"\\,", b",", arg)
-                debug(f"unescaped arg {unescaped_arg}")
-                return do_expand(unescaped_arg)
-
-            def do_macro(
-                macro: bytes,
-                args: Optional[list[bytes]],
-                input: Optional[bytes],
-            ) -> bytes:
-                debug(f"do_macro {command_to_str(macro, args, input)}")
-                expanded_args = (
-                    list(map(expand_arg, args)) if args is not None else None
+        startpos = 0
+        expanded = text
+        while True:
+            res = MACRO_REGEX.search(expanded, startpos)
+            if res is None:
+                break
+            debug(f"match: {res} {res.end()}")
+            escaped = res[1]
+            name = res[2]
+            startpos = res.end()
+            args = None
+            input = None
+            # Parse arguments
+            if startpos < len(expanded) and expanded[startpos] == ord(b"("):
+                args, startpos = parse_arguments(expanded, startpos, ord(")"))
+            # Parse input
+            if startpos < len(expanded) and expanded[startpos] == ord(b"{"):
+                input_args, startpos = parse_arguments(
+                    expanded, startpos, ord("}")
                 )
-                expanded_input = expand_arg(input) if input is not None else None
-                if macro not in macros:
-                    decoded_macro = macro.decode("iso-8859-1")
-                    raise ValueError(f"no such macro '${decoded_macro}'")
-                return macros[macro](expanded_args, expanded_input)
+                input = b','.join(input_args)
+            if escaped != b"":
+                # Just remove the leading '\'
+                output = command_to_str(name, args, input)
+            else:
+                output = do_macro(name, args, input)
+            expanded = expanded[: res.start()] + output + expanded[startpos:]
+            # Update search position to restart matching after output of macro
+            startpos = res.start() + len(output)
+            debug(f"expanded is now: {expanded}")
 
-            startpos = 0
-            expanded = text
-            while True:
-                res = MACRO_REGEX.search(expanded, startpos)
-                if res is None:
-                    break
-                debug(f"match: {res} {res.end()}")
-                escaped = res[1]
-                name = res[2]
-                startpos = res.end()
-                args = None
-                input = None
-                # Parse arguments
-                if startpos < len(expanded) and expanded[startpos] == ord(b"("):
-                    args, startpos = parse_arguments(expanded, startpos, ord(")"))
-                # Parse input
-                if startpos < len(expanded) and expanded[startpos] == ord(b"{"):
-                    input_args, startpos = parse_arguments(
-                        expanded, startpos, ord("}")
-                    )
-                    input = b','.join(input_args)
-                if escaped != b"":
-                    # Just remove the leading '\'
-                    output = command_to_str(name, args, input)
-                else:
-                    output = do_macro(name, args, input)
-                expanded = expanded[: res.start()] + output + expanded[startpos:]
-                # Update search position to restart matching after output of macro
-                startpos = res.start() + len(output)
-                debug(f"expanded is now: {expanded}")
-
-            return expanded
-
-        return do_expand(text)
+        return expanded
 
     def include(self, file_path):
         """Expand the contents of `file_path`.
@@ -501,7 +495,7 @@ class Expand:
         with open(file_path, "rb") as fh:
             text = fh.read()
         self._stack.append(file_path)
-        output = self.inner_expand(text)
+        output = self.expand(text)
         self._stack.pop()
         return output
 
