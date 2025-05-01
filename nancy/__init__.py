@@ -339,32 +339,15 @@ class Expand:
                     return obj
             return None
 
-        def exe_arg(arg: bytes) -> Path:
-            """Find an executable file with the given name, or raise an error.
-
-            The input tree is searched first.
-            If no file is found there, the system path is searched.
-
-            Args:
-                arg (bytes): the name to search for.
-
-            Returns:
-                Path: The filename found
-            """
-            exe_name = Path(os.fsdecode(arg))
-            exe_path = find_on_path(self.base_file.parent, exe_name)
-            if exe_path is not None:
-                return exe_path
-            exe_path_str = shutil.which(exe_name)
-            if exe_path_str is not None:
-                return Path(exe_path_str)
-            raise ValueError(f"cannot find program '{exe_name}'")
-
-        def file_arg(arg: bytes) -> Path:
+        def file_arg(arg: bytes, exe=False) -> Path:
             """Find a file with the given name, or raise an error.
 
+            The input tree is searched first. If no file is found there, and
+            `exe`, the system `PATH` is searched for an executable file.
+
             Args:
                 arg (bytes): the name to search for.
+                exe (bool): `True` to search the system `PATH`. Default `False`
 
             Returns:
                 Path: The filename found
@@ -373,9 +356,14 @@ class Expand:
             file_path = find_on_path(self.base_file.parent, filename)
             if file_path is not None:
                 return file_path
-            raise ValueError(
-                f"cannot find '{filename}' while expanding '{self.base_file.parent}'"
-            )
+            if not exe:
+                raise ValueError(
+                    f"cannot find '{filename}' while expanding '{self.base_file.parent}'"
+                )
+            exe_path_str = shutil.which(filename)
+            if exe_path_str is not None:
+                return Path(exe_path_str)
+            raise ValueError(f"cannot find program '{filename}'")
 
         def do_expand(text: bytes) -> bytes:
             debug("do_expand")
@@ -437,7 +425,7 @@ class Expand:
                 if args is None:
                     raise ValueError("$run needs at least one argument")
                 debug(command_to_str(b"run", args, input))
-                exe_path = exe_arg(args[0])
+                exe_path = file_arg(args[0], exe=True)
                 exe_args = args[1:]
 
                 expanded_input = None
