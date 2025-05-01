@@ -339,7 +339,7 @@ class Expand:
                     return obj
             return None
 
-        def exe_arg(arg: bytes):
+        def exe_arg(arg: bytes) -> Path:
             """Find an executable file with the given name, or raise an error.
 
             The input tree is searched first.
@@ -349,7 +349,7 @@ class Expand:
                 arg (bytes): the name to search for.
 
             Returns:
-                Path
+                Path: The filename found
             """
             exe_name = Path(os.fsdecode(arg))
             exe_path = find_on_path(self.base_file.parent, exe_name)
@@ -360,26 +360,22 @@ class Expand:
                 return Path(exe_path_str)
             raise ValueError(f"cannot find program '{exe_name}'")
 
-        def file_arg(arg: bytes) -> tuple[Optional[Path], bytes]:
+        def file_arg(arg: bytes) -> Path:
             """Find a file with the given name, or raise an error.
 
             Args:
                 arg (bytes): the name to search for.
 
             Returns:
-                tuple[Optional[Path], bytes]:
-                    - The filename found; otherwise `None`
-                    - The contents of the file; otherwise empty
+                Path: The filename found
             """
             filename = Path(os.fsdecode(arg))
-            found_file = find_on_path(self.base_file.parent, filename)
-            if found_file is None:
-                raise ValueError(
-                    f"cannot find '{filename}' while expanding '{self.base_file.parent}'"
-                )
-            with open(found_file, "rb") as fh:
-                output = fh.read()
-            return (found_file, output)
+            file_path = find_on_path(self.base_file.parent, filename)
+            if file_path is not None:
+                return file_path
+            raise ValueError(
+                f"cannot find '{filename}' while expanding '{self.base_file.parent}'"
+            )
 
         def do_expand(text: bytes) -> bytes:
             debug("do_expand")
@@ -414,8 +410,8 @@ class Expand:
                     raise ValueError("$paste does not take an input")
                 debug(command_to_str(b"paste", args, input))
 
-                _file, contents = file_arg(args[0])
-                return contents
+                with open(file_arg(args[0]), "rb") as fh:
+                    return fh.read()
 
             macros[b"paste"] = paste
 
@@ -428,11 +424,11 @@ class Expand:
                     raise ValueError("$include does not take an input")
                 debug(command_to_str(b"include", args, input))
 
-                file, contents = file_arg(args[0])
+                file_path = file_arg(args[0])
+                with open(file_path, "rb") as fh:
+                    contents = fh.read()
                 return strip_final_newline(
-                    self.inner_expand(
-                        contents, expand_stack + [file] if file is not None else []
-                    )
+                    self.inner_expand(contents, expand_stack + [file_path])
                 )
 
             macros[b"include"] = include
