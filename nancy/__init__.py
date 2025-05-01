@@ -81,6 +81,17 @@ def parse_arguments(
     return args, next_index + 1
 
 
+def command_to_str(
+    name: bytes,
+    args: Optional[list[bytes]],
+    input: Optional[bytes],
+) -> bytes:
+    """Reconstitute a macro call from its parsed form."""
+    args_string = b"(" + b",".join(args) + b")" if args is not None else b""
+    input_string = b"{" + input + b"}" if input is not None else b""
+    return b"$" + name + args_string + input_string
+
+
 class Trees:
     """The state that is constant for a whole invocation of Nancy.
 
@@ -367,18 +378,6 @@ class Expand:
                     if err.stderr is not None:
                         print(err.stderr.decode("iso-8859-1"), file=sys.stderr)
                     die(f"Error code {err.returncode} running: {' '.join(map(str, err.cmd))}")
-
-            def command_to_str(
-                name: bytes,
-                args: Optional[list[bytes]],
-                input: Optional[bytes],
-            ) -> bytes:
-                """Reconstitute a macro call from its parsed form."""
-                args_string = (
-                    b"(" + b",".join(args) + b")" if args is not None else b""
-                )
-                input_string = b"{" + input + b"}" if input is not None else b""
-                return b"$" + name + args_string + input_string
 
             def file_arg(filename: bytes) -> tuple[Optional[Path], bytes]:
                 file = None
