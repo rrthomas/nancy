@@ -222,8 +222,7 @@ class Trees:
         os.makedirs(output_file.parent, exist_ok=True)
         if re.search(TEMPLATE_REGEX, file_path.name):
             debug(f"Expanding '{base_file}' to '{output_file}'")
-            text = file_path.read_bytes()
-            output = Expand(self, base_file, file_path, output_file).expand_bytes(text)
+            output = Expand(self, base_file, file_path, output_file).include(file_path)
             if not re.search(NO_COPY_REGEX, str(output_file)):
                 if self.output_path == Path("-"):
                     sys.stdout.buffer.write(output)
@@ -283,6 +282,10 @@ class Expand:
     file_path: Path
     output_file: Optional[Path]
 
+    # _stack is a list of filesystem `Path`s which are currently being
+    # `$include`d. This is used to avoid infinite loops.
+    _stack: list[Path]
+
     def __init__(
         self,
         trees: Trees,
@@ -294,20 +297,18 @@ class Expand:
         self.base_file = base_file
         self.file_path = file_path
         self.output_file = output_file
+        self._stack = []
 
-    def inner_expand(self, text: bytes, expand_stack: list[Path]) -> bytes:
+    def inner_expand(self, text: bytes) -> bytes:
         """Expand `text`.
 
         Args:
             text (bytes): the text to expand
-            expand_stack (list[Path]): a list of `inputs`-relative `Path`s
-                which are currently being expanded. This is used to avoid
-                infinite loops.
 
         Returns:
             bytes
         """
-        debug(f"inner_expand {text} {expand_stack}")
+        debug(f"inner_expand {text} {self._stack}")
 
         def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
             """Search for file starting at the given path.
@@ -321,7 +322,7 @@ class Expand:
                 Optional[Path]: `ancestor/file` where `ancestor` is the
                     longest possible prefix of `start_path` satisfying:
                     - `ancestor/file` exists and is a file
-                    - not in `expand_stack`
+                    - not in `self._stack`
                     otherwise `None`.
             """
             debug(f"Searching for '{file}' on {start_path}")
@@ -333,7 +334,7 @@ class Expand:
                     obj is not None
                     and not isinstance(obj, list)
                     and obj.is_file()
-                    and obj not in expand_stack
+                    and obj not in self._stack
                 ):
                     debug(f"Found '{obj}'")
                     return obj
@@ -387,7 +388,7 @@ class Expand:
                     raise ValueError("$expand takes an input")
                 debug(command_to_str(b"expand", args, input))
 
-                return strip_final_newline(self.inner_expand(input, expand_stack))
+                return strip_final_newline(self.inner_expand(input))
 
             macros[b"expand"] = expand
 
@@ -413,11 +414,7 @@ class Expand:
                 debug(command_to_str(b"include", args, input))
 
                 file_path = file_arg(args[0])
-                with open(file_path, "rb") as fh:
-                    contents = fh.read()
-                return strip_final_newline(
-                    self.inner_expand(contents, expand_stack + [file_path])
-                )
+                return strip_final_newline(self.include(file_path))
 
             macros[b"include"] = include
 
@@ -430,7 +427,7 @@ class Expand:
 
                 expanded_input = None
                 if input is not None:
-                    expanded_input = self.inner_expand(input, expand_stack)
+                    expanded_input = self.inner_expand(input)
                 return filter_bytes(expanded_input, exe_path, exe_args)
 
             macros[b"run"] = run
@@ -492,6 +489,22 @@ class Expand:
 
         return do_expand(text)
 
+    def include(self, file_path):
+        """Expand the contents of `file_path`.
+
+        Args:
+            file_path (Path): the filesystem path to include
+
+        Returns:
+            bytes
+        """
+        with open(file_path, "rb") as fh:
+            text = fh.read()
+        self._stack.append(file_path)
+        output = self.inner_expand(text)
+        self._stack.pop()
+        return output
+
     def expand_bytes(
         self,
         text: bytes,
@@ -504,7 +517,8 @@ class Expand:
         Returns:
             bytes
         """
-        return self.inner_expand(text, [self.file_path])
+        assert len(self._stack) == 0, self._stack
+        return self.inner_expand(text)
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:
