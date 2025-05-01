@@ -1,0 +1,4 @@
+in A
+B from A: filename-src/b.in
+In B
+A from B: filename-src/a.in
