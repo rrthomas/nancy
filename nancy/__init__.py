@@ -368,19 +368,19 @@ class Expand:
 
             def filter_bytes(
                 input: Optional[bytes],
-                external_command: list[bytes],
+                exe_path: Path,
+                exe_args: list[bytes]
             ) -> bytes:
-                """Run `external_command` passing `input` on stdin.
+                """Run an external command passing `input` on stdin.
 
                 Args:
                     input (Optional[bytes]): passed to `stdin`
-                    external_command (list[bytes]): command and arguments
+                    exe_path (Path): filesystem `Path` of the command to run
+                    exe_args (list[bytes]): arguments to the command
 
                 Returns:
                     bytes: stdout of the command
                 """
-                exe_path = exe_arg(external_command[0])
-                exe_args = external_command[1:]
                 debug(f"Running {exe_path} {b' '.join(exe_args)}")
                 try:
                     res = subprocess.run(
@@ -450,11 +450,13 @@ class Expand:
                 if args is None:
                     raise ValueError("$run needs at least one argument")
                 debug(command_to_str(b"run", args, input))
+                exe_path = exe_arg(args[0])
+                exe_args = args[1:]
 
                 expanded_input = None
                 if input is not None:
                     expanded_input = self.inner_expand(input, expand_stack)
-                return filter_bytes(expanded_input, args)
+                return filter_bytes(expanded_input, exe_path, exe_args)
 
             macros[b"run"] = run
 
