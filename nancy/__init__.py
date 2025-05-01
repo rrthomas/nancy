@@ -12,7 +12,7 @@ import sys
 import warnings
 from logging import debug
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 from .warnings_util import die, simple_warning
 
@@ -298,6 +298,7 @@ class Expand:
         self.file_path = file_path
         self.output_file = output_file
         self._stack = []
+        self._macros = Macros(self)
 
     def find_on_path(self, start_path: Path, file: Path) -> Optional[Path]:
         """Search for file starting at the given path.
@@ -372,81 +373,19 @@ class Expand:
         """
         debug(f"expand {text} {self._stack}")
 
-        # Set up macros
-        macros: dict[bytes, Callable[..., bytes]] = {}
-        macros[b"path"] = lambda _args, _external_args: bytes(self.base_file)
-        macros[b"realpath"] = lambda _args, _external_args: bytes(self.file_path)
-        macros[b"outputpath"] = (
-            lambda _args, _external_args: bytes(self.output_file)
-            if self.output_file is not None
-            else b""
-        )
-
-        def expand(
-            args: Optional[list[bytes]], input: Optional[bytes]
-        ) -> bytes:
-            if args is not None:
-                raise ValueError("$expand does not take arguments")
-            if input is None:
-                raise ValueError("$expand takes an input")
-            debug(command_to_str(b"expand", args, input))
-
-            return strip_final_newline(self.expand(input))
-
-        macros[b"expand"] = expand
-
-        def paste(args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
-            if args is None or len(args) != 1:
-                raise ValueError("$paste needs exactly one argument")
-            if input is not None:
-                raise ValueError("$paste does not take an input")
-            debug(command_to_str(b"paste", args, input))
-
-            with open(self.file_arg(args[0]), "rb") as fh:
-                return fh.read()
-
-        macros[b"paste"] = paste
-
-        def include(
-            args: Optional[list[bytes]], input: Optional[bytes]
-        ) -> bytes:
-            if args is None or len(args) != 1:
-                raise ValueError("$include needs exactly one argument")
-            if input is not None:
-                raise ValueError("$include does not take an input")
-            debug(command_to_str(b"include", args, input))
-
-            file_path = self.file_arg(args[0])
-            return strip_final_newline(self.include(file_path))
-
-        macros[b"include"] = include
-
-        def run(args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
-            if args is None:
-                raise ValueError("$run needs at least one argument")
-            debug(command_to_str(b"run", args, input))
-            exe_path = self.file_arg(args[0], exe=True)
-            exe_args = args[1:]
-
-            expanded_input = None
-            if input is not None:
-                expanded_input = self.expand(input)
-            return filter_bytes(expanded_input, exe_path, exe_args)
-
-        macros[b"run"] = run
-
         def do_macro(
-            macro: bytes,
+            name: bytes,
             args: Optional[list[bytes]],
             input: Optional[bytes],
         ) -> bytes:
-            debug(f"do_macro {command_to_str(macro, args, input)}")
+            debug(f"do_macro {command_to_str(name, args, input)}")
+            name = name.decode("iso-8859-1")
             args = [self.expand_arg(arg) for arg in args] if args is not None else None
             input = self.expand_arg(input) if input is not None else None
-            if macro not in macros:
-                decoded_macro = macro.decode("iso-8859-1")
-                raise ValueError(f"no such macro '${decoded_macro}'")
-            return macros[macro](args, input)
+            try:
+                return getattr(self._macros, name)(args, input)
+            except AttributeError:
+                raise ValueError(f"no such macro '${name}'")
 
         startpos = 0
         expanded = text
@@ -496,6 +435,76 @@ class Expand:
         output = self.expand(text)
         self._stack.pop()
         return output
+
+
+class Macros:
+    """Defines all the macros available to .nancy files.
+
+    Each method `foo` defines the behaviour of `$foo`.
+    """
+    _expand: Expand
+
+    def __init__(self, expand: Expand):
+        self._expand = expand
+
+    def path(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+        if args is not None:
+            raise ValueError("$path does not take arguments")
+        if input is not None:
+            raise ValueError("$path does not take an input")
+        return bytes(self._expand.base_file)
+
+    def realpath(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+        if args is not None:
+            raise ValueError("$realpath does not take arguments")
+        if input is not None:
+            raise ValueError("$realpath does not take an input")
+        return bytes(self._expand.file_path)
+
+    def outputpath(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+        if args is not None:
+            raise ValueError("$outputpath does not take arguments")
+        if input is not None:
+            raise ValueError("$outputpath does not take an input")
+        return bytes(self._expand.output_file) or b''
+
+    def expand(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+        if args is not None:
+            raise ValueError("$expand does not take arguments")
+        if input is None:
+            raise ValueError("$expand takes an input")
+        debug(command_to_str(b"expand", args, input))
+
+        return strip_final_newline(self._expand.expand(input))
+
+    def paste(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+        if args is None or len(args) != 1:
+            raise ValueError("$paste needs exactly one argument")
+        if input is not None:
+            raise ValueError("$paste does not take an input")
+        debug(command_to_str(b"paste", args, input))
+
+        with open(self._expand.file_arg(args[0]), "rb") as fh:
+            return fh.read()
+
+    def include(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+        if args is None or len(args) != 1:
+            raise ValueError("$include needs exactly one argument")
+        if input is not None:
+            raise ValueError("$include does not take an input")
+        debug(command_to_str(b"include", args, input))
+
+        file_path = self._expand.file_arg(args[0])
+        return strip_final_newline(self._expand.include(file_path))
+
+    def run(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
+        if args is None:
+            raise ValueError("$run needs at least one argument")
+        debug(command_to_str(b"run", args, input))
+
+        exe_path = self._expand.file_arg(args[0], exe=True)
+        expanded_input = self._expand.expand(input) if input is not None else None
+        return filter_bytes(expanded_input, exe_path, args[1:])
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:
