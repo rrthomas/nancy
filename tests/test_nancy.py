@@ -106,6 +106,60 @@ def test_paste_does_not_expand_macros() -> None:
         passing_test(["paste-src"], "paste-expected")
 
 
+def test_path_with_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$path does not take arguments",
+            "path-arg.nancy.txt",
+        )
+
+
+def test_path_with_input_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$path does not take an input",
+            "path-input.nancy.txt",
+        )
+
+
+def test_realpath_with_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$realpath does not take arguments",
+            "realpath-arg.nancy.txt",
+        )
+
+
+def test_realpath_with_input_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$realpath does not take an input",
+            "realpath-input.nancy.txt",
+        )
+
+
+def test_outputpath_with_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$outputpath does not take arguments",
+            "outputpath-arg.nancy.txt",
+        )
+
+
+def test_outputpath_with_input_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$outputpath does not take an input",
+            "outputpath-input.nancy.txt",
+        )
+
+
 def test_include_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
