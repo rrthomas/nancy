@@ -101,6 +101,11 @@ def test_macros_not_expanded_in_command_line_arguments() -> None:
         passing_test(["$path-src"], "$path-expected")
 
 
+def test_path_in_filename() -> None:
+    with chdir(tests_dir):
+        passing_test(["path-in-filename-src"], "path-in-filename-expected")
+
+
 def test_paste_does_not_expand_macros() -> None:
     with chdir(tests_dir):
         passing_test(["paste-src"], "paste-expected")
