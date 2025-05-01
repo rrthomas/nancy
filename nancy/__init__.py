@@ -206,7 +206,7 @@ class Trees:
         if output_file.name != "":
             output_file = output_file.with_name(re.sub(TEMPLATE_REGEX, "", output_file.name))
             output_file = os.fsdecode(
-                Expand(self, output_file, file_path).expand_bytes(bytes(output_file))
+                Expand(self, output_file, file_path).inner_expand(bytes(output_file))
             )
         return self.output_path / output_file
 
@@ -504,21 +504,6 @@ class Expand:
         output = self.inner_expand(text)
         self._stack.pop()
         return output
-
-    def expand_bytes(
-        self,
-        text: bytes,
-    ) -> bytes:
-        """Expand `text`.
-
-        Args:
-            text (bytes): the text to expand
-
-        Returns:
-            bytes
-        """
-        assert len(self._stack) == 0, self._stack
-        return self.inner_expand(text)
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:
