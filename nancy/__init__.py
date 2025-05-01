@@ -339,28 +339,6 @@ class Expand:
                     return obj
             return None
 
-        def read_file(file: Path) -> tuple[Optional[Path], bytes]:
-            """Try to find and read `file`.
-
-            If none found, raise an error.
-
-            Args:
-                file (Path): the `Path` to look for
-
-            Returns:
-                tuple[Optional[Path], bytes]:
-                    - The filename found; otherwise `None`
-                    - The contents of the file; otherwise empty
-            """
-            found_file = find_on_path(self.base_file.parent, file)
-            if found_file is None:
-                raise ValueError(
-                    f"cannot find '{file}' while expanding '{self.base_file.parent}'"
-                )
-            with open(found_file, "rb") as fh:
-                output = fh.read()
-            return (found_file, output)
-
         def exe_arg(arg: bytes):
             """Find an executable file with the given name, or raise an error.
 
@@ -385,13 +363,23 @@ class Expand:
         def file_arg(arg: bytes) -> tuple[Optional[Path], bytes]:
             """Find a file with the given name, or raise an error.
 
+            Args:
+                arg (bytes): the name to search for.
+
             Returns:
                 tuple[Optional[Path], bytes]:
                     - The filename found; otherwise `None`
                     - The contents of the file; otherwise empty
             """
             filename = Path(os.fsdecode(arg))
-            return read_file(filename)
+            found_file = find_on_path(self.base_file.parent, filename)
+            if found_file is None:
+                raise ValueError(
+                    f"cannot find '{filename}' while expanding '{self.base_file.parent}'"
+                )
+            with open(found_file, "rb") as fh:
+                output = fh.read()
+            return (found_file, output)
 
         def do_expand(text: bytes) -> bytes:
             debug("do_expand")
