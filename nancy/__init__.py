@@ -362,6 +362,21 @@ class Expand:
         debug(f"unescaped arg {unescaped_arg}")
         return self.expand(unescaped_arg)
 
+    def do_macro(
+        self,
+        name: bytes,
+        args: Optional[list[bytes]],
+        input: Optional[bytes],
+    ) -> bytes:
+        debug(f"do_macro {command_to_str(name, args, input)}")
+        name = name.decode("iso-8859-1")
+        args = [self.expand_arg(arg) for arg in args] if args is not None else None
+        input = self.expand_arg(input) if input is not None else None
+        try:
+            return getattr(self._macros, name)(args, input)
+        except AttributeError:
+            raise ValueError(f"no such macro '${name}'")
+
     def expand(self, text: bytes) -> bytes:
         """Expand `text`.
 
@@ -372,20 +387,6 @@ class Expand:
             bytes
         """
         debug(f"expand {text} {self._stack}")
-
-        def do_macro(
-            name: bytes,
-            args: Optional[list[bytes]],
-            input: Optional[bytes],
-        ) -> bytes:
-            debug(f"do_macro {command_to_str(name, args, input)}")
-            name = name.decode("iso-8859-1")
-            args = [self.expand_arg(arg) for arg in args] if args is not None else None
-            input = self.expand_arg(input) if input is not None else None
-            try:
-                return getattr(self._macros, name)(args, input)
-            except AttributeError:
-                raise ValueError(f"no such macro '${name}'")
 
         startpos = 0
         expanded = text
@@ -412,7 +413,7 @@ class Expand:
                 # Just remove the leading '\'
                 output = command_to_str(name, args, input)
             else:
-                output = do_macro(name, args, input)
+                output = self.do_macro(name, args, input)
             expanded = expanded[: res.start()] + output + expanded[startpos:]
             # Update search position to restart matching after output of macro
             startpos = res.start() + len(output)
