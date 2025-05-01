@@ -124,6 +124,15 @@ def test_path_with_input_gives_an_error() -> None:
         )
 
 
+def test_realpath() -> None:
+    with chdir(tests_dir):
+        passing_test(
+            ["."],
+            "realpath-expected.txt",
+            "realpath.nancy.txt",
+        )
+
+
 def test_realpath_with_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
