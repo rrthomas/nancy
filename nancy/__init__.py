@@ -299,6 +299,62 @@ class Expand:
         self.output_file = output_file
         self._stack = []
 
+    def find_on_path(self, start_path: Path, file: Path) -> Optional[Path]:
+        """Search for file starting at the given path.
+
+        Args:
+            start_path (Path): `inputs`-relative `Path` to search
+                up from
+            file (Path): the `Path` to look for.
+
+        Returns:
+            Optional[Path]: `ancestor/file` where `ancestor` is the
+                longest possible prefix of `start_path` satisfying:
+                - `ancestor/file` exists and is a file
+                - not in `self._stack`
+                otherwise `None`.
+        """
+        debug(f"Searching for '{file}' on {start_path}")
+        norm_file = Path(os.path.normpath(file))
+        for parent in (start_path / "_").parents:
+            this_search = parent / norm_file
+            obj = self.trees.find_object(this_search)
+            if (
+                obj is not None
+                and not isinstance(obj, list)
+                and obj.is_file()
+                and obj not in self._stack
+            ):
+                debug(f"Found '{obj}'")
+                return obj
+        return None
+
+    def file_arg(self, arg: bytes, exe=False) -> Path:
+        """Find a file with the given name, or raise an error.
+
+        The input tree is searched first. If no file is found there, and
+        `exe`, the system `PATH` is searched for an executable file.
+
+        Args:
+            arg (bytes): the name to search for.
+            exe (bool): `True` to search the system `PATH`. Default `False`
+
+        Returns:
+            Path: The filename found
+        """
+        filename = Path(os.fsdecode(arg))
+        file_path = self.find_on_path(self.base_file.parent, filename)
+        if file_path is not None:
+            return file_path
+        if not exe:
+            raise ValueError(
+                f"cannot find '{filename}' while expanding '{self.base_file.parent}'"
+            )
+        exe_path_str = shutil.which(filename)
+        if exe_path_str is not None:
+            return Path(exe_path_str)
+        raise ValueError(f"cannot find program '{filename}'")
+
     def inner_expand(self, text: bytes) -> bytes:
         """Expand `text`.
 
@@ -309,62 +365,6 @@ class Expand:
             bytes
         """
         debug(f"inner_expand {text} {self._stack}")
-
-        def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
-            """Search for file starting at the given path.
-
-            Args:
-                start_path (Path): `inputs`-relative `Path` to search
-                    up from
-                file (Path): the `Path` to look for.
-
-            Returns:
-                Optional[Path]: `ancestor/file` where `ancestor` is the
-                    longest possible prefix of `start_path` satisfying:
-                    - `ancestor/file` exists and is a file
-                    - not in `self._stack`
-                    otherwise `None`.
-            """
-            debug(f"Searching for '{file}' on {start_path}")
-            norm_file = Path(os.path.normpath(file))
-            for parent in (start_path / "_").parents:
-                this_search = parent / norm_file
-                obj = self.trees.find_object(this_search)
-                if (
-                    obj is not None
-                    and not isinstance(obj, list)
-                    and obj.is_file()
-                    and obj not in self._stack
-                ):
-                    debug(f"Found '{obj}'")
-                    return obj
-            return None
-
-        def file_arg(arg: bytes, exe=False) -> Path:
-            """Find a file with the given name, or raise an error.
-
-            The input tree is searched first. If no file is found there, and
-            `exe`, the system `PATH` is searched for an executable file.
-
-            Args:
-                arg (bytes): the name to search for.
-                exe (bool): `True` to search the system `PATH`. Default `False`
-
-            Returns:
-                Path: The filename found
-            """
-            filename = Path(os.fsdecode(arg))
-            file_path = find_on_path(self.base_file.parent, filename)
-            if file_path is not None:
-                return file_path
-            if not exe:
-                raise ValueError(
-                    f"cannot find '{filename}' while expanding '{self.base_file.parent}'"
-                )
-            exe_path_str = shutil.which(filename)
-            if exe_path_str is not None:
-                return Path(exe_path_str)
-            raise ValueError(f"cannot find program '{filename}'")
 
         def do_expand(text: bytes) -> bytes:
             debug("do_expand")
@@ -399,7 +399,7 @@ class Expand:
                     raise ValueError("$paste does not take an input")
                 debug(command_to_str(b"paste", args, input))
 
-                with open(file_arg(args[0]), "rb") as fh:
+                with open(self.file_arg(args[0]), "rb") as fh:
                     return fh.read()
 
             macros[b"paste"] = paste
@@ -413,7 +413,7 @@ class Expand:
                     raise ValueError("$include does not take an input")
                 debug(command_to_str(b"include", args, input))
 
-                file_path = file_arg(args[0])
+                file_path = self.file_arg(args[0])
                 return strip_final_newline(self.include(file_path))
 
             macros[b"include"] = include
@@ -422,7 +422,7 @@ class Expand:
                 if args is None:
                     raise ValueError("$run needs at least one argument")
                 debug(command_to_str(b"run", args, input))
-                exe_path = file_arg(args[0], exe=True)
+                exe_path = self.file_arg(args[0], exe=True)
                 exe_args = args[1:]
 
                 expanded_input = None
