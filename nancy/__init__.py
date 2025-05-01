@@ -344,6 +344,28 @@ class Expand:
                 else b""
             )
 
+            def exe_arg(exe_arg: bytes):
+                """Find an executable file with the given name.
+
+                The input tree is searched first. If no file is found there,
+                the system path is searched. If the file is still not found,
+                raise an error.
+
+                Args:
+                    exe_arg (bytes): the name to search for.
+
+                Returns:
+                    Path
+                """
+                exe_name = Path(os.fsdecode(exe_arg))
+                exe_path = find_on_path(self.base_file.parent, exe_name)
+                if exe_path is not None:
+                    return exe_path
+                exe_path_str = shutil.which(exe_name)
+                if exe_path_str is not None:
+                    return Path(exe_path_str)
+                raise ValueError(f"cannot find program '{exe_name}'")
+
             def filter_bytes(
                 input: Optional[bytes],
                 external_command: list[bytes],
@@ -357,13 +379,7 @@ class Expand:
                 Returns:
                     bytes: stdout of the command
                 """
-                exe_name = Path(os.fsdecode(external_command[0]))
-                exe_path = find_on_path(self.base_file.parent, exe_name)
-                if exe_path is None:
-                    exe_path_str = shutil.which(exe_name)
-                    if exe_path_str is None:
-                        raise ValueError(f"cannot find program '{exe_name}'")
-                    exe_path = Path(exe_path_str)
+                exe_path = exe_arg(external_command[0])
                 exe_args = external_command[1:]
                 debug(f"Running {exe_path} {b' '.join(exe_args)}")
                 try:
