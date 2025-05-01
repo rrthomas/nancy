@@ -92,6 +92,36 @@ def command_to_str(
     return b"$" + name + args_string + input_string
 
 
+def filter_bytes(
+    input: Optional[bytes],
+    exe_path: Path,
+    exe_args: list[bytes]
+) -> bytes:
+    """Run an external command passing `input` on stdin.
+
+    Args:
+        input (Optional[bytes]): passed to `stdin`
+        exe_path (Path): filesystem `Path` of the command to run
+        exe_args (list[bytes]): arguments to the command
+
+    Returns:
+        bytes: stdout of the command
+    """
+    debug(f"Running {exe_path} {b' '.join(exe_args)}")
+    try:
+        res = subprocess.run(
+            [exe_path.resolve(strict=True)] + exe_args,
+            capture_output=True,
+            check=True,
+            input=input,
+        )
+        return res.stdout
+    except subprocess.CalledProcessError as err:
+        if err.stderr is not None:
+            print(err.stderr.decode("iso-8859-1"), file=sys.stderr)
+        die(f"Error code {err.returncode} running: {' '.join(map(str, err.cmd))}")
+
+
 class Trees:
     """The state that is constant for a whole invocation of Nancy.
 
@@ -365,35 +395,6 @@ class Expand:
                 if exe_path_str is not None:
                     return Path(exe_path_str)
                 raise ValueError(f"cannot find program '{exe_name}'")
-
-            def filter_bytes(
-                input: Optional[bytes],
-                exe_path: Path,
-                exe_args: list[bytes]
-            ) -> bytes:
-                """Run an external command passing `input` on stdin.
-
-                Args:
-                    input (Optional[bytes]): passed to `stdin`
-                    exe_path (Path): filesystem `Path` of the command to run
-                    exe_args (list[bytes]): arguments to the command
-
-                Returns:
-                    bytes: stdout of the command
-                """
-                debug(f"Running {exe_path} {b' '.join(exe_args)}")
-                try:
-                    res = subprocess.run(
-                        [exe_path.resolve(strict=True)] + exe_args,
-                        capture_output=True,
-                        check=True,
-                        input=input,
-                    )
-                    return res.stdout
-                except subprocess.CalledProcessError as err:
-                    if err.stderr is not None:
-                        print(err.stderr.decode("iso-8859-1"), file=sys.stderr)
-                    die(f"Error code {err.returncode} running: {' '.join(map(str, err.cmd))}")
 
             def file_arg(filename: bytes) -> tuple[Optional[Path], bytes]:
                 file = None
