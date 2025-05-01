@@ -312,8 +312,6 @@ class Expand:
         def find_on_path(start_path: Path, file: Path) -> Optional[Path]:
             """Search for file starting at the given path.
 
-            If none found, raise an error.
-
             Args:
                 start_path (Path): `inputs`-relative `Path` to search
                     up from
@@ -344,6 +342,8 @@ class Expand:
         def read_file(file: Path) -> tuple[Optional[Path], bytes]:
             """Try to find and read `file`.
 
+            If none found, raise an error.
+
             Args:
                 file (Path): the `Path` to look for
 
@@ -361,6 +361,38 @@ class Expand:
                 output = fh.read()
             return (found_file, output)
 
+        def exe_arg(arg: bytes):
+            """Find an executable file with the given name, or raise an error.
+
+            The input tree is searched first.
+            If no file is found there, the system path is searched.
+
+            Args:
+                arg (bytes): the name to search for.
+
+            Returns:
+                Path
+            """
+            exe_name = Path(os.fsdecode(arg))
+            exe_path = find_on_path(self.base_file.parent, exe_name)
+            if exe_path is not None:
+                return exe_path
+            exe_path_str = shutil.which(exe_name)
+            if exe_path_str is not None:
+                return Path(exe_path_str)
+            raise ValueError(f"cannot find program '{exe_name}'")
+
+        def file_arg(arg: bytes) -> tuple[Optional[Path], bytes]:
+            """Find a file with the given name, or raise an error.
+
+            Returns:
+                tuple[Optional[Path], bytes]:
+                    - The filename found; otherwise `None`
+                    - The contents of the file; otherwise empty
+            """
+            filename = Path(os.fsdecode(arg))
+            return read_file(filename)
+
         def do_expand(text: bytes) -> bytes:
             debug("do_expand")
 
@@ -373,39 +405,6 @@ class Expand:
                 if self.output_file is not None
                 else b""
             )
-
-            def exe_arg(arg: bytes):
-                """Find an executable file with the given name.
-
-                The input tree is searched first. If no file is found there,
-                the system path is searched. If the file is still not found,
-                raise an error.
-
-                Args:
-                    arg (bytes): the name to search for.
-
-                Returns:
-                    Path
-                """
-                exe_name = Path(os.fsdecode(arg))
-                exe_path = find_on_path(self.base_file.parent, exe_name)
-                if exe_path is not None:
-                    return exe_path
-                exe_path_str = shutil.which(exe_name)
-                if exe_path_str is not None:
-                    return Path(exe_path_str)
-                raise ValueError(f"cannot find program '{exe_name}'")
-
-            def file_arg(arg: bytes) -> tuple[Optional[Path], bytes]:
-                """Find a file with the given name.
-
-                Returns:
-                    tuple[Optional[Path], bytes]:
-                        - The filename found; otherwise `None`
-                        - The contents of the file; otherwise empty
-                """
-                filename = Path(os.fsdecode(arg))
-                return read_file(filename)
 
             def expand(
                 args: Optional[list[bytes]], input: Optional[bytes]
