@@ -206,7 +206,7 @@ class Trees:
         if output_file.name != "":
             output_file = output_file.with_name(re.sub(TEMPLATE_REGEX, "", output_file.name))
             output_file = os.fsdecode(
-                Expand(self, output_file, file_path).expand(bytes(output_file))
+                Expand(self, base_file, file_path).expand(bytes(output_file))
             )
         return self.output_path / output_file
 
