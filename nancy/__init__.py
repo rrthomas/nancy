@@ -161,12 +161,9 @@ class Trees:
         Returns:
             Path
         """
-        relpath = base_file.relative_to(self.build_path)
-        output_file = relpath
+        output_file = base_file.relative_to(self.build_path)
         if output_file.name != "":
-            output_file = output_file.with_name(
-                re.sub(TEMPLATE_REGEX, "", relpath.name)
-            )
+            output_file = output_file.with_name(re.sub(TEMPLATE_REGEX, "", output_file.name))
             output_file = os.fsdecode(
                 Expand(self, output_file, file_path).expand_bytes(bytes(output_file))
             )
