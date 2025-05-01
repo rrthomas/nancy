@@ -67,6 +67,11 @@ def test_nested_macro_invocations() -> None:
         passing_test(["nested-macro-src"], "nested-macro-expected")
 
 
+def test_filename_output() -> None:
+    with chdir(tests_dir):
+        passing_test(["filename-src"], "filename-expected")
+
+
 def test_expand_of_run_output() -> None:
     with chdir(tests_dir):
         passing_test(["expand-run-src"], "expand-run-expected")
@@ -223,6 +228,33 @@ def test_include_with_input_gives_an_error() -> None:
             [os.getcwd()],
             "$include does not take an input",
             "include-input.nancy.txt",
+        )
+
+
+def test_filename_with_no_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$filename needs exactly one argument",
+            "filename-no-arg.nancy.txt",
+        )
+
+
+def test_filename_with_input_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$filename does not take an input",
+            "filename-input.nancy.txt",
+        )
+
+
+def test_filename_with_too_many_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$filename needs exactly one argument",
+            "filename-too-many-args.nancy.txt",
         )
 
 

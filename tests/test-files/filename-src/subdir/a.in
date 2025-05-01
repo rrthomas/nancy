@@ -1,0 +1,3 @@
+In subdir/A
+super A from A: $filename(a.in)
+B from A: $filename(b.in)
