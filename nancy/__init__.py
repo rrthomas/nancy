@@ -87,8 +87,8 @@ def command_to_str(
     input: Optional[bytes],
 ) -> bytes:
     """Reconstitute a macro call from its parsed form."""
-    args_string = b"(" + b",".join(args) + b")" if args is not None else b""
-    input_string = b"{" + input + b"}" if input is not None else b""
+    args_string = b"" if args is None else b"(" + b",".join(args) + b")"
+    input_string = b"" if input is None else b"{" + input + b"}"
     return b"$" + name + args_string + input_string
 
 
@@ -369,13 +369,13 @@ class Expand:
         input: Optional[bytes],
     ) -> bytes:
         debug(f"do_macro {command_to_str(name, args, input)}")
-        name = name.decode("iso-8859-1")
-        args = [self.expand_arg(arg) for arg in args] if args is not None else None
-        input = self.expand_arg(input) if input is not None else None
+        name_str = name.decode("iso-8859-1")
+        args = None if args is None else [self.expand_arg(arg) for arg in args]
+        input = None if input is None else self.expand_arg(input)
         try:
-            return getattr(self._macros, name)(args, input)
+            return getattr(self._macros, name_str)(args, input)
         except AttributeError:
-            raise ValueError(f"no such macro '${name}'")
+            raise ValueError(f"no such macro '${name_str}'")
 
     def expand(self, text: bytes) -> bytes:
         """Expand `text`.
@@ -467,7 +467,7 @@ class Macros:
             raise ValueError("$outputpath does not take arguments")
         if input is not None:
             raise ValueError("$outputpath does not take an input")
-        return bytes(self._expand.output_file) or b''
+        return b'' if self._expand.output_file is None else bytes(self._expand.output_file)
 
     def expand(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is not None:
@@ -504,7 +504,7 @@ class Macros:
         debug(command_to_str(b"run", args, input))
 
         exe_path = self._expand.file_arg(args[0], exe=True)
-        expanded_input = self._expand.expand(input) if input is not None else None
+        expanded_input = None if input is None else self._expand.expand(input)
         return filter_bytes(expanded_input, exe_path, args[1:])
 
 
