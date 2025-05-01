@@ -354,6 +354,13 @@ class Expand:
             return Path(exe_path_str)
         raise ValueError(f"cannot find program '{filename}'")
 
+    def expand_arg(self, arg: bytes) -> bytes:
+        # Unescape escaped commas
+        debug(f"escaped arg {arg}")
+        unescaped_arg = re.sub(rb"\\,", b",", arg)
+        debug(f"unescaped arg {unescaped_arg}")
+        return self.expand(unescaped_arg)
+
     def expand(self, text: bytes) -> bytes:
         """Expand `text`.
 
@@ -428,27 +435,18 @@ class Expand:
 
         macros[b"run"] = run
 
-        def expand_arg(arg: bytes) -> bytes:
-            # Unescape escaped commas
-            debug(f"escaped arg {arg}")
-            unescaped_arg = re.sub(rb"\\,", b",", arg)
-            debug(f"unescaped arg {unescaped_arg}")
-            return self.expand(unescaped_arg)
-
         def do_macro(
             macro: bytes,
             args: Optional[list[bytes]],
             input: Optional[bytes],
         ) -> bytes:
             debug(f"do_macro {command_to_str(macro, args, input)}")
-            expanded_args = (
-                list(map(expand_arg, args)) if args is not None else None
-            )
-            expanded_input = expand_arg(input) if input is not None else None
+            args = [self.expand_arg(arg) for arg in args] if args is not None else None
+            input = self.expand_arg(input) if input is not None else None
             if macro not in macros:
                 decoded_macro = macro.decode("iso-8859-1")
                 raise ValueError(f"no such macro '${decoded_macro}'")
-            return macros[macro](expanded_args, expanded_input)
+            return macros[macro](args, input)
 
         startpos = 0
         expanded = text
