@@ -82,21 +82,25 @@ def parse_arguments(
 
 
 class Trees:
+    """The state that is constant for a whole invocation of Nancy.
+
+    Fields:
+        inputs (list[Path]): a list of filesystem `Path`s to overlay to
+            make an abstract input tree
+        output_path (Path): the filesystem `Path` of the output directory
+        build_path (Path): the subtree of `inputs` to process.
+            Defaults to the whole tree.
+    """
+    inputs: list[Path]
+    output_path: Path
+    build_path: Path
+
     def __init__(
         self,
         inputs: list[Path],
         output_path: Path,
         build_path: Optional[Path]=None,
     ):
-        """The state that is constant for a whole invocation of Nancy.
-
-        Args:
-            inputs (list[Path]): a list of filesystem `Path`s to overlay to
-                make an abstract input tree
-            output_path (Path): the filesystem `Path` of the output directory
-            build_path (Optional[Path]): the subtree of `inputs` to process.
-                Defaults to the whole tree.
-        """
         if len(inputs) == 0:
             raise ValueError("at least one input must be given")
         for root in inputs:
@@ -161,7 +165,7 @@ class Trees:
         output_file = relpath
         if output_file.name != "":
             output_file = output_file.with_name(
-                os.fsdecode(re.sub(TEMPLATE_REGEX, "", relpath.name))
+                re.sub(TEMPLATE_REGEX, "", relpath.name)
             )
             output_file = os.fsdecode(
                 Expand(self, output_file, file_path).expand_bytes(bytes(output_file))
@@ -228,13 +232,19 @@ def expand(
 
 
 class Expand:
-    """State while expanding a file.
+    """`Path`s related to the file being expanded.
 
-    Args:
+    Fields:
+        trees (Trees):
         base_file (Path): the `inputs`-relative `Path`
         file_path (Path): the filesystem input `Path`
         output_file (Optional[Path]): the filesystem output `Path`
     """
+    trees: Trees
+    base_file: Path
+    file_path: Path
+    output_file: Optional[Path]
+
     def __init__(
         self,
         trees: Trees,
