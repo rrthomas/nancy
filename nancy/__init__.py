@@ -159,23 +159,30 @@ class Trees:
 
     def find_object(
         self, obj: Path,
-    ) -> Optional[Union[Path, list[os.DirEntry[str]]]]:
-        """Find an object in the input tree.
+    ) -> Optional[Union[Path, list[str]]]:
+        """Find `obj` in the union of the input trees.
 
-        Find the first file or directory with relative path `obj` in the
-        input tree, scanning the roots from left to right.
-        If the result is a file, return its path.
-        If the result is a directory, return its contents as a list of
-        os.DirEntry, obtained by similarly scanning the tree from left to
-        right.
-        If something neither a file nor directory is found, raise an error.
-        If no result is found, return `None`.
+        If `obj` is present and not a directory in any input tree, the leftmost
+        such result takes precedence. Return its filesystem `Path` if it's a
+        file, otherwise raise an error.
+
+        If `obj` is missing in every input tree, return `None`.
+
+        Otherwise (if `obj` is a directory in at least one input tree),
+        return the union of the contents of the directories.
+
+        Args:
+            obj (Path): the `inputs`-relative `Path` to find.
+
+        Returns:
+            Optional[Union[Path, list[str]]]:
+                - the filing system `Path`, if `obj` is a file.
+                - the names of the children, if `obj` is a directory
+                - `None` if `obj` is not found
         """
         debug(f"find_object {obj} {self.inputs}")
-        objects = [root / obj for root in self.inputs]
         dirs = []
-        debug(f"objects to consider: {objects}")
-        for o in objects:
+        for o in (root / obj for root in self.inputs):
             debug(f"considering {o}")
             if o.exists():
                 if o.is_file():
@@ -186,11 +193,8 @@ class Trees:
                     raise ValueError(f"'{o}' is not a file or directory")
         if len(dirs) == 0:
             return None
-        dirents: dict[Path, os.DirEntry[str]] = {}
-        for d in reversed(dirs):
-            for dirent in os.scandir(d):
-                dirents[obj / dirent.name] = dirent
-        return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
+        names = set(dirent.name for d in dirs for dirent in os.scandir(d))
+        return sorted(names, key=sorting_name)
 
     def process_path(self, obj: Path) -> None:
         """Recursively scan `obj` and pass every file to `process_file`.
@@ -198,19 +202,18 @@ class Trees:
         Args:
             obj (Path): the `inputs`-relative `Path` to scan.
         """
-        dirent = self.find_object(obj)
-        if dirent is None:
+        found = self.find_object(obj)
+        if found is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
-        if isinstance(dirent, list):
+        if isinstance(found, list):
             if self.output_path == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
-            for child_dirent in dirent:
-                if child_dirent.name[0] != ".":
-                    child_object = obj / child_dirent.name
-                    self.process_path(child_object)
+            for child in found:
+                if child[0] != ".":
+                    self.process_path(obj / child)
         else:
-            Expand(self, obj, dirent).process_file()
+            Expand(self, obj, found).process_file()
 
 
 # TODO: Inline into callers, and remove.
