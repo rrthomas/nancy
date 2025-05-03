@@ -126,3 +126,11 @@ Assuming it is called `make-zip.in.sh`, it can be used thus, from a file called 
 ```
 \$run(make-zip.in.sh,\$outputpath)
 ```
+
+## Processing files in the input directory
+
+Sometimes we would like to process input files using a command other than `nancy`. For example, a file can display its own modification date using `\$realpath` like this:
+
+```
+\$run(date,-d,@$run(stat,-c%Y,$realpath),+%F)
+```
