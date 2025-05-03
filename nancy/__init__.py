@@ -192,32 +192,6 @@ class Trees:
                 dirents[obj / dirent.name] = dirent
         return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
 
-    def process_file(self, base_file: Path, file_path: Path) -> None:
-        """Expand, copy or ignore a single file.
-
-        Args:
-            base_file (Path): the `inputs`-relative `Path`
-            file_path (Path): the filesystem input `Path`
-        """
-        debug(f"Processing file '{file_path}'")
-        expand = Expand(self, base_file, file_path)
-        os.makedirs(expand.output_file().parent, exist_ok=True)
-        if re.search(TEMPLATE_REGEX, file_path.name):
-            debug(f"Expanding '{base_file}' to '{expand.output_file()}'")
-            output = expand.include(file_path)
-            if not re.search(NO_COPY_REGEX, str(expand.output_file())):
-                if self.output_path == Path("-"):
-                    sys.stdout.buffer.write(output)
-                else:
-                    with open(expand.output_file(), "wb") as fh:
-                        fh.write(output)
-        elif not re.search(NO_COPY_REGEX, file_path.name):
-            if self.output_path == Path("-"):
-                file_contents = file_path.read_bytes()
-                sys.stdout.buffer.write(file_contents)
-            else:
-                shutil.copyfile(file_path, expand.output_file())
-
     def process_path(self, obj: Path) -> None:
         """Recursively scan `obj` and pass every file to `process_file`.
 
@@ -235,11 +209,11 @@ class Trees:
                 if child_dirent.name[0] != ".":
                     child_object = obj / child_dirent.name
                     if child_dirent.is_file():
-                        self.process_file(child_object, Path(child_dirent.path))
+                        Expand(self, child_object, Path(child_dirent.path)).process_file()
                     else:
                         self.process_path(child_object)
         else:
-            self.process_file(obj, dirent)
+            Expand(self, obj, dirent).process_file()
 
 
 # TODO: Inline into callers, and remove.
@@ -430,6 +404,26 @@ class Expand:
         output = self.expand(file_path.read_bytes())
         self._stack.pop()
         return output
+
+    def process_file(self) -> None:
+        """Expand, copy or ignore the file."""
+        debug(f"Processing file '{self.file_path}'")
+        os.makedirs(self.output_file().parent, exist_ok=True)
+        if re.search(TEMPLATE_REGEX, self.file_path.name):
+            debug(f"Expanding '{self.base_file}' to '{self.output_file()}'")
+            output = self.include(self.file_path)
+            if not re.search(NO_COPY_REGEX, str(self.output_file())):
+                if self.trees.output_path == Path("-"):
+                    sys.stdout.buffer.write(output)
+                else:
+                    with open(self.output_file(), "wb") as fh:
+                        fh.write(output)
+        elif not re.search(NO_COPY_REGEX, self.file_path.name):
+            if self.trees.output_path == Path("-"):
+                file_contents = self.file_path.read_bytes()
+                sys.stdout.buffer.write(file_contents)
+            else:
+                shutil.copyfile(self.file_path, self.output_file())
 
 
 class Macros:
