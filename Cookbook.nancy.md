@@ -21,7 +21,7 @@ Suppose further that the web site has the following structure, where each line c
 
 ```
 ├── Home page
-$expand{$run(sh,-c,build-aux/dirtree tests/test-files/cookbook-example-website-expected | sed -e 's/\.html//g' | grep -v index | grep -v \\.)}
+$expand{$run(sh,-c,build-aux/dirtree tests/test-files/cookbook-example-website-expected | grep -v index | grep -v \\.)}
 ```
 
 The basic page template looks something like this:
