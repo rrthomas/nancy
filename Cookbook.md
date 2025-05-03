@@ -127,8 +127,7 @@ The corresponding source files are laid out as follows. This may look a little c
 
 Note that there is only one menu fragment (the main menu is the same for every page), while each section has its own breadcrumb trail (`breadcrumb.in.html`), and each page has its own content (`main.in.html`).
 
-Now consider how Nancy builds the page whose URL is `Places/Vladivostok/index.html`. Assume the source files are in the directory `source`. This page is built from `source/Places/Vladivostok/index.nancy.html`, whose contents is `$include(template.in.html)
-`. According to the rules given in the [Operation](README.md#operation) section of the manual, Nancy will look first for files in `source/Places/Vladivostok`, then in `source/places`, and finally in `source`. Hence, the actual list of files used to assemble the page is:
+Now consider how Nancy builds the page whose URL is `Places/Vladivostok/index.html`. Assume the source files are in the directory `source`. This page is built from `source/Places/Vladivostok/index.nancy.html`, whose contents is `$include(template.in.html)`. According to the rules given in the [Operation](README.md#operation) section of the manual, Nancy will look first for files in `source/Places/Vladivostok`, then in `source/places`, and finally in `source`. Hence, the actual list of files used to assemble the page is:
 
 
 
