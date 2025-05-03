@@ -56,7 +56,7 @@ def parse_arguments(
         - position within `text` of the character after closing delimiter
     """
     args = []
-    closing = [initial_closing] # Stack of expected close brackets
+    closing = [initial_closing]  # Stack of expected close brackets
     next_index = arg_start + 1
     while next_index < len(text):
         if text[next_index] == closing[-1]:
@@ -65,9 +65,7 @@ def parse_arguments(
                 args.append(text[arg_start + 1 : next_index])
                 break
         elif text[next_index] in {ord(b"("), ord(b"{")}:
-            closing.append(
-                ord(b")") if text[next_index] == ord(b"(") else ord(b"}")
-            )
+            closing.append(ord(b")") if text[next_index] == ord(b"(") else ord(b"}"))
         elif (
             len(closing) == 1
             and text[next_index] == ord(b",")
@@ -93,9 +91,7 @@ def command_to_str(
 
 
 def filter_bytes(
-    input: Optional[bytes],
-    exe_path: Path,
-    exe_args: list[bytes]
+    input: Optional[bytes], exe_path: Path, exe_args: list[bytes]
 ) -> bytes:
     """Run an external command passing `input` on stdin.
 
@@ -132,15 +128,18 @@ class Trees:
         build_path (Path): the subtree of `inputs` to process.
             Defaults to the whole tree.
     """
+
     inputs: list[Path]
     output_path: Path
     build_path: Path
+    process_hidden: bool
 
     def __init__(
         self,
         inputs: list[Path],
         output_path: Path,
-        build_path: Optional[Path]=None,
+        process_hidden: bool,
+        build_path: Optional[Path] = None,
     ):
         if len(inputs) == 0:
             raise ValueError("at least one input must be given")
@@ -151,6 +150,7 @@ class Trees:
                 raise ValueError(f"input '{root}' is not a directory")
         self.inputs = inputs
         self.output_path = output_path
+        self.process_hidden = process_hidden
         if build_path is None:
             build_path = Path()
         if build_path.is_absolute():
@@ -158,7 +158,8 @@ class Trees:
         self.build_path = build_path
 
     def find_object(
-        self, obj: Path,
+        self,
+        obj: Path,
     ) -> Optional[Union[Path, list[str]]]:
         """Find `obj` in the union of the input trees.
 
@@ -209,8 +210,9 @@ class Trees:
             if self.output_path == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
+            os.makedirs(self.output_path, exist_ok=True)
             for child in found:
-                if child[0] != ".":
+                if child[0] != "." or self.process_hidden:
                     self.process_path(obj / child)
         else:
             Expand(self, obj, found).process_file()
@@ -218,9 +220,12 @@ class Trees:
 
 # TODO: Inline into callers, and remove.
 def expand(
-    inputs: list[Path], output_path: Path, build_path: Optional[Path] = None
+    inputs: list[Path],
+    output_path: Path,
+    process_hidden: bool,
+    build_path: Optional[Path] = None,
 ) -> None:
-    trees = Trees(inputs, output_path, build_path)
+    trees = Trees(inputs, output_path, process_hidden, build_path)
     trees.process_path(trees.build_path)
 
 
@@ -232,6 +237,7 @@ class Expand:
         base_file (Path): the `inputs`-relative `Path`
         file_path (Path): the filesystem input `Path`
     """
+
     trees: Trees
     base_file: Path
     file_path: Path
@@ -257,7 +263,9 @@ class Expand:
         # Recompute `output_file` by expanding `base_file`.
         output_file = self.base_file.relative_to(self.trees.build_path)
         if output_file.name != "":
-            output_file = output_file.with_name(re.sub(TEMPLATE_REGEX, "", output_file.name))
+            output_file = output_file.with_name(
+                re.sub(TEMPLATE_REGEX, "", output_file.name)
+            )
             output_file = os.fsdecode(self.expand(bytes(output_file)))
         self._output_file = self.trees.output_path / output_file
 
@@ -267,7 +275,9 @@ class Expand:
         Raises an error if called while the filename is being expanded.
         """
         if self._output_file is None:
-            raise ValueError("$outputfile is not available while expanding the filename")
+            raise ValueError(
+                "$outputfile is not available while expanding the filename"
+            )
         return self._output_file
 
     def find_on_path(self, start_path: Path, file: Path) -> Optional[Path]:
@@ -375,10 +385,8 @@ class Expand:
                 args, startpos = parse_arguments(expanded, startpos, ord(")"))
             # Parse input
             if startpos < len(expanded) and expanded[startpos] == ord(b"{"):
-                input_args, startpos = parse_arguments(
-                    expanded, startpos, ord("}")
-                )
-                input = b','.join(input_args)
+                input_args, startpos = parse_arguments(expanded, startpos, ord("}"))
+                input = b",".join(input_args)
             if escaped != b"":
                 # Just remove the leading '\'
                 output = command_to_str(name, args, input)
@@ -431,6 +439,7 @@ class Macros:
 
     Each method `foo` defines the behaviour of `$foo`.
     """
+
     _expand: Expand
 
     def __init__(self, expand: Expand):
@@ -458,7 +467,7 @@ class Macros:
         try:
             return bytes(self._expand.output_file())
         except ValueError:
-            return b''
+            return b""
 
     def expand(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is not None:
@@ -522,6 +531,11 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         "--path", help="path to build relative to input tree [default: '']"
     )
     parser.add_argument(
+        "--process-hidden",
+        help="do not ignore hidden files and directories",
+        action="store_true",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"""%(prog)s {VERSION}
@@ -548,6 +562,7 @@ your option) any later version. There is no warranty.""",
         trees = Trees(
             inputs,
             Path(args.output),
+            args.process_hidden,
             Path(args.path) if args.path else None,
         )
         trees.process_path(trees.build_path)

@@ -67,6 +67,7 @@ def passing_test(
     expected: str,
     build_path: Optional[str] = None,
     output_dir: Optional[str] = None,
+    process_hidden: bool = False,
 ) -> None:
     input_dir_paths = list(map(Path, input_dirs))
     ctx_mgr: Union[AbstractContextManager[None], TemporaryDirectory[str]]
@@ -78,9 +79,9 @@ def passing_test(
         output_obj = output_dir
     with ctx_mgr:
         if build_path is not None:
-            expand(input_dir_paths, Path(output_obj), Path(build_path))
+            expand(input_dir_paths, Path(output_obj), process_hidden, Path(build_path))
         else:
-            expand(input_dir_paths, Path(output_obj))
+            expand(input_dir_paths, Path(output_obj), process_hidden)
         assert file_objects_equal(output_obj, expected)
 
 

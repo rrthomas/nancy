@@ -96,6 +96,27 @@ def test_executable_in_cwd_test() -> None:
         )
 
 
+def test_hidden_files_are_ignored() -> None:
+    # Create empty directory to use as expected test result, as we cannot
+    # store an empty directory in git.
+    with TemporaryDirectory() as empty_dir:
+        with chdir(tests_dir):
+            passing_test(
+                ["hidden-files"], empty_dir
+            )
+
+
+def test_hidden_files_can_be_processed() -> None:
+    with chdir(tests_dir):
+        passing_test(
+            ["hidden-files"],
+            "hidden-files",
+            None,
+            None,
+            True,
+        )
+
+
 def test_macros_not_expanded_in_command_line_arguments() -> None:
     with chdir(tests_dir):
         passing_test(["$path-src"], "$path-expected")

@@ -59,6 +59,10 @@ The files are sorted into three groups:
 + *Template files* are those whose name contains the suffix `.nancy`.
 + *Plain files* are the rest.
 
+Hidden files and directories (files whose names starts with `.`) are ignored
+unless the option `--process-hidden` is given, except for those mentioned in
+command line arguments.
+
 The special suffixes need not end the file name; they can be used as infixes
 before the file type suffix. If both are used, they must be in the order
 `.in.nancy`; such files go in the first group.
