@@ -208,10 +208,7 @@ class Trees:
             for child_dirent in dirent:
                 if child_dirent.name[0] != ".":
                     child_object = obj / child_dirent.name
-                    if child_dirent.is_file():
-                        Expand(self, child_object, Path(child_dirent.path)).process_file()
-                    else:
-                        self.process_path(child_object)
+                    self.process_path(child_object)
         else:
             Expand(self, obj, dirent).process_file()
 
