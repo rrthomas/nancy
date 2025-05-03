@@ -430,10 +430,8 @@ class Expand:
         Returns:
             bytes
         """
-        with open(file_path, "rb") as fh:
-            text = fh.read()
         self._stack.append(file_path)
-        output = self.expand(text)
+        output = self.expand(file_path.read_bytes())
         self._stack.pop()
         return output
 
@@ -485,8 +483,8 @@ class Macros:
             raise ValueError("$paste does not take an input")
         debug(command_to_str(b"paste", args, input))
 
-        with open(self._expand.file_arg(args[0]), "rb") as fh:
-            return fh.read()
+        file_path = self._expand.file_arg(args[0])
+        return file_path.read_bytes()
 
     def include(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is None or len(args) != 1:
