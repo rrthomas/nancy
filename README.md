@@ -156,7 +156,8 @@ Nancy recognises these commands:
   trailing newline removed. This can be used to expand the output of a
   program run with `$run`.
 + *`$path`* Expands to the file currently being expanded, relative to the
-  input tree. This is always a template file, unless the current input path is a single file.
+  input tree. This is always a template file, unless the current input path
+  is a single file.
 + *`$realpath`* Returns the real path of the file currently being expanded.
 + *`$outputpath`* Returns the path of the output for the file currently
   being expanded.
