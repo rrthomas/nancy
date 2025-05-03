@@ -106,6 +106,11 @@ def test_path_in_filename() -> None:
         passing_test(["path-in-filename-src"], "path-in-filename-expected")
 
 
+def test_outputpath_in_filename() -> None:
+    with chdir(tests_dir):
+        passing_test(["outputpath-in-filename-src"], "outputpath-in-filename-expected")
+
+
 def test_paste_does_not_expand_macros() -> None:
     with chdir(tests_dir):
         passing_test(["paste-src"], "paste-expected")
