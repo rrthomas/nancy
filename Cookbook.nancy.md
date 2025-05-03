@@ -46,7 +46,7 @@ Note that there is only one menu fragment (the main menu is the same for every p
 
 Now consider how Nancy builds the page whose URL is `Places/Vladivostok/index.html`. Assume the source files are in the directory `source`. This page is built from `source/Places/Vladivostok/index.nancy.html`, whose contents is `$run(head,-c-1,tests/test-files/cookbook-example-website-src/Places/Vladivostok/index.nancy.html)`. According to the rules given in the [Operation](README.md#operation) section of the manual, Nancy will look first for files in `source/Places/Vladivostok`, then in `source/places`, and finally in `source`. Hence, the actual list of files used to assemble the page is:
 
-$expand{$run(env,NANCY_TMPDIR=/tmp/cookbook-dest.$$,sh,-c,rm -rf ${NANCY_TMPDIR} && DEBUG="*" PYTHONPATH=. python -m nancy --path Places/Vladivostok tests/test-files/cookbook-example-website-src ${NANCY_TMPDIR} 2>&1 | grep Found | cut -d " " -f 4 | sort | uniq | sed -e 's|^'\''tests/test-files/cookbook-example-website-src\(.*\)'\''$|* `source\1`|' && rm -rf ${NANCY_TMPDIR})}
+$expand{$run(env,NANCY_TMPDIR=/tmp/cookbook-dest.$$,sh,-c,rm -rf ${NANCY_TMPDIR} && DEBUG=yes PYTHONPATH=. python3 -m nancy --path Places/Vladivostok tests/test-files/cookbook-example-website-src ${NANCY_TMPDIR} 2>&1 | grep Found | cut -d " " -f 2 | sort | uniq | sed -e "s|^'tests/test-files/cookbook-example-website-src\(.*\)'$|* \`source\1\`|" && rm -rf ${NANCY_TMPDIR})}
 
 For the site’s index page, the file `index/logo.in.html` will be used for the logo fragment, which can refer to the larger graphic desired.
 
