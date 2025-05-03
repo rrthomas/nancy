@@ -192,24 +192,6 @@ class Trees:
                 dirents[obj / dirent.name] = dirent
         return sorted(list(dirents.values()), key=lambda x: sorting_name(x.name))
 
-    def get_output_path(self, base_file: Path, file_path: Path) -> Path:
-        """Compute the output path of an input file.
-
-        Args:
-            base_file (Path): the `inputs`-relative `Path`
-            file_path (Path): the filesystem input `Path`
-
-        Returns:
-            Path
-        """
-        output_file = base_file.relative_to(self.build_path)
-        if output_file.name != "":
-            output_file = output_file.with_name(re.sub(TEMPLATE_REGEX, "", output_file.name))
-            output_file = os.fsdecode(
-                Expand(self, base_file, file_path).expand(bytes(output_file))
-            )
-        return self.output_path / output_file
-
     def process_file(self, base_file: Path, file_path: Path) -> None:
         """Expand, copy or ignore a single file.
 
@@ -218,23 +200,23 @@ class Trees:
             file_path (Path): the filesystem input `Path`
         """
         debug(f"Processing file '{file_path}'")
-        output_file = self.get_output_path(base_file, file_path)
-        os.makedirs(output_file.parent, exist_ok=True)
+        expand = Expand(self, base_file, file_path)
+        os.makedirs(expand.output_file().parent, exist_ok=True)
         if re.search(TEMPLATE_REGEX, file_path.name):
-            debug(f"Expanding '{base_file}' to '{output_file}'")
-            output = Expand(self, base_file, file_path, output_file).include(file_path)
-            if not re.search(NO_COPY_REGEX, str(output_file)):
+            debug(f"Expanding '{base_file}' to '{expand.output_file()}'")
+            output = expand.include(file_path)
+            if not re.search(NO_COPY_REGEX, str(expand.output_file())):
                 if self.output_path == Path("-"):
                     sys.stdout.buffer.write(output)
                 else:
-                    with open(output_file, "wb") as fh:
+                    with open(expand.output_file(), "wb") as fh:
                         fh.write(output)
         elif not re.search(NO_COPY_REGEX, file_path.name):
-            if output_file == Path("-"):
+            if self.output_path == Path("-"):
                 file_contents = file_path.read_bytes()
                 sys.stdout.buffer.write(file_contents)
             else:
-                shutil.copyfile(file_path, output_file)
+                shutil.copyfile(file_path, expand.output_file())
 
     def process_path(self, obj: Path) -> None:
         """Recursively scan `obj` and pass every file to `process_file`.
@@ -275,12 +257,11 @@ class Expand:
         trees (Trees):
         base_file (Path): the `inputs`-relative `Path`
         file_path (Path): the filesystem input `Path`
-        output_file (Optional[Path]): the filesystem output `Path`
     """
     trees: Trees
     base_file: Path
     file_path: Path
-    output_file: Optional[Path]
+    _output_file: Optional[Path]
 
     # _stack is a list of filesystem `Path`s which are currently being
     # `$include`d. This is used to avoid infinite loops.
@@ -291,14 +272,29 @@ class Expand:
         trees: Trees,
         base_file: Path,
         file_path: Path,
-        output_file: Optional[Path] = None,
     ):
         self.trees = trees
         self.base_file = base_file
         self.file_path = file_path
-        self.output_file = output_file
+        self._output_file = None
         self._stack = []
         self._macros = Macros(self)
+
+        # Recompute `output_file` by expanding `base_file`.
+        output_file = self.base_file.relative_to(self.trees.build_path)
+        if output_file.name != "":
+            output_file = output_file.with_name(re.sub(TEMPLATE_REGEX, "", output_file.name))
+            output_file = os.fsdecode(self.expand(bytes(output_file)))
+        self._output_file = self.trees.output_path / output_file
+
+    def output_file(self):
+        """Returns the (computed) filesystem output `Path`.
+
+        Raises an error if called while the filename is being expanded.
+        """
+        if self._output_file is None:
+            raise ValueError("$outputfile is not available while expanding the filename")
+        return self._output_file
 
     def find_on_path(self, start_path: Path, file: Path) -> Optional[Path]:
         """Search for file starting at the given path.
@@ -465,7 +461,10 @@ class Macros:
             raise ValueError("$outputpath does not take arguments")
         if input is not None:
             raise ValueError("$outputpath does not take an input")
-        return b'' if self._expand.output_file is None else bytes(self._expand.output_file)
+        try:
+            return bytes(self._expand.output_file())
+        except ValueError:
+            return b''
 
     def expand(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is not None:
