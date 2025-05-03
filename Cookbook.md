@@ -214,7 +214,7 @@ Look at the [source](Cookbook.nancy.md) for the Cookbook for more examples of th
 
 ## Creating binary files in the output
 
-Nancy is mostly intended for templating text files. Sometimes, we would like to create binary files, for example an image containing context-dependent text. In theory, one could use `$paste` to do this, but since any trailing newline is stripped from the output, this is not a good technique in general. Also, it may be desirable to create binary files based on other outputs. This can be achieved by using the `$realpath` command to construct a filename in the output directory, and a `.in.nancy` file to run commands without creating a file in the output directory.
+Nancy is mostly intended for templating text files. Sometimes, we would like to create binary files, for example an image containing context-dependent text. In theory, one could use `$paste` to do this, but since any trailing newline is stripped from the output, this is not a good technique in general. Also, it may be desirable to create binary files based on other outputs. This can be achieved by using the `$outputpath` command to construct a filename in the output directory, and a `.in.nancy` file to run commands without creating a file in the output directory.
 
 The following script, given a directory on the command line, creates a Zip file of a directory in that directory:
 
