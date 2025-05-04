@@ -134,7 +134,10 @@ def test_path_in_filename() -> None:
 
 def test_outputpath_in_filename() -> None:
     with chdir(tests_dir):
-        passing_test(["outputpath-in-filename-src"], "outputpath-in-filename-expected")
+        failing_test(
+            ["outputpath-in-filename-src"],
+            "$outputfile is not available while expanding the filename",
+        )
 
 
 def test_realpath_in_dirname_gives_an_error() -> None:

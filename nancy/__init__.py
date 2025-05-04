@@ -458,10 +458,7 @@ class Macros:
             raise ValueError("$outputpath does not take arguments")
         if input is not None:
             raise ValueError("$outputpath does not take an input")
-        try:
-            return bytes(self._expand.output_file())
-        except ValueError:
-            return b""
+        return bytes(self._expand.output_file())
 
     def expand(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is not None:
