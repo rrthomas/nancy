@@ -12,7 +12,7 @@ import sys
 import warnings
 from logging import debug
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from .warnings_util import die, simple_warning
 
@@ -157,44 +157,28 @@ class Trees:
             raise ValueError("build path must be relative")
         self.build_path = build_path
 
-    def find_object(
-        self,
-        obj: Path,
-    ) -> Optional[Union[Path, list[str]]]:
-        """Find `obj` in the union of the input trees.
-
-        If `obj` is present and not a directory in any input tree, the leftmost
-        such result takes precedence. Return its filesystem `Path` if it's a
-        file, otherwise raise an error.
-
-        If `obj` is missing in every input tree, return `None`.
-
-        Otherwise (if `obj` is a directory in at least one input tree),
-        return the union of the contents of the directories.
-
-        Args:
-            obj (Path): the `inputs`-relative `Path` to find.
+    def find_object(self, obj: Path) -> Optional[Path]:
+        """Find the leftmost input tree containing `obj`.
 
         Returns:
-            Optional[Union[Path, list[str]]]:
-                - the filing system `Path`, if `obj` is a file.
-                - the names of the children, if `obj` is a directory
-                - `None` if `obj` is not found
+            Optional[Path]: the filesystem path of `obj`
         """
         debug(f"find_object {obj} {self.inputs}")
-        dirs = []
         for o in (root / obj for root in self.inputs):
             debug(f"considering {o}")
             if o.exists():
-                if o.is_file():
-                    return o
-                if o.is_dir():
-                    dirs.append(o)
-                else:
-                    raise ValueError(f"'{o}' is not a file or directory")
-        if len(dirs) == 0:
-            return None
-        names = set(dirent.name for d in dirs for dirent in os.scandir(d))
+                return o
+        return None
+
+    def scandir(self, obj: Path) -> list[str]:
+        """Returns the child names of overlaid input directory `obj`."""
+        debug(f"scandir {obj} {self.inputs}")
+        names = set(
+            dirent.name
+            for root in self.inputs
+            if (root / obj).is_dir()
+            for dirent in os.scandir(root / obj)
+        )
         return sorted(names, key=sorting_name)
 
     def process_path(self, obj: Path) -> None:
@@ -206,16 +190,20 @@ class Trees:
         found = self.find_object(obj)
         if found is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
-        if isinstance(found, list):
+        if found.is_dir():
             if self.output_path == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
-            os.makedirs(self.output_path, exist_ok=True)
-            for child in found:
+            os.makedirs(
+                self.output_path, exist_ok=True
+            )  # FIXME: `Trees.output_path` vs `Expand.output_file`
+            for child in self.scandir(obj):
                 if child[0] != "." or self.process_hidden:
                     self.process_path(obj / child)
-        else:
+        elif found.is_file():
             Expand(self, obj, found).process_file()
+        else:
+            raise ValueError(f"'{obj}' is not a file or directory")
 
 
 # TODO: Inline into callers, and remove.
@@ -297,14 +285,8 @@ class Expand:
         debug(f"Searching for '{file}' on {start_path}")
         norm_file = Path(os.path.normpath(file))
         for parent in (start_path / "_").parents:
-            this_search = parent / norm_file
-            obj = self.trees.find_object(this_search)
-            if (
-                obj is not None
-                and not isinstance(obj, list)
-                and obj.is_file()
-                and obj not in self._stack
-            ):
+            obj = self.trees.find_object(parent / norm_file)
+            if obj is not None and obj.is_file() and obj not in self._stack:
                 debug(f"Found '{obj}'")
                 return obj
         return None
