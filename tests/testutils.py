@@ -15,25 +15,14 @@ import subprocess
 import sys
 import tempfile
 from contextlib import AbstractContextManager
-from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
 
 from nancy import expand, main
-
-
-@dataclass
-class Case:
-    name: str
-    args: list[str]
-    expected: str
-    path: Optional[str] = None
-    error: Optional[int] = None
-    extra_checks: Optional[Callable[[], None]] = None
 
 
 def file_objects_equal(
