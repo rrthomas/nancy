@@ -198,6 +198,16 @@ argument to a program, the program will be given the actual path, rather
 than the string `\$realpath`. Arguments and command inputs are processed
 from left to right.
 
+### Environment variables provided by `\$run`
+
+When Nancy `\$run`s a program, it sets the following environment variables:
+
+- NANCY_INPUT - the root of whichever of the input trees contains the file that
+  is being expanded: a prefix of `\$realpath`. The file's name, relative to
+  `NANCY_INPUT`, is `\$path`.
+
+- NANCY_OUTPUT - the root of the output tree: a prefix of `\$outputpath`.
+
 ### Escaping
 
 To prevent a comma from being interpreted as an argument separator, put a
