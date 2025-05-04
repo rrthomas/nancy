@@ -159,18 +159,18 @@ class Trees:
             raise ValueError("build path must be relative")
         self.build_path = build_path
 
-    def find_object(self, obj: Path) -> Optional[Path]:
-        """Find the leftmost input tree containing `obj`.
-
-        Returns:
-            Optional[Path]: the filesystem path of `obj`
-        """
-        debug(f"find_object {obj} {self.inputs}")
-        for o in (root / obj for root in self.inputs):
-            debug(f"considering {o}")
-            if o.exists():
-                return o
+    def find_root(self, obj: Path) -> Optional[Path]:
+        """Find the leftmost of `inputs` that contains `obj`."""
+        for root in self.inputs:
+            if (root / obj).exists():
+                return root
         return None
+
+    def find_object(self, obj: Path) -> Optional[Path]:
+        """Returns `find_root(obj) / obj` or `None`."""
+        debug(f"find_object {obj} {self.inputs}")
+        root = self.find_root(obj)
+        return None if root is None else root / obj
 
     def scandir(self, obj: Path) -> list[str]:
         """Returns the child names of overlaid input directory `obj`."""
@@ -189,10 +189,10 @@ class Trees:
         Args:
             obj (Path): the `inputs`-relative `Path` to scan.
         """
-        found = self.find_object(obj)
-        if found is None:
+        root = self.find_root(obj)
+        if root is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
-        if found.is_dir():
+        if (root / obj).is_dir():
             if self.output == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
@@ -202,8 +202,8 @@ class Trees:
             for child in self.scandir(obj):
                 if child[0] != "." or self.process_hidden:
                     self.process_path(obj / child)
-        elif found.is_file():
-            Expand(self, obj, found).process_file()
+        elif (root / obj).is_file():
+            Expand(self, obj, root / obj).process_file()
         else:
             raise ValueError(f"'{obj}' is not a file or directory")
 
