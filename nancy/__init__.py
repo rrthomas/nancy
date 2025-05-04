@@ -198,7 +198,7 @@ class Trees:
             debug(f"Entering directory '{obj}'")
             os.makedirs(
                 self.output, exist_ok=True
-            )  # FIXME: `Trees.output` vs `Expand.output_file`
+            )  # FIXME: `Trees.output` vs `Expand.output_file()`
             for child in self.scandir(obj):
                 if child[0] != "." or self.process_hidden:
                     self.process_path(obj / child)
@@ -231,7 +231,10 @@ class Expand:
     trees: Trees
     path: Path
     file_path: Path
-    _output_file: Optional[Path]
+
+    # The output file relative to `trees.output`.
+    # `None` while the filename is being expanded.
+    _output_path: Optional[Path]
 
     # _stack is a list of filesystem `Path`s which are currently being
     # `$include`d. This is used to avoid infinite loops.
@@ -246,29 +249,29 @@ class Expand:
         self.trees = trees
         self.path = path
         self.file_path = file_path
-        self._output_file = None
+        self._output_path = None
         self._stack = []
         self._macros = Macros(self)
 
-        # Recompute `output_file` by expanding `path`.
-        output_file = self.path.relative_to(self.trees.build_path)
-        if output_file.name != "":
-            output_file = output_file.with_name(
-                re.sub(TEMPLATE_REGEX, "", output_file.name)
+        # Recompute `_output_path` by expanding `path`.
+        output_path = self.path.relative_to(self.trees.build_path)
+        if output_path.name != "":
+            output_path = output_path.with_name(
+                re.sub(TEMPLATE_REGEX, "", output_path.name)
             )
-            output_file = os.fsdecode(self.expand(bytes(output_file)))
-        self._output_file = self.trees.output / output_file
+            output_path = os.fsdecode(self.expand(bytes(output_path)))
+        self._output_path = Path(output_path)
 
     def output_file(self):
         """Returns the (computed) filesystem output `Path`.
 
         Raises an error if called while the filename is being expanded.
         """
-        if self._output_file is None:
+        if self._output_path is None:
             raise ValueError(
                 "$outputfile is not available while expanding the filename"
             )
-        return self._output_file
+        return self.trees.output / self._output_path
 
     def find_on_path(self, start_path: Path, file: Path) -> Optional[Path]:
         """Search for file starting at the given path.
