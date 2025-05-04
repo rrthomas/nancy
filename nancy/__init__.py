@@ -125,7 +125,7 @@ class Trees:
         inputs (list[Path]): a list of filesystem `Path`s to overlay to
             make an abstract input tree
         output (Path): the filesystem `Path` of the output directory
-        build_path (Path): the subtree of `inputs` to process.
+        build (Path): the subtree of `inputs` to process.
             Defaults to the whole tree.
         process_hidden (bool): `True` to process hidden files (those whose
             names begin with ".")
@@ -133,7 +133,7 @@ class Trees:
 
     inputs: list[Path]
     output: Path
-    build_path: Path
+    build: Path
     process_hidden: bool
 
     def __init__(
@@ -141,7 +141,7 @@ class Trees:
         inputs: list[Path],
         output: Path,
         process_hidden: bool,
-        build_path: Optional[Path] = None,
+        build: Optional[Path] = None,
     ):
         if len(inputs) == 0:
             raise ValueError("at least one input must be given")
@@ -153,11 +153,11 @@ class Trees:
         self.inputs = inputs
         self.output = output
         self.process_hidden = process_hidden
-        if build_path is None:
-            build_path = Path()
-        if build_path.is_absolute():
+        if build is None:
+            build = Path()
+        if build.is_absolute():
             raise ValueError("build path must be relative")
-        self.build_path = build_path
+        self.build = build
 
     def find_root(self, obj: Path) -> Optional[Path]:
         """Find the leftmost of `inputs` that contains `obj`."""
@@ -213,10 +213,10 @@ def expand(
     inputs: list[Path],
     output: Path,
     process_hidden: bool,
-    build_path: Optional[Path] = None,
+    build: Optional[Path] = None,
 ) -> None:
-    trees = Trees(inputs, output, process_hidden, build_path)
-    trees.process_path(trees.build_path)
+    trees = Trees(inputs, output, process_hidden, build)
+    trees.process_path(trees.build)
 
 
 class Expand:
@@ -255,7 +255,7 @@ class Expand:
         self._macros = Macros(self)
 
         # Recompute `_output_path` by expanding `path`.
-        output_path = self.path.relative_to(self.trees.build_path)
+        output_path = self.path.relative_to(self.trees.build)
         if output_path.name != "":
             output_path = output_path.with_name(
                 re.sub(TEMPLATE_REGEX, "", output_path.name)
@@ -557,7 +557,7 @@ your option) any later version. There is no warranty.""",
             args.process_hidden,
             Path(args.path) if args.path else None,
         )
-        trees.process_path(trees.build_path)
+        trees.process_path(trees.build)
     except Exception as err:
         if "DEBUG" in os.environ:
             logging.error(err, exc_info=True)
