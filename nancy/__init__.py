@@ -124,7 +124,7 @@ class Trees:
     Fields:
         inputs (list[Path]): a list of filesystem `Path`s to overlay to
             make an abstract input tree
-        output_path (Path): the filesystem `Path` of the output directory
+        output (Path): the filesystem `Path` of the output directory
         build_path (Path): the subtree of `inputs` to process.
             Defaults to the whole tree.
         process_hidden (bool): `True` to process hidden files (those whose
@@ -132,14 +132,14 @@ class Trees:
     """
 
     inputs: list[Path]
-    output_path: Path
+    output: Path
     build_path: Path
     process_hidden: bool
 
     def __init__(
         self,
         inputs: list[Path],
-        output_path: Path,
+        output: Path,
         process_hidden: bool,
         build_path: Optional[Path] = None,
     ):
@@ -151,7 +151,7 @@ class Trees:
             if not root.is_dir():
                 raise ValueError(f"input '{root}' is not a directory")
         self.inputs = inputs
-        self.output_path = output_path
+        self.output = output
         self.process_hidden = process_hidden
         if build_path is None:
             build_path = Path()
@@ -193,12 +193,12 @@ class Trees:
         if found is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
         if found.is_dir():
-            if self.output_path == Path("-"):
+            if self.output == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
             os.makedirs(
-                self.output_path, exist_ok=True
-            )  # FIXME: `Trees.output_path` vs `Expand.output_file`
+                self.output, exist_ok=True
+            )  # FIXME: `Trees.output` vs `Expand.output_file`
             for child in self.scandir(obj):
                 if child[0] != "." or self.process_hidden:
                     self.process_path(obj / child)
@@ -211,11 +211,11 @@ class Trees:
 # TODO: Inline into callers, and remove.
 def expand(
     inputs: list[Path],
-    output_path: Path,
+    output: Path,
     process_hidden: bool,
     build_path: Optional[Path] = None,
 ) -> None:
-    trees = Trees(inputs, output_path, process_hidden, build_path)
+    trees = Trees(inputs, output, process_hidden, build_path)
     trees.process_path(trees.build_path)
 
 
@@ -257,7 +257,7 @@ class Expand:
                 re.sub(TEMPLATE_REGEX, "", output_file.name)
             )
             output_file = os.fsdecode(self.expand(bytes(output_file)))
-        self._output_file = self.trees.output_path / output_file
+        self._output_file = self.trees.output / output_file
 
     def output_file(self):
         """Returns the (computed) filesystem output `Path`.
@@ -405,13 +405,13 @@ class Expand:
             debug(f"Expanding '{self.path}' to '{self.output_file()}'")
             output = self.include(self.file_path)
             if not re.search(NO_COPY_REGEX, str(self.output_file())):
-                if self.trees.output_path == Path("-"):
+                if self.trees.output == Path("-"):
                     sys.stdout.buffer.write(output)
                 else:
                     with open(self.output_file(), "wb") as fh:
                         fh.write(output)
         elif not re.search(NO_COPY_REGEX, self.file_path.name):
-            if self.trees.output_path == Path("-"):
+            if self.trees.output == Path("-"):
                 file_contents = self.file_path.read_bytes()
                 sys.stdout.buffer.write(file_contents)
             else:
