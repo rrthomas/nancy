@@ -63,6 +63,11 @@ def test_two_trees() -> None:
         check_links("mergetrees-expected", "index.html")
 
 
+def test_env_vars() -> None:
+    with chdir(tests_dir):
+        passing_test(["env-vars-src", "webpage-src"], "env-vars-expected")
+
+
 def test_nested_macro_invocations() -> None:
     with chdir(tests_dir):
         passing_test(["nested-macro-src"], "nested-macro-expected")
