@@ -224,12 +224,12 @@ class Expand:
 
     Fields:
         trees (Trees):
-        base_file (Path): the `inputs`-relative `Path`
+        path (Path): the `inputs`-relative `Path`
         file_path (Path): the filesystem input `Path`
     """
 
     trees: Trees
-    base_file: Path
+    path: Path
     file_path: Path
     _output_file: Optional[Path]
 
@@ -240,18 +240,18 @@ class Expand:
     def __init__(
         self,
         trees: Trees,
-        base_file: Path,
+        path: Path,
         file_path: Path,
     ):
         self.trees = trees
-        self.base_file = base_file
+        self.path = path
         self.file_path = file_path
         self._output_file = None
         self._stack = []
         self._macros = Macros(self)
 
-        # Recompute `output_file` by expanding `base_file`.
-        output_file = self.base_file.relative_to(self.trees.build_path)
+        # Recompute `output_file` by expanding `path`.
+        output_file = self.path.relative_to(self.trees.build_path)
         if output_file.name != "":
             output_file = output_file.with_name(
                 re.sub(TEMPLATE_REGEX, "", output_file.name)
@@ -307,12 +307,12 @@ class Expand:
             Path: The filename found
         """
         filename = Path(os.fsdecode(arg))
-        file_path = self.find_on_path(self.base_file.parent, filename)
+        file_path = self.find_on_path(self.path.parent, filename)
         if file_path is not None:
             return file_path
         if not exe:
             raise ValueError(
-                f"cannot find '{filename}' while expanding '{self.base_file.parent}'"
+                f"cannot find '{filename}' while expanding '{self.path.parent}'"
             )
         exe_path_str = shutil.which(filename)
         if exe_path_str is not None:
@@ -402,7 +402,7 @@ class Expand:
         debug(f"Processing file '{self.file_path}'")
         os.makedirs(self.output_file().parent, exist_ok=True)
         if re.search(TEMPLATE_REGEX, self.file_path.name):
-            debug(f"Expanding '{self.base_file}' to '{self.output_file()}'")
+            debug(f"Expanding '{self.path}' to '{self.output_file()}'")
             output = self.include(self.file_path)
             if not re.search(NO_COPY_REGEX, str(self.output_file())):
                 if self.trees.output_path == Path("-"):
@@ -434,7 +434,7 @@ class Macros:
             raise ValueError("$path does not take arguments")
         if input is not None:
             raise ValueError("$path does not take an input")
-        return bytes(self._expand.base_file)
+        return bytes(self._expand.path)
 
     def realpath(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is not None:
