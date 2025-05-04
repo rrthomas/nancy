@@ -37,18 +37,20 @@ $ pip install nancy
 ## Invocation
 
 ```
-nancy [-h] [--path PATH] [--version] INPUT-PATH OUTPUT
+nancy [-h] [--path PATH] [--process-hidden] [--version]
+             INPUT-PATH OUTPUT
 
 A simple templating system.
 
 positional arguments:
-  INPUT-PATH   list of input directories, or a single file
-  OUTPUT       output directory, or file ('-' for stdout)
+  INPUT-PATH        list of input directories, or a single file
+  OUTPUT            output directory, or file ('-' for stdout)
 
 options:
-  -h, --help   show this help message and exit
-  --path PATH  path to build relative to input tree [default: '']
-  --version    show program's version number and exit
+  -h, --help        show this help message and exit
+  --path PATH       path to build relative to input tree [default: '']
+  --process-hidden  do not ignore hidden files and directories
+  --version         show program's version number and exit
 
 The INPUT-PATH is a ':'-separated list; the inputs are merged
 in left-to-right order.
@@ -73,6 +75,10 @@ The files are sorted into three groups:
 + *Input files* are those whose name contains the suffix `.in`.
 + *Template files* are those whose name contains the suffix `.nancy`.
 + *Plain files* are the rest.
+
+Hidden files and directories (files whose names starts with `.`) are ignored
+unless the option `--process-hidden` is given, except for those mentioned in
+command line arguments.
 
 The special suffixes need not end the file name; they can be used as infixes
 before the file type suffix. If both are used, they must be in the order
