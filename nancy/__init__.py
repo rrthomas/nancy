@@ -127,6 +127,8 @@ class Trees:
         output_path (Path): the filesystem `Path` of the output directory
         build_path (Path): the subtree of `inputs` to process.
             Defaults to the whole tree.
+        process_hidden (bool): `True` to process hidden files (those whose
+            names begin with ".")
     """
 
     inputs: list[Path]
