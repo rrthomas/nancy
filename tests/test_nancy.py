@@ -132,6 +132,14 @@ def test_outputpath_in_filename() -> None:
         passing_test(["outputpath-in-filename-src"], "outputpath-in-filename-expected")
 
 
+def test_realpath_in_dirname_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            ['realpath-in-dirname-src'],
+            "$realpath is not available for directories",
+        )
+
+
 def test_paste_does_not_expand_macros() -> None:
     with chdir(tests_dir):
         passing_test(["paste-src"], "paste-expected")

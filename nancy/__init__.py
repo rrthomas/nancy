@@ -196,9 +196,8 @@ class Trees:
             if self.output == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
-            os.makedirs(
-                self.output, exist_ok=True
-            )  # FIXME: `Trees.output` vs `Expand.output_file()`
+            output_dir = Expand(self, None, obj).output_file()
+            os.makedirs(output_dir, exist_ok=True)
             for child in self.scandir(obj):
                 if child[0] != "." or self.process_hidden:
                     self.process_path(obj / child)
@@ -224,12 +223,12 @@ class Expand:
 
     Fields:
         trees (Trees):
-        root (Path): one of `trees.inputs`
+        root (Optional[Path]): one of `trees.inputs`
         path (Path): the `root`-relative `Path`
     """
 
     trees: Trees
-    root: Path
+    root: Optional[Path]
     path: Path
 
     # The output file relative to `trees.output`.
@@ -243,10 +242,11 @@ class Expand:
     def __init__(
         self,
         trees: Trees,
-        root: Path,
+        root: Optional[Path],
         path: Path,
     ):
-        assert root in trees.inputs, (root, trees)
+        if root is not None:
+            assert root in trees.inputs, (root, trees)
         self.trees = trees
         self.root = root
         self.path = path
@@ -265,6 +265,8 @@ class Expand:
 
     def input_file(self):
         """Returns the filesystem input `Path`."""
+        if self.root is None:
+            raise ValueError("$realpath is not available for directories")
         return self.root / self.path
 
     def output_file(self):
