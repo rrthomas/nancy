@@ -352,10 +352,10 @@ class Expand:
         name_str = name.decode("iso-8859-1")
         args = None if args is None else [self.expand_arg(arg) for arg in args]
         input = None if input is None else self.expand_arg(input)
-        try:
-            return getattr(self._macros, name_str)(args, input)
-        except AttributeError:
+        macro = getattr(self._macros, name_str, None)
+        if macro is None:
             raise ValueError(f"no such macro '${name_str}'")
+        return macro(args, input)
 
     def expand(self, text: bytes) -> bytes:
         """Expand `text`.
