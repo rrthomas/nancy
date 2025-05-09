@@ -1,1 +1,0 @@
-$run(sh,-c,printf '\a' > $expand{$run(dirname,\\$NANCY_OUTPUT/$outputpath)}/bell.bin)

@@ -505,7 +505,6 @@ class Macros:
         exe_path = self._expand.file_arg(args[0], exe=True)
         expanded_input = None if input is None else self._expand.expand(input)
         os.environ['NANCY_INPUT'] = str(self._expand.root)
-        os.environ['NANCY_OUTPUT'] = str(self._expand.trees.output)
         return filter_bytes(expanded_input, exe_path, args[1:])
 
 

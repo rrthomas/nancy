@@ -160,8 +160,8 @@ Nancy recognises these commands:
 + *`$path`* Expands to the file currently being expanded, relative to the
   input tree. This is always a template file, unless the current input path
   is a single file.
-+ *`$outputpath`* Returns the path of the output tree for the file currently
-  being expanded, relative to `NANCY_OUTPUT`.
++ *`$outputpath`* Returns the output-tree relative path for the file
+  currently being expanded.
 
 The last two commands are mostly useful in arguments to `$run`.
 
@@ -220,7 +220,6 @@ When Nancy `$run`s a program, it sets the following environment variables:
 - NANCY_INPUT - the root of whichever of the input trees contains the file
   that is being expanded. The file's name, relative to `NANCY_INPUT`, is
   `$path`.
-- NANCY_OUTPUT - the root of the output tree.
 
 ### Escaping
 
