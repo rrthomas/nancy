@@ -70,7 +70,7 @@ input tree.
 For each directory in the input tree, Nancy creates a corresponding
 directory, if it does not already exist.
 
-The files are sorted into three groups:
+Each file is one of three types:
 
 + *Input files* are those whose name contains the suffix `.in`.
 + *Template files* are those whose name contains the suffix `.nancy`.
@@ -81,28 +81,24 @@ unless the option `--process-hidden` is given, except for those mentioned in
 command line arguments.
 
 The special suffixes need not end the file name; they can be used as infixes
-before the file type suffix. If both are used, they must be in the order
-`.in.nancy`; such files go in the first group.
+before the file type suffix.
 
-Nancy then considers the files in each group, taking the files in each group
-in lexical order:
+Nancy then processes each file:
 
-+ First, each plain file is copied to the corresponding place in the
++ Each plain file is copied to the corresponding place in the
   output.
-+ Secondly, each template file is expanded (see below), and the result is
+* Each input file is ignored if it contains only one `.in`, or copied to the output with a single `.in` removed otherwise.
++ Each template file is expanded (see below), and the result is
   written to the corresponding place in the output directory. To get
   the name of a file or directory in the output, the name in the input tree
   is expanded, and any `.nancy` suffix is removed. There is one exception:
   the root directory (or file) is called `OUTPUT` (that is, the `OUTPUT`
   argument to Nancy).
-+ Thirdly, any template files among the input files are also expanded, but
-  the result is discarded.
 
 Input files, which are not copied to the output in any form, can be used by
-commands in other files, or in the case of `.in.nancy` files, have other
-side-effects, as commands they contain are executed. They can also be used
-for documentation or other files which you’d like to keep with the inputs,
-but not form part of the output.
+commands in other files. They can also be used for documentation or other
+files which you’d like to keep with the inputs, but not form part of the
+output.
 
 
 ### Special cases

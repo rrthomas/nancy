@@ -19,22 +19,15 @@ from .warnings_util import die, simple_warning
 
 VERSION = importlib.metadata.version("nancy")
 
+COPY_REGEX = re.compile(r"\.copy(?=\.|$)")
 TEMPLATE_REGEX = re.compile(r"\.nancy(?=\.[^.]+$|$)")
-NO_COPY_REGEX = re.compile(r"\.in(?=\.(nancy\.)?[^.]+$|$)")
+INPUT_REGEX = re.compile(r"\.in(?=\.[^.]+$|$)")
+
 MACRO_REGEX = re.compile(rb"(\\?)\$([^\W\d_]\w*)")
 
 
 def strip_final_newline(s: bytes) -> bytes:
     return re.sub(b"\n$", b"", s)
-
-
-# Turn a filename into a sort key.
-def sorting_name(n: str) -> str:
-    if re.search(NO_COPY_REGEX, n):
-        return f"2 {n}"
-    elif re.search(TEMPLATE_REGEX, n):
-        return f"1 {n}"
-    return f"0 {n}"
 
 
 def parse_arguments(
@@ -181,7 +174,7 @@ class Trees:
             if (root / obj).is_dir()
             for dirent in os.scandir(root / obj)
         )
-        return sorted(names, key=sorting_name)
+        return list(names)
 
     def process_path(self, obj: Path) -> None:
         """Recursively scan `obj` and pass every file to `process_file`.
@@ -257,9 +250,14 @@ class Expand:
         # Recompute `_output_path` by expanding `path`.
         output_path = self.path.relative_to(self.trees.build)
         if output_path.name != "":
-            output_path = output_path.with_name(
-                re.sub(TEMPLATE_REGEX, "", output_path.name)
-            )
+            if re.search(COPY_REGEX, output_path.name):
+                output_path = output_path.with_name(
+                    output_path.name.replace(".copy", "", 1)
+                )
+            else:
+                output_path = output_path.with_name(
+                    re.sub(TEMPLATE_REGEX, "", output_path.name)
+                )
             output_path = os.fsdecode(self.expand(bytes(output_path)))
         self._output_path = Path(output_path)
 
@@ -413,25 +411,29 @@ class Expand:
         self._stack.pop()
         return output
 
+    def _copy_file(self) -> None:
+        if self.trees.output == Path("-"):
+            file_contents = self.input_file().read_bytes()
+            sys.stdout.buffer.write(file_contents)
+        else:
+            shutil.copyfile(self.input_file(), self.output_file())
+
     def process_file(self) -> None:
         """Expand, copy or ignore the file."""
         debug(f"Processing file '{self.input_file()}'")
         os.makedirs(self.output_file().parent, exist_ok=True)
-        if re.search(TEMPLATE_REGEX, self.input_file().name):
+        if re.search(COPY_REGEX, self.input_file().name):
+            self._copy_file()
+        elif re.search(TEMPLATE_REGEX, self.input_file().name):
             debug(f"Expanding '{self.path}' to '{self.output_file()}'")
             output = self.include(self.input_file())
-            if not re.search(NO_COPY_REGEX, str(self.output_file())):
-                if self.trees.output == Path("-"):
-                    sys.stdout.buffer.write(output)
-                else:
-                    with open(self.output_file(), "wb") as fh:
-                        fh.write(output)
-        elif not re.search(NO_COPY_REGEX, self.input_file().name):
             if self.trees.output == Path("-"):
-                file_contents = self.input_file().read_bytes()
-                sys.stdout.buffer.write(file_contents)
+                sys.stdout.buffer.write(output)
             else:
-                shutil.copyfile(self.input_file(), self.output_file())
+                with open(self.output_file(), "wb") as fh:
+                    fh.write(output)
+        elif not re.search(INPUT_REGEX, self.input_file().name):
+            self._copy_file()
 
 
 class Macros:

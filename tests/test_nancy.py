@@ -146,6 +146,11 @@ def test_outputpath_in_filename() -> None:
         )
 
 
+def test_copy_suffix() -> None:
+    with chdir(tests_dir):
+        passing_test(["copy-src"], "copy-expected")
+
+
 def test_paste_does_not_expand_macros() -> None:
     with chdir(tests_dir):
         passing_test(["paste-src"], "paste-expected")

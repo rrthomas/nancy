@@ -111,20 +111,27 @@ Look at the [source](Cookbook.nancy.md) for the Cookbook for more examples of th
 
 ## Creating binary files in the output
 
-Nancy is mostly intended for templating text files. Sometimes, we would like to create binary files, for example an image containing context-dependent text. In theory, one could use `\$paste` to do this, but since any trailing newline is stripped from the output, this is not a good technique in general. Also, it may be desirable to create binary files based on other outputs. This can be achieved by using the `\$outputpath` command to construct a filename in the output directory, and a `.in.nancy` file to run commands without creating a file in the output directory.
+Nancy is mostly intended for templating text files. Sometimes, we would like to create binary files, for example an image containing context-dependent text. This can be done with a `.nancy` file just as for text.
 
-The following script, given a directory on the command line, creates a Zip file of a directory in that directory:
+## Processing Nancy’s output
+
+Sometimes it is desirable to process the output, rather than the input. For
+this, you can run Nancy once to produce an initial set of results, and then
+run it again to produce further outputs. For example, suppose you want to
+produce Zip files of the contents of certain directories in Nancy’s output.
+
+The following script will produce a Zip file of a directory, excluding `.nancy` files:
 
 ```
 #!/bin/sh
-cd $1
-zip -r archive.zip .
+cd $(dirname "${NANCY_INPUT}/$1")
+zip -r archive.zip . --exclude *.nancy.*
 ```
 
-Assuming it is called `make-zip.in.sh`, it can be used thus, from a file called `make-zip.in.nancy`:
+Assuming it is called `make-zip.in.in.sh`, it can be used thus, from a file called `archive.nancy.zip`:
 
 ```
-\$run(make-zip.in.sh,\$outputpath/\$path)
+\$run(make-zip.in.sh,\$path)
 ```
 
 ## Processing files in the input directory
