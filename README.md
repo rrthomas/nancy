@@ -160,7 +160,6 @@ Nancy recognises these commands:
 + *`$path`* Expands to the file currently being expanded, relative to the
   input tree. This is always a template file, unless the current input path
   is a single file.
-+ *`$realpath`* Returns the real path of the file currently being expanded.
 + *`$outputpath`* Returns the path of the output tree for the file currently
   being expanded, relative to `NANCY_OUTPUT`.
 
@@ -210,18 +209,17 @@ See the [date example](Cookbook.md#date-example) in the Cookbook for more
 detail.
 
 If one command is nested inside another, the inner command will be processed
-first. This means that if, for example, `$realpath` is passed as an
-argument to a program, the program will be given the actual path, rather
-than the string `$realpath`. Arguments and command inputs are processed
-from left to right.
+first. This means that if, for example, `$path` is passed as an argument to
+a program, the program will be given the actual path, rather than the string
+`$path`. Arguments and command inputs are processed from left to right.
 
 ### Environment variables provided by `$run`
 
 When Nancy `$run`s a program, it sets the following environment variables:
 
-- NANCY_INPUT - the root of whichever of the input trees contains the file that
-  is being expanded: a prefix of `$realpath`. The file's name, relative to
-  `NANCY_INPUT`, is `$path`.
+- NANCY_INPUT - the root of whichever of the input trees contains the file
+  that is being expanded. The file's name, relative to `NANCY_INPUT`, is
+  `$path`.
 - NANCY_OUTPUT - the root of the output tree.
 
 ### Escaping

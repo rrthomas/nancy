@@ -146,14 +146,6 @@ def test_outputpath_in_filename() -> None:
         )
 
 
-def test_realpath_in_dirname_gives_an_error() -> None:
-    with chdir(tests_dir):
-        failing_test(
-            ['realpath-in-dirname-src'],
-            "$realpath is not available for directories",
-        )
-
-
 def test_paste_does_not_expand_macros() -> None:
     with chdir(tests_dir):
         passing_test(["paste-src"], "paste-expected")
@@ -174,33 +166,6 @@ def test_path_with_input_gives_an_error() -> None:
             [os.getcwd()],
             "$path does not take an input",
             "path-input.nancy.txt",
-        )
-
-
-def test_realpath() -> None:
-    with chdir(tests_dir):
-        passing_test(
-            ["."],
-            "realpath-expected.txt",
-            "realpath.nancy.txt",
-        )
-
-
-def test_realpath_with_arguments_gives_an_error() -> None:
-    with chdir(tests_dir):
-        failing_test(
-            [os.getcwd()],
-            "$realpath does not take arguments",
-            "realpath-arg.nancy.txt",
-        )
-
-
-def test_realpath_with_input_gives_an_error() -> None:
-    with chdir(tests_dir):
-        failing_test(
-            [os.getcwd()],
-            "$realpath does not take an input",
-            "realpath-input.nancy.txt",
         )
 
 

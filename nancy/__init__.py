@@ -265,8 +265,7 @@ class Expand:
 
     def input_file(self):
         """Returns the filesystem input `Path`."""
-        if self.root is None:
-            raise ValueError("$realpath is not available for directories")
+        assert self.root is not None
         return self.root / self.path
 
     def output_path(self):
@@ -452,13 +451,6 @@ class Macros:
         if input is not None:
             raise ValueError("$path does not take an input")
         return bytes(self._expand.path)
-
-    def realpath(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
-        if args is not None:
-            raise ValueError("$realpath does not take arguments")
-        if input is not None:
-            raise ValueError("$realpath does not take an input")
-        return bytes(self._expand.input_file())
 
     def outputpath(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is not None:
