@@ -1,5 +1,0 @@
-In subdir/A
-super A from A: filename-src/a.in
-B from A: filename-src/b.in
-In B
-A from B: filename-src/subdir/a.in

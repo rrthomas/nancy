@@ -470,15 +470,6 @@ class Macros:
 
         return strip_final_newline(self._expand.expand(input))
 
-    def filename(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
-        if args is None or len(args) != 1:
-            raise ValueError("$filename needs exactly one argument")
-        if input is not None:
-            raise ValueError("$filename does not take an input")
-        debug(command_to_str(b"filename", args, input))
-
-        return bytes(self._expand.file_arg(args[0]))
-
     def paste(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is None or len(args) != 1:
             raise ValueError("$paste needs exactly one argument")

@@ -143,8 +143,6 @@ Nancy recognises these commands:
   want, and makes `$include` behave better in various contexts.)
 + *`$paste(FILE)`* Look up the given source file like `$include`, and
   return its contents.
-+ *`$filename(FILE)`* Look up the given source file like `$include`, and
-  return its filename.
 + *`$run(PROGRAM,ARGUMENT…){INPUT}`* Run the given program with the given
   arguments and return its result. If an input is given, it is expanded,
   then supplied to the program’s standard input. This can be useful in a

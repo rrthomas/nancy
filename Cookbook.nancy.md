@@ -133,17 +133,3 @@ Assuming it is called `make-zip.in.in.sh`, it can be used thus, from a file call
 ```
 \$run(make-zip.in.sh,\$path)
 ```
-
-## Processing files in the input directory
-
-Sometimes we would like to process input files using a command other than `nancy`. For example, a file can display its own modification date using `NANCY_INPUT` like this:
-
-```
-\$run(date,-d,@$run(sh,-c,stat -c%Y \\$NANCY_INPUT/$path),+%F)
-```
-
-We might want to process a different file. For example, [`timeplate.in.html`](#website-example) could display the modification date of `main.in.html` using `\$filename` like this:
-
-```
-\$run(date,-d,@$run(stat,-c%Y,$filename(main.in.html)),+%F)
-```
