@@ -142,7 +142,7 @@ def test_outputpath_in_filename() -> None:
     with chdir(tests_dir):
         failing_test(
             ["outputpath-in-filename-src"],
-            "$outputfile is not available while expanding the filename",
+            "$outputpath is not available while expanding the filename",
         )
 
 

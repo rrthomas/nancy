@@ -70,8 +70,9 @@ input tree.
 For each directory in the input tree, Nancy creates a corresponding
 directory, if it does not already exist.
 
-Each file is one of three types:
+Each file is one of four types:
 
++ *Copied files* are those whose name contains the suffix `.copy`; this takes precedence over the suffixes mentioned below. A file may have more than one `.copy` suffix.
 + *Input files* are those whose name contains the suffix `.in`.
 + *Template files* are those whose name contains the suffix `.nancy`.
 + *Plain files* are the rest.
@@ -85,15 +86,14 @@ before the file type suffix.
 
 Nancy then processes each file:
 
-+ Each plain file is copied to the corresponding place in the
-  output.
-* Each input file is ignored if it contains only one `.in`, or copied to the output with a single `.in` removed otherwise.
-+ Each template file is expanded (see below), and the result is
-  written to the corresponding place in the output directory. To get
-  the name of a file or directory in the output, the name in the input tree
-  is expanded, and any `.nancy` suffix is removed. There is one exception:
-  the root directory (or file) is called `OUTPUT` (that is, the `OUTPUT`
-  argument to Nancy).
++ Each plain file is copied to the corresponding place in the output.
+* Each copied file is copied to the corresponding place in the output, with a `.copy` suffix removed.
+* Each input file is ignored.
++ Each template file is expanded (see below), and the result is written to
+  the corresponding place in the output directory. To get the name of a file
+  or directory in the output, the name in the input tree is expanded, and
+  any `.nancy` suffix is removed. There is one exception: the root directory
+  (or file) is called `OUTPUT` (that is, the `OUTPUT` argument to Nancy).
 
 Input files, which are not copied to the output in any form, can be used by
 commands in other files. They can also be used for documentation or other

@@ -273,7 +273,7 @@ class Expand:
         """
         if self._output_path is None:
             raise ValueError(
-                "$outputfile is not available while expanding the filename"
+                "$outputpath is not available while expanding the filename"
             )
         return self._output_path
 
