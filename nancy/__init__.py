@@ -269,8 +269,8 @@ class Expand:
             raise ValueError("$realpath is not available for directories")
         return self.root / self.path
 
-    def output_file(self):
-        """Returns the (computed) filesystem output `Path`.
+    def output_path(self):
+        """Returns the relative output `Path` for the current file.
 
         Raises an error if called while the filename is being expanded.
         """
@@ -278,7 +278,14 @@ class Expand:
             raise ValueError(
                 "$outputfile is not available while expanding the filename"
             )
-        return self.trees.output / self._output_path
+        return self._output_path
+
+    def output_file(self):
+        """Returns the (computed) filesystem output `Path`.
+
+        Raises an error if called while the filename is being expanded.
+        """
+        return self.trees.output / self.output_path()
 
     def find_on_path(self, start_path: Path, file: Path) -> Optional[Path]:
         """Search for file starting at the given path.
@@ -458,7 +465,7 @@ class Macros:
             raise ValueError("$outputpath does not take arguments")
         if input is not None:
             raise ValueError("$outputpath does not take an input")
-        return bytes(self._expand.output_file())
+        return bytes(self._expand.output_path())
 
     def expand(self, args: Optional[list[bytes]], input: Optional[bytes]) -> bytes:
         if args is not None:
