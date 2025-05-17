@@ -83,6 +83,8 @@ commands in other files. They can also be used for documentation or other
 files which you’d like to keep with the inputs, but not form part of the
 output.
 
+If the `--delete` option is given, Nancy deletes any files in the output directory that it did not write, and any directories that thereby become empty.
+
 
 ### Special cases
 

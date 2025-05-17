@@ -122,12 +122,19 @@ class Trees:
             Defaults to the whole tree.
         process_hidden (bool): `True` to process hidden files (those whose
             names begin with ".")
+        delete_ungenerated (bool): `True` to delete files we do not generate
+        extant_files (set[Path]): the files in the output tree when we start
+            (only set when `delete_ungenerated` is true)
+        output_files (set[Path]): the files we write
     """
 
     inputs: list[Path]
     output: Path
     build: Path
     process_hidden: bool
+    delete_ungenerated: bool
+    extant_files: set[Path]
+    output_files: set[Path]
 
     def __init__(
         self,
@@ -135,7 +142,10 @@ class Trees:
         output: Path,
         process_hidden: bool,
         build: Optional[Path] = None,
+        delete_ungenerated: bool = False,
     ):
+        self.delete_ungenerated = delete_ungenerated
+        self.process_hidden = process_hidden
         if len(inputs) == 0:
             raise ValueError("at least one input must be given")
         for root in inputs:
@@ -145,12 +155,21 @@ class Trees:
                 raise ValueError(f"input '{root}' is not a directory")
         self.inputs = inputs
         self.output = output
-        self.process_hidden = process_hidden
         if build is None:
             build = Path()
         if build.is_absolute():
             raise ValueError("build path must be relative")
         self.build = build
+        self.extant_files = set()
+        self.output_files = set()
+        if delete_ungenerated:
+            self.find_existing_files()
+
+    def __del__(self):
+        if self.delete_ungenerated:
+            self.delete_ungenerated_files()
+            # Prevent the destructor running again
+            self.delete_ungenerated = False
 
     def find_root(self, obj: Path) -> Optional[Path]:
         """Find the leftmost of `inputs` that contains `obj`."""
@@ -199,16 +218,34 @@ class Trees:
         else:
             raise ValueError(f"'{obj}' is not a file or directory")
 
+    def find_existing_files(self) -> None:
+        for (dirpath, _, filenames) in os.walk(self.output):
+            self.extant_files |= set([Path(dirpath) / f for f in filenames])
+
+    def delete_ungenerated_files(self) -> None:
+        for path in self.extant_files - self.output_files:
+            os.remove(path)
+
+        # Now remove empty directories
+        for (dirpath, dirnames, filenames) in os.walk(self.output, topdown=False):
+            if len(filenames) == 0:
+                try:
+                    os.rmdir(dirpath)
+                except OSError:
+                    pass # The directory contained other (non-empty) directories.
+
 
 # TODO: Inline into callers, and remove.
 def expand(
     inputs: list[Path],
     output: Path,
     process_hidden: bool,
+    delete_ungenerated: bool,
     build: Optional[Path] = None,
 ) -> None:
-    trees = Trees(inputs, output, process_hidden, build)
+    trees = Trees(inputs, output, process_hidden, build, delete_ungenerated)
     trees.process_path(trees.build)
+    trees.__del__()
 
 
 class Expand:
@@ -417,6 +454,7 @@ class Expand:
             sys.stdout.buffer.write(file_contents)
         else:
             shutil.copyfile(self.input_file(), self.output_file())
+            self.trees.output_files.add(self.output_file())
 
     def process_file(self) -> None:
         """Expand, copy or ignore the file."""
@@ -432,6 +470,7 @@ class Expand:
             else:
                 with open(self.output_file(), "wb") as fh:
                     fh.write(output)
+                self.trees.output_files.add(self.output_file())
         elif not re.search(INPUT_REGEX, self.input_file().name):
             self._copy_file()
 
@@ -529,6 +568,11 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--delete",
+        help="delete files and directories in the output tree that are not written",
+        action="store_true",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"""%(prog)s {VERSION}
@@ -557,6 +601,7 @@ your option) any later version. There is no warranty.""",
             Path(args.output),
             args.process_hidden,
             Path(args.path) if args.path else None,
+            args.delete,
         )
         trees.process_path(trees.build)
     except Exception as err:

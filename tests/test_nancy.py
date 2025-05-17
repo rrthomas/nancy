@@ -6,6 +6,7 @@ Released under the GPL version 3, or (at your option) any later version.
 """
 
 import os
+import shutil
 import socket
 import sys
 from collections.abc import Iterator
@@ -107,9 +108,7 @@ def test_hidden_files_are_ignored() -> None:
     # store an empty directory in git.
     with TemporaryDirectory() as empty_dir:
         with chdir(tests_dir):
-            passing_test(
-                ["hidden-files"], empty_dir
-            )
+            passing_test(["hidden-files"], empty_dir)
 
 
 def test_hidden_files_can_be_processed() -> None:
@@ -144,6 +143,23 @@ def test_outputpath_in_filename() -> None:
 def test_copy_suffix() -> None:
     with chdir(tests_dir):
         passing_test(["copy-src"], "copy-expected")
+
+
+def test_delete_ungenerated() -> None:
+    # Create temporary directory to copy initial files into
+    with TemporaryDirectory() as tmp_dir:
+        with chdir(tests_dir):
+            shutil.copytree("webpage-src", tmp_dir, dirs_exist_ok=True)
+            passing_test(["delete-ungenerated-src"], "delete-ungenerated-expected", None, tmp_dir, False, True)
+
+
+# Test that when we don't set `delete_ungenerated` files in input are retained.
+def test_not_delete_ungenerated() -> None:
+    # Create temporary directory to copy initial files into
+    with TemporaryDirectory() as tmp_dir:
+        with chdir(tests_dir):
+            shutil.copytree("webpage-src", tmp_dir, dirs_exist_ok=True)
+            passing_test(["copy-src"], "copy-no-delete-expected", None, tmp_dir)
 
 
 def test_paste_does_not_expand_macros() -> None:

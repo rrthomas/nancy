@@ -37,7 +37,7 @@ $ pip install nancy
 ## Invocation
 
 ```
-nancy [-h] [--path PATH] [--process-hidden] [--version]
+nancy [-h] [--path PATH] [--process-hidden] [--delete] [--version]
              INPUT-PATH OUTPUT
 
 A simple templating system.
@@ -50,6 +50,8 @@ options:
   -h, --help        show this help message and exit
   --path PATH       path to build relative to input tree [default: '']
   --process-hidden  do not ignore hidden files and directories
+  --delete          delete files and directories in the output tree that are
+                    not written
   --version         show program's version number and exit
 
 The INPUT-PATH is a ':'-separated list; the inputs are merged
@@ -99,6 +101,8 @@ Input files, which are not copied to the output in any form, can be used by
 commands in other files. They can also be used for documentation or other
 files which you’d like to keep with the inputs, but not form part of the
 output.
+
+If the `--delete` option is given, Nancy deletes any files in the output directory that it did not write, and any directories that thereby become empty.
 
 
 ### Special cases
