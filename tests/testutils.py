@@ -58,10 +58,13 @@ def passing_test(
     build_path: Optional[str] = None,
     output_dir: Optional[str] = None,
     process_hidden: bool = False,
+    delete_ungenerated: bool = False,
 ) -> None:
     input_dir_paths = list(map(Path, input_dirs))
     ctx_mgr: Union[AbstractContextManager[None], TemporaryDirectory[str]]
     if output_dir is None:
+        # FIXME: when we can assume Python ≥ 3.12, use
+        # `TemporaryDirectory(delete="DEBUG" not in os.environ)`
         ctx_mgr = tempfile.TemporaryDirectory()
         output_obj = os.path.join(ctx_mgr.name, "output")
     else:
@@ -69,9 +72,17 @@ def passing_test(
         output_obj = output_dir
     with ctx_mgr:
         if build_path is not None:
-            expand(input_dir_paths, Path(output_obj), process_hidden, Path(build_path))
+            expand(
+                input_dir_paths,
+                Path(output_obj),
+                process_hidden,
+                delete_ungenerated,
+                Path(build_path),
+            )
         else:
-            expand(input_dir_paths, Path(output_obj), process_hidden)
+            expand(
+                input_dir_paths, Path(output_obj), process_hidden, delete_ungenerated
+            )
         assert file_objects_equal(output_obj, expected)
 
 
