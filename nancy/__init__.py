@@ -235,19 +235,6 @@ class Trees:
                     pass # The directory contained other (non-empty) directories.
 
 
-# TODO: Inline into callers, and remove.
-def expand(
-    inputs: list[Path],
-    output: Path,
-    process_hidden: bool,
-    delete_ungenerated: bool,
-    build: Optional[Path] = None,
-) -> None:
-    trees = Trees(inputs, output, process_hidden, build, delete_ungenerated)
-    trees.process_path(trees.build)
-    trees.__del__()
-
-
 class Expand:
     """`Path`s related to the file being expanded.
 

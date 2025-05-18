@@ -22,7 +22,7 @@ from typing import Optional, Union
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
 
-from nancy import expand, main
+from nancy import Trees, main
 
 
 def file_objects_equal(
@@ -71,18 +71,15 @@ def passing_test(
         ctx_mgr = contextlib.nullcontext()
         output_obj = output_dir
     with ctx_mgr:
-        if build_path is not None:
-            expand(
-                input_dir_paths,
-                Path(output_obj),
-                process_hidden,
-                delete_ungenerated,
-                Path(build_path),
-            )
-        else:
-            expand(
-                input_dir_paths, Path(output_obj), process_hidden, delete_ungenerated
-            )
+        trees = Trees(
+            input_dir_paths,
+            Path(output_obj),
+            process_hidden,
+            None if build_path is None else Path(build_path),
+            delete_ungenerated,
+        )
+        trees.process_path(trees.build)
+        trees.__del__()
         assert file_objects_equal(output_obj, expected)
 
 
