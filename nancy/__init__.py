@@ -421,7 +421,7 @@ class Expand:
 
         return expanded
 
-    def include(self, file_path):
+    def include(self, file_path) -> bytes:
         """Expand the contents of `file_path`.
 
         Args:
