@@ -25,7 +25,8 @@ release:
 	git pull --tags
 
 loc:
-	cloc nancy tests/*.py
+	cloc nancy
+	cloc tests/*.py
 
 example:
 	python -c "import webbrowser; webbrowser.open(\"file://`pwd`/tests/test-files/cookbook-example-website-expected/index/index.html\")"
