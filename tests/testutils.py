@@ -59,11 +59,12 @@ def passing_test(
     output_dir: Optional[str] = None,
     process_hidden: bool = False,
     delete_ungenerated: bool = False,
+    update_newer: bool = False,
 ) -> None:
     input_dir_paths = list(map(Path, input_dirs))
     ctx_mgr: Union[AbstractContextManager[None], TemporaryDirectory[str]]
     if output_dir is None:
-        # FIXME: when we can assume Python ≥ 3.12, use
+        # TODO: when we can assume Python ≥ 3.12, use
         # `TemporaryDirectory(delete="DEBUG" not in os.environ)`
         ctx_mgr = tempfile.TemporaryDirectory()
         output_obj = os.path.join(ctx_mgr.name, "output")
@@ -77,6 +78,7 @@ def passing_test(
             process_hidden,
             None if build_path is None else Path(build_path),
             delete_ungenerated,
+            update_newer,
         )
         trees.process_path(trees.build)
         trees.__del__()
@@ -88,10 +90,21 @@ def failing_test(
     expected: str,
     build_path: Optional[str] = None,
     output_dir: Optional[str] = None,
+    process_hidden: bool = False,
+    delete_ungenerated: bool = False,
+    update_newer: bool = False,
 ) -> None:
     with TemporaryDirectory() as expected_dir:
         try:
-            passing_test(input_dirs, expected_dir, build_path, output_dir)
+            passing_test(
+                input_dirs,
+                expected_dir,
+                build_path,
+                output_dir,
+                process_hidden,
+                delete_ungenerated,
+                update_newer,
+            )
         except Exception as err:
             assert str(err).find(expected) != -1
             return
@@ -145,3 +158,13 @@ def failing_cli_test(
 
 def check_links(root: str, start: str) -> None:
     subprocess.check_call(["linkchecker", os.path.join(root, start)])
+
+
+def tree_mtimes(dir: Path) -> dict[Path, int]:
+    mtimes = {}
+    for dirpath, _, filenames in os.walk(dir):
+        for f in filenames:
+            obj = Path(dirpath) / f
+            if obj.is_file():
+                mtimes[obj] = obj.stat().st_mtime
+    return mtimes

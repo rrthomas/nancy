@@ -33,7 +33,7 @@ addopts = "-p no:warnings"
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "I", "UP"]
-ignore = ["D1", "D401", "D415", "E501"]
+ignore = ["D1", "D401", "E501"]
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2

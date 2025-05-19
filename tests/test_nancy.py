@@ -22,6 +22,7 @@ from testutils import (
     failing_test,
     passing_cli_test,
     passing_test,
+    tree_mtimes,
 )
 
 from nancy import main
@@ -62,6 +63,78 @@ def test_two_trees() -> None:
     with chdir(tests_dir):
         passing_test(["mergetrees-src", "webpage-src"], "mergetrees-expected")
         check_links("mergetrees-expected", "index.html")
+
+
+def test_update_with_no_existing_output() -> None:
+    with chdir(tests_dir):
+        passing_test(
+            ["cookbook-example-website-src"],
+            "cookbook-example-website-expected",
+            None,
+            None,
+            False,
+            False,
+            True,
+        )
+        check_links("cookbook-example-website-expected", "index/index.html")
+
+
+def test_update_with_existing_input() -> None:
+    # Create temporary directory to copy initial files into
+    with TemporaryDirectory() as tmp_dir:
+        with chdir(tests_dir):
+            shutil.copytree(
+                "webpage-expected",
+                tmp_dir,
+                dirs_exist_ok=True,
+                copy_function=shutil.copy,
+            )
+            orig_mtimes = tree_mtimes(Path(tmp_dir))
+            passing_test(
+                ["webpage-src"],
+                "webpage-expected",
+                None,
+                tmp_dir,
+                False,
+                False,
+                True,
+            )
+            new_mtimes = tree_mtimes(Path(tmp_dir))
+            for file, mtime in orig_mtimes.items():
+                assert mtime == new_mtimes[file]
+
+
+def test_update_overwriting_some_input() -> None:
+    # Create temporary directory to copy initial files into
+    with TemporaryDirectory() as tmp_dir:
+        with chdir(tests_dir):
+            shutil.copytree(
+                "webpage-expected",
+                tmp_dir,
+                dirs_exist_ok=True,
+                copy_function=shutil.copy,
+            )
+            # Re-copy one file with its original time stamp, to make it out of date
+            updating_path = Path(tmp_dir) / "people" / "index.html"
+            shutil.copy2("webpage-expected/people/index.html", updating_path)
+            orig_mtimes = tree_mtimes(Path(tmp_dir))
+            passing_test(
+                ["webpage-src"],
+                "webpage-expected",
+                None,
+                tmp_dir,
+                False,
+                False,
+                True,
+            )
+            new_mtimes = tree_mtimes(Path(tmp_dir))
+            # Check file that should have been updated was in fact updated
+            assert orig_mtimes[updating_path] < new_mtimes[updating_path]
+            # Remove time stamps for regenerated file before checking the rest
+            del orig_mtimes[updating_path]
+            del new_mtimes[updating_path]
+            for file, mtime in orig_mtimes.items():
+                assert mtime == new_mtimes[file]
 
 
 def test_env_vars() -> None:
@@ -145,12 +218,24 @@ def test_copy_suffix() -> None:
         passing_test(["copy-src"], "copy-expected")
 
 
+def test_update_copy_suffix() -> None:
+    with chdir(tests_dir):
+        passing_test(["copy-src"], "copy-expected", None, None, False, False, True)
+
+
 def test_delete_ungenerated() -> None:
     # Create temporary directory to copy initial files into
     with TemporaryDirectory() as tmp_dir:
         with chdir(tests_dir):
             shutil.copytree("webpage-src", tmp_dir, dirs_exist_ok=True)
-            passing_test(["delete-ungenerated-src"], "delete-ungenerated-expected", None, tmp_dir, False, True)
+            passing_test(
+                ["delete-ungenerated-src"],
+                "delete-ungenerated-expected",
+                None,
+                tmp_dir,
+                False,
+                True,
+            )
 
 
 # Test that when we don't set `delete_ungenerated` files in input are retained.
@@ -272,6 +357,19 @@ def test_run_with_no_arguments_gives_an_error() -> None:
             [os.getcwd()],
             "$run needs at least one argument",
             "run-no-arg.nancy.txt",
+        )
+
+
+def test_update_run_with_no_arguments_gives_an_error() -> None:
+    with chdir(tests_dir):
+        failing_test(
+            [os.getcwd()],
+            "$run needs at least one argument",
+            "run-no-arg.nancy.txt",
+            None,
+            False,
+            False,
+            True,
         )
 
 
