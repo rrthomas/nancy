@@ -41,12 +41,7 @@ $expand{$run(/bin/sh,-c,PYTHONPATH=. python -m nancy --help | sed -e 's/usage: n
 
 ## Operation <a name="operation"></a>
 
-Nancy starts by combining the list of inputs given as its _input path_. If
-the same file or directory exists in more than one of the directories on the
-input path, the left-most takes precedence. The result is called the “input
-tree”, and all paths are relative to it.
-
-Next, Nancy traverses the input tree, or the tree given by the `--path`
+Nancy first traverses the input tree, or the tree given by the `--path`
 argument, if any, which is a relative path denoting a subtree of the
 input tree.
 
@@ -161,8 +156,8 @@ Nancy recognises these commands:
   trailing newline removed. This can be used to expand the output of a
   program run with `\$run`.
 + *`\$path`* Expands to the file currently being expanded, relative to the
-  input tree. This is always a template file, unless the current input path
-  is a single file.
+  input. This is always a template file, unless the current input path is a
+  single file.
 + *`\$outputpath`* Returns the output-tree relative path for the file
   currently being expanded.
 
@@ -220,7 +215,8 @@ a program, the program will be given the actual path, rather than the string
 
 When Nancy `\$run`s a program, it sets the following environment variables:
 
-- NANCY_INPUT - the input file name.
+- NANCY_INPUT - the root of the input tree contains the file that is being
+  expanded. The file’s name, relative to `NANCY_INPUT`, is `\$path`.
 
 ### Escaping
 

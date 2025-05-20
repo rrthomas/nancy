@@ -37,14 +37,20 @@ $ pip install nancy
 ## Invocation
 
 ```
+<<<<<<< HEAD
 usage: python -m nancy [-h] [--path PATH] [--process-hidden] [--update]
                        [--delete] [--jobs JOBS] [--version]
                        INPUT-PATH OUTPUT
+=======
+nancy [-h] [--path PATH] [--process-hidden] [--update] [--delete]
+             [--version]
+             INPUT OUTPUT
+>>>>>>> c378d13 (Remove multi-input tree operation)
 
 A simple templating system.
 
 positional arguments:
-  INPUT-PATH        list of input directories, or a single file
+  INPUT             input directory, or file
   OUTPUT            output directory, or file ('-' for stdout)
 
 options:
@@ -58,19 +64,17 @@ options:
   --jobs JOBS       number of parallel tasks to run at the same time [default
                     is number of CPU cores, currently 16]
   --version         show program's version number and exit
+<<<<<<< HEAD
 
 The INPUT-PATH is a ':'-separated list; the inputs are merged in left-to-right
 order.
+=======
+>>>>>>> c378d13 (Remove multi-input tree operation)
 ```
 
 ## Operation <a name="operation"></a>
 
-Nancy starts by combining the list of inputs given as its _input path_. If
-the same file or directory exists in more than one of the directories on the
-input path, the left-most takes precedence. The result is called the “input
-tree”, and all paths are relative to it.
-
-Next, Nancy traverses the input tree, or the tree given by the `--path`
+Nancy first traverses the input tree, or the tree given by the `--path`
 argument, if any, which is a relative path denoting a subtree of the
 input tree.
 
@@ -185,8 +189,8 @@ Nancy recognises these commands:
   trailing newline removed. This can be used to expand the output of a
   program run with `$run`.
 + *`$path`* Expands to the file currently being expanded, relative to the
-  input tree. This is always a template file, unless the current input path
-  is a single file.
+  input. This is always a template file, unless the current input path is a
+  single file.
 + *`$outputpath`* Returns the output-tree relative path for the file
   currently being expanded.
 
@@ -244,7 +248,13 @@ a program, the program will be given the actual path, rather than the string
 
 When Nancy `$run`s a program, it sets the following environment variables:
 
+<<<<<<< HEAD
 - NANCY_INPUT - the input file name.
+=======
+- NANCY_INPUT - the root of whichever of the input trees contains the file
+  that is being expanded. The file’s name, relative to `NANCY_INPUT`, is
+  `$path`.
+>>>>>>> c378d13 (Remove multi-input tree operation)
 
 ### Escaping
 

@@ -21,7 +21,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
 
-from nancy import Trees
+from nancy import Tree
 from nancy import real_main as main
 
 
@@ -51,7 +51,7 @@ def file_objects_equal(a: os.PathLike[str] | str, b: os.PathLike[str] | str) -> 
 
 
 async def passing_test(
-    input_dirs: list[str],
+    input_dir: str,
     expected: str,
     build_path: str | None = None,
     output_dir: str | None = None,
@@ -59,7 +59,7 @@ async def passing_test(
     delete_ungenerated: bool = False,
     update_newer: bool = False,
 ) -> None:
-    input_dir_paths = list(map(Path, input_dirs))
+    input_dir_path = Path(input_dir)
     ctx_mgr: AbstractContextManager[None] | TemporaryDirectory[str]
     if output_dir is None:
         ctx_mgr = tempfile.TemporaryDirectory(delete="DEBUG" not in os.environ)
@@ -68,8 +68,8 @@ async def passing_test(
         ctx_mgr = contextlib.nullcontext()
         output_obj = output_dir
     with ctx_mgr:
-        trees = Trees(
-            input_dir_paths,
+        trees = Tree(
+            input_dir_path,
             Path(output_obj),
             process_hidden,
             None if build_path is None else Path(build_path),
@@ -82,7 +82,7 @@ async def passing_test(
 
 
 async def failing_test(
-    input_dirs: list[str],
+    input_dir: str,
     expected: str,
     build_path: str | None = None,
     output_dir: str | None = None,
@@ -93,7 +93,7 @@ async def failing_test(
     with TemporaryDirectory() as expected_dir:
         try:
             await passing_test(
-                input_dirs,
+                input_dir,
                 expected_dir,
                 build_path,
                 output_dir,
