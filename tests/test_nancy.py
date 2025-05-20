@@ -49,26 +49,20 @@ tests_dir = Path(__file__).parent.resolve() / "test-files"
 # Module tests
 def test_whole_tree() -> None:
     with chdir(tests_dir):
-        passing_test(["webpage-src"], "webpage-expected")
+        passing_test("webpage-src", "webpage-expected")
         check_links("webpage-expected", "index.html")
 
 
 def test_part_tree() -> None:
     with chdir(tests_dir):
-        passing_test(["webpage-src"], "webpage-expected/people", "people")
+        passing_test("webpage-src", "webpage-expected/people", "people")
         check_links("webpage-expected/people", "index.html")
-
-
-def test_two_trees() -> None:
-    with chdir(tests_dir):
-        passing_test(["mergetrees-src", "webpage-src"], "mergetrees-expected")
-        check_links("mergetrees-expected", "index.html")
 
 
 def test_update_with_no_existing_output() -> None:
     with chdir(tests_dir):
         passing_test(
-            ["cookbook-example-website-src"],
+            "cookbook-example-website-src",
             "cookbook-example-website-expected",
             None,
             None,
@@ -91,7 +85,7 @@ def test_update_with_existing_input() -> None:
             )
             orig_mtimes = tree_mtimes(Path(tmp_dir))
             passing_test(
-                ["webpage-src"],
+                "webpage-src",
                 "webpage-expected",
                 None,
                 tmp_dir,
@@ -108,18 +102,19 @@ def test_update_overwriting_some_input() -> None:
     # Create temporary directory to copy initial files into
     with TemporaryDirectory() as tmp_dir:
         with chdir(tests_dir):
+            # Copy files without preserving time stamps
             shutil.copytree(
                 "webpage-expected",
                 tmp_dir,
                 dirs_exist_ok=True,
                 copy_function=shutil.copy,
             )
-            # Re-copy one file with its original time stamp, to make it out of date
             updating_path = Path(tmp_dir) / "people" / "index.html"
-            shutil.copy2("webpage-expected/people/index.html", updating_path)
+            # Set one file's mtime to zero, to make it out of date
+            os.utime(updating_path, times=(0, 0))
             orig_mtimes = tree_mtimes(Path(tmp_dir))
             passing_test(
-                ["webpage-src"],
+                "webpage-src",
                 "webpage-expected",
                 None,
                 tmp_dir,
@@ -139,40 +134,38 @@ def test_update_overwriting_some_input() -> None:
 
 def test_env_vars() -> None:
     with chdir(tests_dir):
-        passing_test(["env-vars-src", "webpage-src"], "env-vars-expected")
+        passing_test("env-vars-src", "env-vars-expected")
 
 
 def test_nested_macro_invocations() -> None:
     with chdir(tests_dir):
-        passing_test(["nested-macro-src"], "nested-macro-expected")
+        passing_test("nested-macro-src", "nested-macro-expected")
 
 
 def test_expand_of_run_output() -> None:
     with chdir(tests_dir):
-        passing_test(["expand-run-src"], "expand-run-expected")
+        passing_test("expand-run-src", "expand-run-expected")
 
 
 def test_non_existent_executable_test() -> None:
     with chdir(tests_dir):
-        failing_test([os.getcwd()], "cannot find program 'foo'", "foo.nancy.txt")
+        failing_test(os.getcwd(), "cannot find program 'foo'", "foo.nancy.txt")
 
 
 def test_passing_executable_test() -> None:
     with chdir(tests_dir):
-        passing_test([os.getcwd()], "true-expected.txt", "true.nancy.txt")
+        passing_test(os.getcwd(), "true-expected.txt", "true.nancy.txt")
 
 
 def test_executable_test() -> None:
     with chdir(tests_dir):
-        passing_test(
-            ["page-template-with-date-src"], "page-template-with-date-expected"
-        )
+        passing_test("page-template-with-date-src", "page-template-with-date-expected")
 
 
 def test_executable_in_cwd_test() -> None:
     with chdir(tests_dir):
         passing_test(
-            ["."], "executable-in-cwd-expected.txt", "executable-in-cwd.nancy.txt"
+            ".", "executable-in-cwd-expected.txt", "executable-in-cwd.nancy.txt"
         )
 
 
@@ -181,13 +174,13 @@ def test_hidden_files_are_ignored() -> None:
     # store an empty directory in git.
     with TemporaryDirectory() as empty_dir:
         with chdir(tests_dir):
-            passing_test(["hidden-files"], empty_dir)
+            passing_test("hidden-files", empty_dir)
 
 
 def test_hidden_files_can_be_processed() -> None:
     with chdir(tests_dir):
         passing_test(
-            ["hidden-files"],
+            "hidden-files",
             "hidden-files",
             None,
             None,
@@ -197,30 +190,30 @@ def test_hidden_files_can_be_processed() -> None:
 
 def test_macros_not_expanded_in_command_line_arguments() -> None:
     with chdir(tests_dir):
-        passing_test(["$path-src"], "$path-expected")
+        passing_test("$path-src", "$path-expected")
 
 
 def test_path_in_filename() -> None:
     with chdir(tests_dir):
-        passing_test(["path-in-filename-src"], "path-in-filename-expected")
+        passing_test("path-in-filename-src", "path-in-filename-expected")
 
 
 def test_outputpath_in_filename() -> None:
     with chdir(tests_dir):
         failing_test(
-            ["outputpath-in-filename-src"],
+            "outputpath-in-filename-src",
             "$outputpath is not available while expanding the filename",
         )
 
 
 def test_copy_suffix() -> None:
     with chdir(tests_dir):
-        passing_test(["copy-src"], "copy-expected")
+        passing_test("copy-src", "copy-expected")
 
 
 def test_update_copy_suffix() -> None:
     with chdir(tests_dir):
-        passing_test(["copy-src"], "copy-expected", None, None, False, False, True)
+        passing_test("copy-src", "copy-expected", None, None, False, False, True)
 
 
 def test_delete_ungenerated() -> None:
@@ -229,7 +222,7 @@ def test_delete_ungenerated() -> None:
         with chdir(tests_dir):
             shutil.copytree("webpage-src", tmp_dir, dirs_exist_ok=True)
             passing_test(
-                ["delete-ungenerated-src"],
+                "delete-ungenerated-src",
                 "delete-ungenerated-expected",
                 None,
                 tmp_dir,
@@ -244,18 +237,18 @@ def test_not_delete_ungenerated() -> None:
     with TemporaryDirectory() as tmp_dir:
         with chdir(tests_dir):
             shutil.copytree("webpage-src", tmp_dir, dirs_exist_ok=True)
-            passing_test(["copy-src"], "copy-no-delete-expected", None, tmp_dir)
+            passing_test("copy-src", "copy-no-delete-expected", None, tmp_dir)
 
 
 def test_paste_does_not_expand_macros() -> None:
     with chdir(tests_dir):
-        passing_test(["paste-src"], "paste-expected")
+        passing_test("paste-src", "paste-expected")
 
 
 def test_path_with_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$path does not take arguments",
             "path-arg.nancy.txt",
         )
@@ -264,7 +257,7 @@ def test_path_with_arguments_gives_an_error() -> None:
 def test_path_with_input_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$path does not take an input",
             "path-input.nancy.txt",
         )
@@ -273,7 +266,7 @@ def test_path_with_input_gives_an_error() -> None:
 def test_outputpath_with_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$outputpath does not take arguments",
             "outputpath-arg.nancy.txt",
         )
@@ -282,7 +275,7 @@ def test_outputpath_with_arguments_gives_an_error() -> None:
 def test_outputpath_with_input_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$outputpath does not take an input",
             "outputpath-input.nancy.txt",
         )
@@ -291,7 +284,7 @@ def test_outputpath_with_input_gives_an_error() -> None:
 def test_include_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$include needs exactly one argument",
             "include-no-arg.nancy.txt",
         )
@@ -300,7 +293,7 @@ def test_include_with_no_arguments_gives_an_error() -> None:
 def test_include_with_input_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$include does not take an input",
             "include-input.nancy.txt",
         )
@@ -309,7 +302,7 @@ def test_include_with_input_gives_an_error() -> None:
 def test_paste_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$paste needs exactly one argument",
             "paste-no-arg.nancy.txt",
         )
@@ -318,7 +311,7 @@ def test_paste_with_no_arguments_gives_an_error() -> None:
 def test_paste_with_input_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$paste does not take an input",
             "paste-input.nancy.txt",
         )
@@ -327,7 +320,7 @@ def test_paste_with_input_gives_an_error() -> None:
 def test_paste_with_too_many_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$paste needs exactly one argument",
             "paste-too-many-args.nancy.txt",
         )
@@ -336,7 +329,7 @@ def test_paste_with_too_many_arguments_gives_an_error() -> None:
 def test_expand_with_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$expand does not take arguments",
             "expand-arguments.nancy.txt",
         )
@@ -345,7 +338,7 @@ def test_expand_with_arguments_gives_an_error() -> None:
 def test_expand_without_input_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$expand takes an input",
             "expand-no-input.nancy.txt",
         )
@@ -354,7 +347,7 @@ def test_expand_without_input_gives_an_error() -> None:
 def test_run_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$run needs at least one argument",
             "run-no-arg.nancy.txt",
         )
@@ -363,7 +356,7 @@ def test_run_with_no_arguments_gives_an_error() -> None:
 def test_update_run_with_no_arguments_gives_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "$run needs at least one argument",
             "run-no-arg.nancy.txt",
             None,
@@ -375,18 +368,18 @@ def test_update_run_with_no_arguments_gives_an_error() -> None:
 
 def test_escaping_a_macro_without_arguments() -> None:
     with chdir(tests_dir):
-        passing_test(["escaped-path-src"], "escaped-path-expected")
+        passing_test("escaped-path-src", "escaped-path-expected")
 
 
 def test_escaping_a_macro_with_arguments() -> None:
     with chdir(tests_dir):
-        passing_test(["escaped-include-src"], "escaped-include-expected")
+        passing_test("escaped-include-src", "escaped-include-expected")
 
 
 def test_cookbook_web_site_example() -> None:
     with chdir(tests_dir):
         passing_test(
-            ["cookbook-example-website-src"], "cookbook-example-website-expected"
+            "cookbook-example-website-src", "cookbook-example-website-expected"
         )
         check_links("cookbook-example-website-expected", "index/index.html")
 
@@ -394,7 +387,7 @@ def test_cookbook_web_site_example() -> None:
 def test_expanding_a_file_with_relative_includes() -> None:
     with chdir(tests_dir):
         passing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "file-root-relative-include-expected.txt",
             "file-root-relative-include.nancy.txt",
         )
@@ -403,7 +396,7 @@ def test_expanding_a_file_with_relative_includes() -> None:
 def test_nested_argument_in_comma_list_works() -> None:
     with chdir(tests_dir):
         passing_test(
-            ["nested-argument-in-comma-list-src"],
+            "nested-argument-in-comma-list-src",
             "nested-argument-in-comma-list-expected",
         )
 
@@ -411,7 +404,7 @@ def test_nested_argument_in_comma_list_works() -> None:
 def test_expanding_macros_in_file_names() -> None:
     with chdir(tests_dir):
         passing_test(
-            ["expanding-macros-in-file-names-src"],
+            "expanding-macros-in-file-names-src",
             "expanding-macros-in-file-names-expected",
         )
 
@@ -419,7 +412,7 @@ def test_expanding_macros_in_file_names() -> None:
 def test_run_with_input() -> None:
     with chdir(tests_dir):
         passing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "lines-expected.txt",
             "filter.nancy.txt",
         )
@@ -428,61 +421,54 @@ def test_run_with_input() -> None:
 def test_run_with_input_containing_commas() -> None:
     with chdir(tests_dir):
         passing_test(
-            [os.getcwd()],
+            os.getcwd(),
             "run-input-with-commas-expected.txt",
             "run-input-with-commas.nancy.txt",
         )
 
 
-def test_empty_input_path_causes_an_error() -> None:
-    with chdir(tests_dir):
-        failing_test([], "at least one input must be given")
-
-
 def test_a_nonexistent_input_path_causes_an_error() -> None:
     with chdir(tests_dir):
-        failing_test(["a"], "input 'a' does not exist")
+        failing_test("a", "input 'a' does not exist")
 
 
 def test_an_input_that_is_not_a_directory_causes_an_error() -> None:
     with chdir(tests_dir):
-        failing_test(["random-text.txt"], "input 'random-text.txt' is not a directory")
+        failing_test("random-text.txt", "input 'random-text.txt' is not a directory")
 
 
 def test_including_a_nonexistent_file_causes_an_error() -> None:
     with chdir(tests_dir):
-        failing_test([os.getcwd()], "cannot find 'foo'", "missing-include.nancy.txt")
+        failing_test(os.getcwd(), "cannot find 'foo'", "missing-include.nancy.txt")
 
 
 def test_calling_an_undefined_macro_causes_an_error() -> None:
     with chdir(tests_dir):
-        failing_test([os.getcwd()], "no such macro '$foo'", "undefined-macro.nancy.txt")
+        failing_test(os.getcwd(), "no such macro '$foo'", "undefined-macro.nancy.txt")
 
 
 def test_calling_an_undefined_single_letter_macro_causes_an_error() -> None:
     with chdir(tests_dir):
         failing_test(
-            [os.getcwd()], "no such macro '$f'", "undefined-short-macro.nancy.txt"
+            os.getcwd(), "no such macro '$f'", "undefined-short-macro.nancy.txt"
         )
 
 
 def test_a_macro_call_with_a_missing_close_brace_causes_an_error() -> None:
     with chdir(tests_dir):
-        failing_test([os.getcwd()], "missing }", "missing-close-brace.nancy.txt")
+        failing_test(os.getcwd(), "missing }", "missing-close-brace.nancy.txt")
 
 
 def test_a_macro_call_with_mismatched_heterogeneous_brackets_causes_correct_error() -> (
     None
 ):
     with chdir(tests_dir):
-        failing_test([os.getcwd()], "missing )", "missing-close-paren.nancy.txt")
+        failing_test(os.getcwd(), "missing )", "missing-close-paren.nancy.txt")
 
 
 def test_trying_to_output_multiple_files_to_stdout_causes_an_error() -> None:
     with chdir(tests_dir):
-        failing_test(
-            ["webpage-src"], "cannot output multiple files to stdout", None, "-"
-        )
+        failing_test("webpage-src", "cannot output multiple files to stdout", None, "-")
 
 
 # CLI tests
@@ -593,7 +579,7 @@ def test_nonexistent_build_path_causes_an_error(
             capsys,
             caplog,
             ["--path", "nonexistent", "webpage-src"],
-            "matches no path in the inputs",
+            "matches no path in the input",
         )
 
 

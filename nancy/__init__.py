@@ -90,7 +90,7 @@ def filter_bytes(
 
     Args:
         input (Optional[bytes]): passed to `stdin`
-        exe_path (Path): filesystem `Path` of the command to run
+        exe_path (Path): `Path` of the command to run
         exe_args (list[bytes]): arguments to the command
 
     Returns:
@@ -111,15 +111,14 @@ def filter_bytes(
         die(f"Error code {err.returncode} running: {' '.join(map(str, err.cmd))}")
 
 
-class Trees:
+class Tree:
     """The state that is constant for a whole invocation of Nancy.
 
     Fields:
-        inputs (list[Path]): a list of filesystem `Path`s to overlay to
-            make an abstract input tree
-        output (Path): the filesystem `Path` of the output directory
-        build (Path): the subtree of `inputs` to process.
-            Defaults to the whole tree.
+        input (Path): the `Path` of the input directory
+        output (Path): the `Path` of the output directory
+        build (Path): the subtree of `input` to process. Defaults to the whole
+            tree.
         process_hidden (bool): `True` to process hidden files (those whose
             names begin with ".")
         delete_ungenerated (bool): `True` to delete files we do not generate
@@ -132,7 +131,7 @@ class Trees:
         output_files (set[Path]): the files we write
     """
 
-    inputs: list[Path]
+    input: Path
     output: Path
     build: Path
     process_hidden: bool
@@ -143,7 +142,7 @@ class Trees:
 
     def __init__(
         self,
-        inputs: list[Path],
+        input: Path,
         output: Path,
         process_hidden: bool,
         build: Optional[Path] = None,
@@ -153,14 +152,11 @@ class Trees:
         self.delete_ungenerated = delete_ungenerated
         self.process_hidden = process_hidden
         self.update_newer = update_newer
-        if len(inputs) == 0:
-            raise ValueError("at least one input must be given")
-        for root in inputs:
-            if not root.exists():
-                raise ValueError(f"input '{root}' does not exist")
-            if not root.is_dir():
-                raise ValueError(f"input '{root}' is not a directory")
-        self.inputs = inputs
+        if not input.exists():
+            raise ValueError(f"input '{input}' does not exist")
+        if not input.is_dir():
+            raise ValueError(f"input '{input}' is not a directory")
+        self.input = input
         self.output = output
         if build is None:
             build = Path()
@@ -178,29 +174,12 @@ class Trees:
             # Prevent the destructor running again
             self.delete_ungenerated = False
 
-    def find_root(self, obj: Path) -> Optional[Path]:
-        """Find the leftmost of `inputs` that contains `obj`."""
-        for root in self.inputs:
-            if (root / obj).exists():
-                return root
-        return None
-
     def find_object(self, obj: Path) -> Optional[Path]:
-        """Returns `find_root(obj) / obj` or `None`."""
-        debug(f"find_object {obj} {self.inputs}")
-        root = self.find_root(obj)
-        return None if root is None else root / obj
-
-    def scandir(self, obj: Path) -> list[str]:
-        """Returns the child names of overlaid input directory `obj`."""
-        debug(f"scandir {obj} {self.inputs}")
-        names = set(
-            dirent.name
-            for root in self.inputs
-            if (root / obj).is_dir()
-            for dirent in os.scandir(root / obj)
-        )
-        return list(names)
+        """Returns `self.input / obj` or `None`."""
+        debug(f"find_object {obj} {self.input}")
+        if (self.input / obj).exists():
+            return self.input / obj
+        return None
 
     def _check_output_newer(self, inputs: list[Path], output: Path) -> bool:
         if not output.exists():
@@ -208,23 +187,22 @@ class Trees:
         output_mtime = output.stat().st_mtime
         return all(i.stat().st_mtime <= output_mtime for i in inputs)
 
-    def process_file(self, root: Path, obj: Path, only_newer: bool) -> None:
+    def process_file(self, obj: Path, only_newer: bool) -> None:
         """Expand, copy or ignore a file.
 
         Args:
-            root (Optional[Path]): one of `trees.inputs`
-            obj (Path): the `root`-relative `Path`
+            obj (Path): the `tree.input`-relative `Path`
             only_newer (bool): `True` means only update the file if a
                 dependency is newer than any current output file.
         """
-        expand = Expand(RunMacros, self, root, obj)
+        expand = Expand(RunMacros, self, obj)
         debug(f"Processing file '{expand.input_file()}'")
         if only_newer:
             inputs: list[Path] = []
             if re.search(COPY_REGEX, expand.input_file().name):
                 inputs.append(expand.input_file())
             elif re.search(TEMPLATE_REGEX, expand.input_file().name):
-                _, include_inputs = Expand(Macros, self, root, obj).include(
+                _, include_inputs = Expand(Macros, self, obj).include(
                     expand.input_file()
                 )
                 inputs += include_inputs
@@ -241,12 +219,12 @@ class Trees:
         elif re.search(TEMPLATE_REGEX, expand.input_file().name):
             debug(f"Expanding '{expand.path}' to '{expand.output_file()}'")
             output, _ = expand.include(expand.input_file())
-            if expand.trees.output == Path("-"):
+            if expand.tree.output == Path("-"):
                 sys.stdout.buffer.write(output)
             else:
                 with open(expand.output_file(), "wb") as fh:
                     fh.write(output)
-                expand.trees.output_files.add(expand.output_file())
+                expand.tree.output_files.add(expand.output_file())
         elif not re.search(INPUT_REGEX, expand.input_file().name):
             expand.copy_file()
 
@@ -254,22 +232,21 @@ class Trees:
         """Recursively scan `obj` and pass every file to `process_file`.
 
         Args:
-            obj (Path): the `inputs`-relative `Path` to scan.
+            obj (Path): the `input`-relative `Path` to scan.
         """
-        root = self.find_root(obj)
-        if root is None:
-            raise ValueError(f"'{obj}' matches no path in the inputs")
-        if (root / obj).is_dir():
+        if self.find_object(obj) is None:
+            raise ValueError(f"'{obj}' matches no path in the input")
+        if (self.input / obj).is_dir():
             if self.output == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
-            output_dir = Expand(RunMacros, self, None, obj).output_file()
+            output_dir = Expand(RunMacros, self, obj).output_file()
             os.makedirs(output_dir, exist_ok=True)
-            for child in self.scandir(obj):
+            for child in os.listdir(self.input / obj):
                 if child[0] != "." or self.process_hidden:
                     self.process_path(obj / child)
-        elif (root / obj).is_file():
-            self.process_file(root, obj, self.update_newer)
+        elif (self.input / obj).is_file():
+            self.process_file(obj, self.update_newer)
         else:
             raise ValueError(f"'{obj}' is not a file or directory")
 
@@ -294,48 +271,42 @@ class Trees:
 
 
 # TODO: Use type statement with Python 3.12
-Expansion = tuple[bytes, list[Path]]
+Expansion = tuple[bytes, set[Path]]
 
 
 class Expand:
     """`Path`s related to the file being expanded.
 
     Fields:
-        trees (Trees):
-        root (Optional[Path]): one of `trees.inputs`
-        path (Path): the `root`-relative `Path`
+        tree (Tree):
+        path (Path): the `tree.input`-relative `Path`
     """
 
-    trees: Trees
-    root: Optional[Path]
+    tree: Tree
     path: Path
 
-    # The output file relative to `trees.output`.
+    # The output file relative to `tree.output`.
     # `None` while the filename is being expanded.
     _output_path: Optional[Path]
 
-    # _stack is a list of filesystem `Path`s which are currently being
-    # `$include`d. This is used to avoid infinite loops.
+    # _stack is a list of `Path`s which are currently being `$include`d.
+    # This is used to avoid infinite loops.
     _stack: list[Path]
 
     def __init__(
         self,
         macrosClass: "type[Macros]",
-        trees: Trees,
-        root: Optional[Path],
+        tree: Tree,
         path: Path,
     ):
-        if root is not None:
-            assert root in trees.inputs, (root, trees)
-        self.trees = trees
-        self.root = root
+        self.tree = tree
         self.path = path
         self._output_path = None
         self._stack = []
         self._macros = macrosClass(self)
 
         # Recompute `_output_path` by expanding `path`.
-        output_path = self.path.relative_to(self.trees.build)
+        output_path = self.path.relative_to(self.tree.build)
         if output_path.name != "":
             if re.search(COPY_REGEX, output_path.name):
                 output_path = output_path.with_name(
@@ -351,9 +322,8 @@ class Expand:
         self._output_path = Path(output_path)
 
     def input_file(self):
-        """Returns the filesystem input `Path`."""
-        assert self.root is not None
-        return self.root / self.path
+        """Returns the input `Path`."""
+        return self.tree.input / self.path
 
     def output_path(self):
         """Returns the relative output `Path` for the current file.
@@ -367,17 +337,17 @@ class Expand:
         return self._output_path
 
     def output_file(self):
-        """Returns the (computed) filesystem output `Path`.
+        """Returns the (computed) output `Path`.
 
         Raises an error if called while the filename is being expanded.
         """
-        return self.trees.output / self.output_path()
+        return self.tree.output / self.output_path()
 
     def find_on_path(self, start_path: Path, file: Path) -> Optional[Path]:
         """Search for file starting at the given path.
 
         Args:
-            start_path (Path): `inputs`-relative `Path` to search up from
+            start_path (Path): `input`-relative `Path` to search up from
             file (Path): the `Path` to look for.
 
         Returns:
@@ -390,7 +360,7 @@ class Expand:
         debug(f"Searching for '{file}' on {start_path}")
         norm_file = Path(os.path.normpath(file))
         for parent in (start_path / "_").parents:
-            obj = self.trees.find_object(parent / norm_file)
+            obj = self.tree.find_object(parent / norm_file)
             if obj is not None and obj.is_file() and obj not in self._stack:
                 debug(f"Found '{obj}'")
                 return obj
@@ -437,24 +407,25 @@ class Expand:
     ) -> Expansion:
         debug(f"do_macro {command_to_str(name, args, input)}")
         name_str = name.decode("iso-8859-1")
-        inputs = []
+        inputs = set()
         if args is None:
             args = None
         else:
             args_expansion = [self.expand_arg(arg) for arg in args]
             args = [a[0] for a in args_expansion]
             for a in args_expansion:
-                inputs += a[1]
+                inputs.update(a[1])
         if input is not None:
             input, input_inputs = self.expand_arg(input)
-            inputs += input_inputs
+            inputs.update(input_inputs)
         macro: Optional[
             Callable[[Optional[list[bytes]], Optional[bytes]], Expansion]
         ] = getattr(self._macros, name_str, None)
         if macro is None:
             raise ValueError(f"no such macro '${name_str}'")
         expanded, macro_inputs = macro(args, input)
-        return expanded, inputs + macro_inputs
+        inputs.update(macro_inputs)
+        return expanded, inputs
 
     def expand(self, text: bytes) -> Expansion:
         """Expand `text`.
@@ -469,7 +440,7 @@ class Expand:
 
         startpos = 0
         expanded = text
-        inputs = []
+        inputs = set()
         while True:
             res = MACRO_REGEX.search(expanded, startpos)
             if res is None:
@@ -492,7 +463,7 @@ class Expand:
                 output = command_to_str(name, args, input)
             else:
                 output, macro_inputs = self.do_macro(name, args, input)
-                inputs += macro_inputs
+                inputs.update(macro_inputs)
             expanded = expanded[: res.start()] + output + expanded[startpos:]
             # Update search position to restart matching after output of macro
             startpos = res.start() + len(output)
@@ -505,24 +476,25 @@ class Expand:
         """Expand the contents of `file_path`.
 
         Args:
-            file_path (Path): the filesystem path to include
+            file_path (Path): the path to include
 
         Returns:
             Expansion
         """
         self._stack.append(file_path)
-        output = self.expand(file_path.read_bytes())
+        output, inputs = self.expand(file_path.read_bytes())
         self._stack.pop()
-        return output[0], output[1] + [file_path]
+        inputs.add(file_path)
+        return output, inputs
 
     def copy_file(self) -> None:
         """Copy the input file to the output file."""
-        if self.trees.output == Path("-"):
+        if self.tree.output == Path("-"):
             file_contents = self.input_file().read_bytes()
             sys.stdout.buffer.write(file_contents)
         else:
             shutil.copyfile(self.input_file(), self.output_file())
-            self.trees.output_files.add(self.output_file())
+            self.tree.output_files.add(self.output_file())
 
 
 class Macros:
@@ -541,7 +513,7 @@ class Macros:
             raise ValueError("$path does not take arguments")
         if input is not None:
             raise ValueError("$path does not take an input")
-        return bytes(self._expand.path), []
+        return bytes(self._expand.path), set()
 
     def outputpath(
         self, args: Optional[list[bytes]], input: Optional[bytes]
@@ -550,7 +522,7 @@ class Macros:
             raise ValueError("$outputpath does not take arguments")
         if input is not None:
             raise ValueError("$outputpath does not take an input")
-        return bytes(self._expand.output_path()), []
+        return bytes(self._expand.output_path()), set()
 
     def expand(self, args: Optional[list[bytes]], input: Optional[bytes]) -> Expansion:
         if args is not None:
@@ -570,7 +542,7 @@ class Macros:
         debug(command_to_str(b"paste", args, input))
 
         file_path = self._expand.file_arg(args[0])
-        return file_path.read_bytes(), [file_path]
+        return file_path.read_bytes(), set((file_path,))
 
     def include(self, args: Optional[list[bytes]], input: Optional[bytes]) -> Expansion:
         if args is None or len(args) != 1:
@@ -589,7 +561,7 @@ class Macros:
         debug(command_to_str(b"run", args, input))
 
         exe_path = self._expand.file_arg(args[0], exe=True)
-        return b"", [exe_path]
+        return b"", set((exe_path,))
 
 
 class RunMacros(Macros):
@@ -600,10 +572,11 @@ class RunMacros(Macros):
 
         exe_path = self._expand.file_arg(args[0], exe=True)
         expanded_input, inputs = (
-            (None, []) if input is None else self._expand.expand(input)
+            (None, set()) if input is None else self._expand.expand(input)
         )
-        os.environ["NANCY_INPUT"] = str(self._expand.root)
-        return filter_bytes(expanded_input, exe_path, args[1:]), inputs + [exe_path]
+        os.environ["NANCY_INPUT"] = str(self._expand.tree.input)
+        inputs.add(exe_path)
+        return filter_bytes(expanded_input, exe_path, args[1:]), inputs
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:
@@ -614,13 +587,11 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
     parser = argparse.ArgumentParser(
         description="A simple templating system.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"The INPUT-PATH is a '{os.path.pathsep}'-separated list; the inputs are merged\n"
-        + "in left-to-right order.",
     )
     parser.add_argument(
         "input",
-        metavar="INPUT-PATH",
-        help="list of input directories, or a single file",
+        metavar="INPUT",
+        help="input directory, or file",
     )
     parser.add_argument(
         "output", metavar="OUTPUT", help="output directory, or file ('-' for stdout)"
@@ -659,23 +630,23 @@ your option) any later version. There is no warranty.""",
     try:
         if args.input == "":
             die("input path must not be empty")
-        inputs = list(map(Path, args.input.split(os.path.pathsep)))
+        input = Path(args.input)
 
         # Deal with special case where INPUT is a single file and --path is not
         # given.
-        if args.path is None and len(inputs) == 1 and inputs[0].is_file():
-            args.path = inputs[0]
-            inputs[0] = Path.cwd()
+        if args.path is None and input.is_file():
+            args.path = input
+            input = Path.cwd()
 
-        trees = Trees(
-            inputs,
+        tree = Tree(
+            input,
             Path(args.output),
             args.process_hidden,
             Path(args.path) if args.path else None,
             args.delete,
             args.update,
         )
-        trees.process_path(trees.build)
+        tree.process_path(tree.build)
     except Exception as err:
         if "DEBUG" in os.environ:
             logging.error(err, exc_info=True)

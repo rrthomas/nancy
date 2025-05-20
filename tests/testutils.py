@@ -22,7 +22,7 @@ from typing import Optional, Union
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
 
-from nancy import Trees, main
+from nancy import Tree, main
 
 
 def file_objects_equal(
@@ -53,7 +53,7 @@ def file_objects_equal(
 
 
 def passing_test(
-    input_dirs: list[str],
+    input_dir: str,
     expected: str,
     build_path: Optional[str] = None,
     output_dir: Optional[str] = None,
@@ -61,7 +61,7 @@ def passing_test(
     delete_ungenerated: bool = False,
     update_newer: bool = False,
 ) -> None:
-    input_dir_paths = list(map(Path, input_dirs))
+    input_dir_path = Path(input_dir)
     ctx_mgr: Union[AbstractContextManager[None], TemporaryDirectory[str]]
     if output_dir is None:
         # TODO: when we can assume Python ≥ 3.12, use
@@ -72,8 +72,8 @@ def passing_test(
         ctx_mgr = contextlib.nullcontext()
         output_obj = output_dir
     with ctx_mgr:
-        trees = Trees(
-            input_dir_paths,
+        trees = Tree(
+            input_dir_path,
             Path(output_obj),
             process_hidden,
             None if build_path is None else Path(build_path),
@@ -86,7 +86,7 @@ def passing_test(
 
 
 def failing_test(
-    input_dirs: list[str],
+    input_dir: str,
     expected: str,
     build_path: Optional[str] = None,
     output_dir: Optional[str] = None,
@@ -97,7 +97,7 @@ def failing_test(
     with TemporaryDirectory() as expected_dir:
         try:
             passing_test(
-                input_dirs,
+                input_dir,
                 expected_dir,
                 build_path,
                 output_dir,
