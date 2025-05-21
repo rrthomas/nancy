@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import warnings
@@ -24,6 +25,9 @@ TEMPLATE_REGEX = re.compile(r"\.nancy(?=\.[^.]+$|$)")
 INPUT_REGEX = re.compile(r"\.in(?=\.[^.]+$|$)")
 
 MACRO_REGEX = re.compile(rb"(\\?)\$([^\W\d_]\w*)")
+
+umask = os.umask(0)
+os.umask(umask)
 
 
 def strip_final_newline(s: bytes) -> bytes:
@@ -249,8 +253,10 @@ class Trees:
             if expand.trees.output == Path("-"):
                 sys.stdout.buffer.write(output)
             else:
+                exe_perms = expand.get_new_execution_perms()
                 with open(expand.output_file(), "wb") as fh:
                     fh.write(output)
+                expand.set_output_execution_perms(exe_perms)
         else:
             expand.copy_file()
 
@@ -519,13 +525,30 @@ class Expand:
         self._stack.pop()
         return output[0], output[1] + [file_path]
 
+    def get_new_execution_perms(self):
+        """Get the execution permissions for a new file."""
+        stats = os.stat(self.input_file())
+        return (
+            stat.S_IMODE(stats.st_mode)
+            & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            & ~umask
+        )
+
+    def set_output_execution_perms(self, exe_perms: int):
+        """Update the execution permissions on the output file if needed."""
+        if exe_perms != 0:
+            output_stats = os.stat(self.output_file())
+            os.chmod(self.output_file(), output_stats.st_mode | exe_perms)
+
     def copy_file(self) -> None:
         """Copy the input file to the output file."""
         if self.trees.output == Path("-"):
             file_contents = self.input_file().read_bytes()
             sys.stdout.buffer.write(file_contents)
         else:
+            exe_perms = self.get_new_execution_perms()
             shutil.copyfile(self.input_file(), self.output_file())
+            self.set_output_execution_perms(exe_perms)
 
 
 class Macros:

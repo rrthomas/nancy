@@ -8,6 +8,7 @@ Released under the GPL version 3, or (at your option) any later version.
 import os
 import shutil
 import socket
+import stat
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -214,8 +215,13 @@ def test_outputpath_in_filename() -> None:
 
 
 def test_copy_suffix() -> None:
-    with chdir(tests_dir):
-        passing_test(["copy-src"], "copy-expected")
+    # Create temporary directory for output dir
+    with TemporaryDirectory() as tmp_dir:
+        with chdir(tests_dir):
+            passing_test(["copy-src"], "copy-expected", None, tmp_dir)
+            # Check permissions on executable file in result.
+            stats = os.stat(os.path.join(tmp_dir, "test.in"))
+            assert stats.st_mode & stat.S_IXUSR != 0
 
 
 def test_update_copy_suffix() -> None:
