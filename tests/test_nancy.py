@@ -109,15 +109,16 @@ def test_update_overwriting_some_input() -> None:
     # Create temporary directory to copy initial files into
     with TemporaryDirectory() as tmp_dir:
         with chdir(tests_dir):
+            # Copy files without preserving time stamps
             shutil.copytree(
                 "webpage-expected",
                 tmp_dir,
                 dirs_exist_ok=True,
                 copy_function=shutil.copy,
             )
-            # Re-copy one file with its original time stamp, to make it out of date
             updating_path = Path(tmp_dir) / "people" / "index.html"
-            shutil.copy2("webpage-expected/people/index.html", updating_path)
+            # Set one file's mtime to zero, to make it out of date
+            os.utime(updating_path, times=(0, 0))
             orig_mtimes = tree_mtimes(Path(tmp_dir))
             passing_test(
                 ["webpage-src"],
