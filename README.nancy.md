@@ -86,7 +86,11 @@ commands in other files. They can also be used for documentation or other
 files which you’d like to keep with the inputs, but not form part of the
 output.
 
-Output files are created with default permissions, except that when a file is copied, if any of its execute permission bits is set, then those bits are first ANDed with the complement of the umask, and if any bits remain set, they are set on the destination file. This means that a file that is executable in the input will be executable in the output.
+Output files are created with default permissions, except that when a file
+is copied, if any of its execute permission bits is set, then those bits are
+first ANDed with the complement of the umask, and if any bits remain set,
+they are set on the destination file. This means that a file that is
+executable in the input will be executable in the output.
 
 When the option `--update` is used, when a given output file exists, Nancy
 only overwrites it with a new version if one of the files used to make it
