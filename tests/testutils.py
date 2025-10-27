@@ -17,7 +17,6 @@ import tempfile
 from contextlib import AbstractContextManager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Union
 
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
@@ -25,9 +24,7 @@ from pytest import CaptureFixture, LogCaptureFixture
 from nancy import Trees, main
 
 
-def file_objects_equal(
-    a: Union[os.PathLike[str], str], b: Union[os.PathLike[str], str]
-) -> bool:
+def file_objects_equal(a: os.PathLike[str] | str, b: os.PathLike[str] | str) -> bool:
     if os.path.isfile(a):
         with contextlib.ExitStack() as stack:
             out_fh = stack.enter_context(open(a, encoding="utf-8"))
@@ -55,18 +52,16 @@ def file_objects_equal(
 def passing_test(
     input_dirs: list[str],
     expected: str,
-    build_path: Optional[str] = None,
-    output_dir: Optional[str] = None,
+    build_path: str | None = None,
+    output_dir: str | None = None,
     process_hidden: bool = False,
     delete_ungenerated: bool = False,
     update_newer: bool = False,
 ) -> None:
     input_dir_paths = list(map(Path, input_dirs))
-    ctx_mgr: Union[AbstractContextManager[None], TemporaryDirectory[str]]
+    ctx_mgr: AbstractContextManager[None] | TemporaryDirectory[str]
     if output_dir is None:
-        # TODO: when we can assume Python ≥ 3.12, use
-        # `TemporaryDirectory(delete="DEBUG" not in os.environ)`
-        ctx_mgr = tempfile.TemporaryDirectory()
+        ctx_mgr = tempfile.TemporaryDirectory(delete="DEBUG" not in os.environ)
         output_obj = os.path.join(ctx_mgr.name, "output")
     else:
         ctx_mgr = contextlib.nullcontext()
@@ -88,8 +83,8 @@ def passing_test(
 def failing_test(
     input_dirs: list[str],
     expected: str,
-    build_path: Optional[str] = None,
-    output_dir: Optional[str] = None,
+    build_path: str | None = None,
+    output_dir: str | None = None,
     process_hidden: bool = False,
     delete_ungenerated: bool = False,
     update_newer: bool = False,
@@ -115,7 +110,7 @@ def passing_cli_test(
     capsys: CaptureFixture[str],
     args: list[str],
     expected: str,
-    output_dir: Optional[str] = None,
+    output_dir: str | None = None,
 ) -> None:
     tmp_dir = None
     if output_dir is None:
@@ -141,7 +136,7 @@ def failing_cli_test(
     caplog: LogCaptureFixture,
     args: list[str],
     expected: str,
-    output_dir: Optional[str] = None,
+    output_dir: str | None = None,
 ) -> None:
     with pytest.raises(SystemExit) as e:
         passing_cli_test(capsys, args, "", output_dir)

@@ -11,9 +11,9 @@ import stat
 import subprocess
 import sys
 import warnings
+from collections.abc import Callable
 from logging import debug
 from pathlib import Path
-from typing import Callable, Optional
 
 from .warnings_util import die, simple_warning
 
@@ -78,8 +78,8 @@ def parse_arguments(
 
 def command_to_str(
     name: bytes,
-    args: Optional[list[bytes]],
-    input: Optional[bytes],
+    args: list[bytes] | None,
+    input: bytes | None,
 ) -> bytes:
     """Reconstitute a macro call from its parsed form."""
     args_string = b"" if args is None else b"(" + b",".join(args) + b")"
@@ -87,9 +87,7 @@ def command_to_str(
     return b"$" + name + args_string + input_string
 
 
-def filter_bytes(
-    input: Optional[bytes], exe_path: Path, exe_args: list[bytes]
-) -> bytes:
+def filter_bytes(input: bytes | None, exe_path: Path, exe_args: list[bytes]) -> bytes:
     """Run an external command passing `input` on stdin.
 
     Args:
@@ -150,7 +148,7 @@ class Trees:
         inputs: list[Path],
         output: Path,
         process_hidden: bool,
-        build: Optional[Path] = None,
+        build: Path | None = None,
         delete_ungenerated: bool = False,
         update_newer: bool = False,
     ):
@@ -182,14 +180,14 @@ class Trees:
             # Prevent the destructor running again
             self.delete_ungenerated = False
 
-    def find_root(self, obj: Path) -> Optional[Path]:
+    def find_root(self, obj: Path) -> Path | None:
         """Find the leftmost of `inputs` that contains `obj`."""
         for root in self.inputs:
             if (root / obj).exists():
                 return root
         return None
 
-    def find_object(self, obj: Path) -> Optional[Path]:
+    def find_object(self, obj: Path) -> Path | None:
         """Returns `find_root(obj) / obj` or `None`."""
         debug(f"find_object {obj} {self.inputs}")
         root = self.find_root(obj)
@@ -317,12 +315,12 @@ class Expand:
     """
 
     trees: Trees
-    root: Optional[Path]
+    root: Path | None
     path: Path
 
     # The output file relative to `trees.output`.
     # `None` while the filename is being expanded.
-    _output_path: Optional[Path]
+    _output_path: Path | None
 
     # _stack is a list of filesystem `Path`s which are currently being
     # `$include`d. This is used to avoid infinite loops.
@@ -330,9 +328,9 @@ class Expand:
 
     def __init__(
         self,
-        macrosClass: "type[Macros]",
+        macrosClass: "type[Macros]",  # TODO: remove quotes with 3.14.
         trees: Trees,
-        root: Optional[Path],
+        root: Path | None,
         path: Path,
     ):
         if root is not None:
@@ -383,7 +381,7 @@ class Expand:
         """
         return self.trees.output / self.output_path()
 
-    def find_on_path(self, start_path: Path, file: Path) -> Optional[Path]:
+    def find_on_path(self, start_path: Path, file: Path) -> Path | None:
         """Search for file starting at the given path.
 
         Args:
@@ -442,8 +440,8 @@ class Expand:
     def do_macro(
         self,
         name: bytes,
-        args: Optional[list[bytes]],
-        input: Optional[bytes],
+        args: list[bytes] | None,
+        input: bytes | None,
     ) -> Expansion:
         debug(f"do_macro {command_to_str(name, args, input)}")
         name_str = name.decode("iso-8859-1")
@@ -458,9 +456,9 @@ class Expand:
         if input is not None:
             input, input_inputs = self.expand_arg(input)
             inputs += input_inputs
-        macro: Optional[
-            Callable[[Optional[list[bytes]], Optional[bytes]], Expansion]
-        ] = getattr(self._macros, name_str, None)
+        macro: Callable[[list[bytes] | None, bytes | None], Expansion] | None = getattr(
+            self._macros, name_str, None
+        )
         if macro is None:
             raise ValueError(f"no such macro '${name_str}'")
         expanded, macro_inputs = macro(args, input)
@@ -562,23 +560,21 @@ class Macros:
     def __init__(self, expand: Expand):
         self._expand = expand
 
-    def path(self, args: Optional[list[bytes]], input: Optional[bytes]) -> Expansion:
+    def path(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is not None:
             raise ValueError("$path does not take arguments")
         if input is not None:
             raise ValueError("$path does not take an input")
         return bytes(self._expand.path), []
 
-    def outputpath(
-        self, args: Optional[list[bytes]], input: Optional[bytes]
-    ) -> Expansion:
+    def outputpath(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is not None:
             raise ValueError("$outputpath does not take arguments")
         if input is not None:
             raise ValueError("$outputpath does not take an input")
         return bytes(self._expand.output_path()), []
 
-    def expand(self, args: Optional[list[bytes]], input: Optional[bytes]) -> Expansion:
+    def expand(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is not None:
             raise ValueError("$expand does not take arguments")
         if input is None:
@@ -588,7 +584,7 @@ class Macros:
         output, inputs = self._expand.expand(input)
         return strip_final_newline(output), inputs
 
-    def paste(self, args: Optional[list[bytes]], input: Optional[bytes]) -> Expansion:
+    def paste(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is None or len(args) != 1:
             raise ValueError("$paste needs exactly one argument")
         if input is not None:
@@ -598,7 +594,7 @@ class Macros:
         file_path = self._expand.file_arg(args[0])
         return file_path.read_bytes(), [file_path]
 
-    def include(self, args: Optional[list[bytes]], input: Optional[bytes]) -> Expansion:
+    def include(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is None or len(args) != 1:
             raise ValueError("$include needs exactly one argument")
         if input is not None:
@@ -609,7 +605,7 @@ class Macros:
         output, inputs = self._expand.include(file_path)
         return strip_final_newline(output), inputs
 
-    def run(self, args: Optional[list[bytes]], input: Optional[bytes]) -> Expansion:
+    def run(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is None:
             raise ValueError("$run needs at least one argument")
         debug(command_to_str(b"run", args, input))
@@ -619,7 +615,7 @@ class Macros:
 
 
 class RunMacros(Macros):
-    def run(self, args: Optional[list[bytes]], input: Optional[bytes]) -> Expansion:
+    def run(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is None:
             raise ValueError("$run needs at least one argument")
         debug(command_to_str(b"run", args, input))

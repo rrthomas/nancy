@@ -9,8 +9,7 @@ import os
 import shutil
 import socket
 import stat
-import sys
-from collections.abc import Iterator
+from contextlib import chdir  # pyright: ignore
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -27,21 +26,6 @@ from testutils import (
 )
 
 from nancy import main
-
-
-if sys.version_info[:2] >= (3, 11):  # pragma: no cover
-    from contextlib import chdir  # pyright: ignore
-else:  # pragma: no cover
-    from contextlib import contextmanager
-
-    @contextmanager
-    def chdir(path: os.PathLike[str]) -> Iterator[None]:
-        old_dir = os.getcwd()
-        os.chdir(path)
-        try:
-            yield
-        finally:
-            os.chdir(old_dir)
 
 
 tests_dir = Path(__file__).parent.resolve() / "test-files"
