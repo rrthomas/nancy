@@ -18,7 +18,7 @@ classifiers = [
 nancy = "nancy:main"
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = ["pytest", "pytest-asyncio"]
 
 [build-system]
 requires = [
@@ -30,6 +30,7 @@ packages = ["nancy"]
 
 [tool.pytest.ini_options]
 addopts = "-p no:warnings"
+asyncio_mode = "auto"
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "I", "UP"]

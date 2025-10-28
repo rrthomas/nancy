@@ -21,7 +21,8 @@ from tempfile import TemporaryDirectory
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
 
-from nancy import Trees, main
+from nancy import Trees
+from nancy import real_main as main
 
 
 def file_objects_equal(a: os.PathLike[str] | str, b: os.PathLike[str] | str) -> bool:
@@ -49,7 +50,7 @@ def file_objects_equal(a: os.PathLike[str] | str, b: os.PathLike[str] | str) -> 
     return False  # pragma: no cover
 
 
-def passing_test(
+async def passing_test(
     input_dirs: list[str],
     expected: str,
     build_path: str | None = None,
@@ -75,12 +76,12 @@ def passing_test(
             delete_ungenerated,
             update_newer,
         )
-        trees.process_path(trees.build)
+        await trees.process_path(trees.build)
         trees.__del__()
         assert file_objects_equal(output_obj, expected)
 
 
-def failing_test(
+async def failing_test(
     input_dirs: list[str],
     expected: str,
     build_path: str | None = None,
@@ -91,7 +92,7 @@ def failing_test(
 ) -> None:
     with TemporaryDirectory() as expected_dir:
         try:
-            passing_test(
+            await passing_test(
                 input_dirs,
                 expected_dir,
                 build_path,
@@ -106,7 +107,7 @@ def failing_test(
         raise ValueError("test passed unexpectedly")  # pragma: no cover
 
 
-def passing_cli_test(
+async def passing_cli_test(
     capsys: CaptureFixture[str],
     args: list[str],
     expected: str,
@@ -119,7 +120,7 @@ def passing_cli_test(
     else:
         output_obj = output_dir
     try:
-        main(args + [output_obj])
+        await main(args + [output_obj])
         if tmp_dir is not None:
             assert filecmp.cmp(output_obj, expected)
         else:
@@ -131,7 +132,7 @@ def passing_cli_test(
             tmp_dir.cleanup()
 
 
-def failing_cli_test(
+async def failing_cli_test(
     capsys: CaptureFixture[str],
     caplog: LogCaptureFixture,
     args: list[str],
@@ -139,7 +140,7 @@ def failing_cli_test(
     output_dir: str | None = None,
 ) -> None:
     with pytest.raises(SystemExit) as e:
-        passing_cli_test(capsys, args, "", output_dir)
+        await passing_cli_test(capsys, args, "", output_dir)
     assert e.type is SystemExit
     assert e.value.code != 0
     err = capsys.readouterr().err

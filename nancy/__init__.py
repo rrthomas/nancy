@@ -2,16 +2,18 @@
 # Released under the GPL version 3, or (at your option) any later version.
 
 import argparse
+import asyncio
 import importlib.metadata
 import logging
 import os
 import re
 import shutil
 import stat
-import subprocess
 import sys
 import warnings
-from collections.abc import Callable
+from asyncio.subprocess import Process
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from logging import debug
 from pathlib import Path
 
@@ -87,8 +89,16 @@ def command_to_str(
     return b"$" + name + args_string + input_string
 
 
-def filter_bytes(input: bytes | None, exe_path: Path, exe_args: list[bytes]) -> bytes:
-    """Run an external command passing `input` on stdin.
+@dataclass
+class Command:
+    command: str
+    process: Process
+
+
+async def filter_bytes(
+    input: bytes | None, exe_path: Path, exe_args: list[bytes]
+) -> Command:
+    """Start an external command passing `input` on stdin.
 
     Args:
         input (Optional[bytes]): passed to `stdin`
@@ -99,18 +109,20 @@ def filter_bytes(input: bytes | None, exe_path: Path, exe_args: list[bytes]) -> 
         bytes: stdout of the command
     """
     debug(f"Running {exe_path} {b' '.join(exe_args)}")
-    try:
-        res = subprocess.run(
-            [exe_path.resolve(strict=True)] + exe_args,
-            capture_output=True,
-            check=True,
-            input=input,
-        )
-        return res.stdout
-    except subprocess.CalledProcessError as err:
-        if err.stderr is not None:
-            print(err.stderr.decode("iso-8859-1"), file=sys.stderr)
-        die(f"Error code {err.returncode} running: {' '.join(map(str, err.cmd))}")
+    proc = await asyncio.create_subprocess_exec(
+        exe_path.resolve(strict=True),
+        *exe_args,
+        stdout=asyncio.subprocess.PIPE,
+        stdin=asyncio.subprocess.PIPE if input is not None else None,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    if input is not None:
+        assert proc.stdin is not None
+        proc.stdin.write(input)
+    command = str(exe_path)
+    if len(exe_args) > 0:
+        command += f" {str(b' '.join(exe_args))}"
+    return Command(command, proc)
 
 
 class Trees:
@@ -210,7 +222,7 @@ class Trees:
         output_mtime = output.stat().st_mtime
         return all(i.stat().st_mtime <= output_mtime for i in inputs)
 
-    def process_file(self, root: Path, obj: Path, only_newer: bool) -> None:
+    async def process_file(self, root: Path, obj: Path, only_newer: bool) -> None:
         """Expand, copy or ignore a file.
 
         Args:
@@ -220,6 +232,7 @@ class Trees:
                 dependency is newer than any current output file.
         """
         expand = Expand(RunMacros, self, root, obj)
+        await expand.set_output_path()
         if not re.search(COPY_REGEX, expand.input_file().name) and re.search(
             INPUT_REGEX, expand.input_file().name
         ):
@@ -231,8 +244,10 @@ class Trees:
             if re.search(COPY_REGEX, expand.input_file().name):
                 inputs.append(expand.input_file())
             elif re.search(TEMPLATE_REGEX, expand.input_file().name):
-                _, include_inputs = Expand(Macros, self, root, obj).include(
-                    expand.input_file()
+                check_expand = Expand(Macros, self, root, obj)
+                await check_expand.set_output_path()
+                _, include_inputs = await check_expand.include(
+                    check_expand.input_file()
                 )
                 inputs += include_inputs
             else:
@@ -247,7 +262,7 @@ class Trees:
             expand.copy_file()
         elif re.search(TEMPLATE_REGEX, expand.input_file().name):
             debug(f"Expanding '{expand.path}' to '{expand.output_file()}'")
-            output, _ = expand.include(expand.input_file())
+            output, _ = await expand.include(expand.input_file())
             if expand.trees.output == Path("-"):
                 sys.stdout.buffer.write(output)
             else:
@@ -258,7 +273,7 @@ class Trees:
         else:
             expand.copy_file()
 
-    def process_path(self, obj: Path) -> None:
+    async def process_path(self, obj: Path) -> None:
         """Recursively scan `obj` and pass every file to `process_file`.
 
         Args:
@@ -271,13 +286,15 @@ class Trees:
             if self.output == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
-            output_dir = Expand(RunMacros, self, None, obj).output_file()
+            expand = Expand(RunMacros, self, None, obj)
+            await expand.set_output_path()
+            output_dir = expand.output_file()
             os.makedirs(output_dir, exist_ok=True)
             for child in self.scandir(obj):
                 if child[0] != "." or self.process_hidden:
-                    self.process_path(obj / child)
+                    await self.process_path(obj / child)
         elif (root / obj).is_file():
-            self.process_file(root, obj, self.update_newer)
+            await self.process_file(root, obj, self.update_newer)
         else:
             raise ValueError(f"'{obj}' is not a file or directory")
 
@@ -301,8 +318,8 @@ class Trees:
                     pass  # The directory contained other (non-empty) directories.
 
 
-# TODO: Use type statement with Python 3.12
-Expansion = tuple[bytes, list[Path]]
+type Expansion = tuple[bytes, list[Path]]
+type AsyncExpansion = tuple[Awaitable[Command] | bytes, list[Path]]
 
 
 class Expand:
@@ -342,6 +359,7 @@ class Expand:
         self._stack = []
         self._macros = macrosClass(self)
 
+    async def set_output_path(self):
         # Recompute `_output_path` by expanding `path`.
         output_path = self.path.relative_to(self.trees.build)
         if output_path.name != "":
@@ -354,7 +372,7 @@ class Expand:
                     re.sub(TEMPLATE_REGEX, "", output_path.name)
                 )
             # Discard computed inputs when expanding filenames.
-            output, _ = self.expand(bytes(output_path))
+            output, _ = await self.expand(bytes(output_path))
             output_path = os.fsdecode(output)
         self._output_path = Path(output_path)
 
@@ -430,41 +448,43 @@ class Expand:
             return Path(exe_path_str)
         raise ValueError(f"cannot find program '{filename}'")
 
-    def expand_arg(self, arg: bytes) -> Expansion:
+    async def expand_arg(self, arg: bytes) -> Expansion:
         # Unescape escaped commas
         debug(f"escaped arg {arg}")
         unescaped_arg = re.sub(rb"\\,", b",", arg)
         debug(f"unescaped arg {unescaped_arg}")
-        return self.expand(unescaped_arg)
+        return await self.expand(unescaped_arg)
 
-    def do_macro(
+    async def do_macro(
         self,
         name: bytes,
         args: list[bytes] | None,
         input: bytes | None,
-    ) -> Expansion:
+    ) -> AsyncExpansion:
         debug(f"do_macro {command_to_str(name, args, input)}")
         name_str = name.decode("iso-8859-1")
         inputs = []
         if args is None:
             args = None
         else:
-            args_expansion = [self.expand_arg(arg) for arg in args]
+            args_expansion = [await self.expand_arg(arg) for arg in args]
             args = [a[0] for a in args_expansion]
             for a in args_expansion:
                 inputs += a[1]
         if input is not None:
-            input, input_inputs = self.expand_arg(input)
+            input, input_inputs = await self.expand_arg(input)
             inputs += input_inputs
-        macro: Callable[[list[bytes] | None, bytes | None], Expansion] | None = getattr(
-            self._macros, name_str, None
-        )
+        macro: (
+            Callable[[list[bytes] | None, bytes | None], Awaitable[AsyncExpansion]]
+            | None
+        ) = getattr(self._macros, name_str, None)
         if macro is None:
             raise ValueError(f"no such macro '${name_str}'")
-        expanded, macro_inputs = macro(args, input)
+        e = macro(args, input)
+        expanded, macro_inputs = await e
         return expanded, inputs + macro_inputs
 
-    def expand(self, text: bytes) -> Expansion:
+    async def expand(self, text: bytes) -> Expansion:
         """Expand `text`.
 
         Args:
@@ -476,10 +496,10 @@ class Expand:
         debug(f"expand {text} {self._stack}")
 
         startpos = 0
-        expanded = text
         inputs = []
+        expansions: list[tuple[int, int, bytes | Awaitable[Command]]] = []
         while True:
-            res = MACRO_REGEX.search(expanded, startpos)
+            res = MACRO_REGEX.search(text, startpos)
             if res is None:
                 break
             debug(f"match: {res} {res.end()}")
@@ -489,27 +509,42 @@ class Expand:
             args = None
             input = None
             # Parse arguments
-            if startpos < len(expanded) and expanded[startpos] == ord(b"("):
-                args, startpos = parse_arguments(expanded, startpos, ord(")"))
+            if startpos < len(text) and text[startpos] == ord(b"("):
+                args, startpos = parse_arguments(text, startpos, ord(")"))
             # Parse input
-            if startpos < len(expanded) and expanded[startpos] == ord(b"{"):
-                input_args, startpos = parse_arguments(expanded, startpos, ord("}"))
+            if startpos < len(text) and text[startpos] == ord(b"{"):
+                input_args, startpos = parse_arguments(text, startpos, ord("}"))
                 input = b",".join(input_args)
             if escaped != b"":
                 # Just remove the leading '\'
                 output = command_to_str(name, args, input)
             else:
-                output, macro_inputs = self.do_macro(name, args, input)
+                output, macro_inputs = await self.do_macro(name, args, input)
                 inputs += macro_inputs
-            expanded = expanded[: res.start()] + output + expanded[startpos:]
-            # Update search position to restart matching after output of macro
-            startpos = res.start() + len(output)
-            debug(f"expanded is now: {expanded}")
+            expansions.append((res.start(), startpos, output))
 
+        expanded: list[bytes] = []
+        last_nextpos = 0
+        for startpos, nextpos, e in expansions:
+            expanded.append(text[last_nextpos:startpos])
+            if isinstance(e, bytes):
+                expanded.append(e)
+            else:
+                cmd: Command = await e
+                stdout_data, stderr_data = await cmd.process.communicate()
+                assert cmd.process.returncode is not None
+                expanded.append(stdout_data)
+                if cmd.process.returncode != 0:
+                    print(stderr_data.decode("iso-8859-1"), file=sys.stderr)
+                    die(f"Error code {cmd.process.returncode} running: {cmd.command}")
+            last_nextpos = nextpos
+        expanded.append(text[last_nextpos:])
+
+        debug(f"expanded is now: {expanded}")
         debug(f"expand found inputs {inputs}")
-        return expanded, inputs
+        return b"".join(expanded), inputs
 
-    def include(self, file_path) -> Expansion:
+    async def include(self, file_path) -> Expansion:
         """Expand the contents of `file_path`.
 
         Args:
@@ -519,7 +554,7 @@ class Expand:
             Expansion
         """
         self._stack.append(file_path)
-        output = self.expand(file_path.read_bytes())
+        output = await self.expand(file_path.read_bytes())
         self._stack.pop()
         return output[0], output[1] + [file_path]
 
@@ -560,31 +595,33 @@ class Macros:
     def __init__(self, expand: Expand):
         self._expand = expand
 
-    def path(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
+    async def path(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is not None:
             raise ValueError("$path does not take arguments")
         if input is not None:
             raise ValueError("$path does not take an input")
         return bytes(self._expand.path), []
 
-    def outputpath(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
+    async def outputpath(
+        self, args: list[bytes] | None, input: bytes | None
+    ) -> Expansion:
         if args is not None:
             raise ValueError("$outputpath does not take arguments")
         if input is not None:
             raise ValueError("$outputpath does not take an input")
         return bytes(self._expand.output_path()), []
 
-    def expand(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
+    async def expand(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is not None:
             raise ValueError("$expand does not take arguments")
         if input is None:
             raise ValueError("$expand takes an input")
         debug(command_to_str(b"expand", args, input))
 
-        output, inputs = self._expand.expand(input)
+        output, inputs = await self._expand.expand(input)
         return strip_final_newline(output), inputs
 
-    def paste(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
+    async def paste(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is None or len(args) != 1:
             raise ValueError("$paste needs exactly one argument")
         if input is not None:
@@ -594,7 +631,7 @@ class Macros:
         file_path = self._expand.file_arg(args[0])
         return file_path.read_bytes(), [file_path]
 
-    def include(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
+    async def include(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
         if args is None or len(args) != 1:
             raise ValueError("$include needs exactly one argument")
         if input is not None:
@@ -602,10 +639,12 @@ class Macros:
         debug(command_to_str(b"include", args, input))
 
         file_path = self._expand.file_arg(args[0])
-        output, inputs = self._expand.include(file_path)
+        output, inputs = await self._expand.include(file_path)
         return strip_final_newline(output), inputs
 
-    def run(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
+    async def run(
+        self, args: list[bytes] | None, input: bytes | None
+    ) -> AsyncExpansion:
         if args is None:
             raise ValueError("$run needs at least one argument")
         debug(command_to_str(b"run", args, input))
@@ -615,20 +654,22 @@ class Macros:
 
 
 class RunMacros(Macros):
-    def run(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
+    async def run(
+        self, args: list[bytes] | None, input: bytes | None
+    ) -> AsyncExpansion:
         if args is None:
             raise ValueError("$run needs at least one argument")
         debug(command_to_str(b"run", args, input))
 
         exe_path = self._expand.file_arg(args[0], exe=True)
         expanded_input, inputs = (
-            (None, []) if input is None else self._expand.expand(input)
+            (None, []) if input is None else await self._expand.expand(input)
         )
         os.environ["NANCY_INPUT"] = str(self._expand.root)
         return filter_bytes(expanded_input, exe_path, args[1:]), inputs + [exe_path]
 
 
-def main(argv: list[str] = sys.argv[1:]) -> None:
+async def real_main(argv: list[str] = sys.argv[1:]) -> None:
     if "DEBUG" in os.environ:
         logging.basicConfig(level=logging.DEBUG)
 
@@ -697,10 +738,14 @@ your option) any later version. There is no warranty.""",
             args.delete,
             args.update,
         )
-        trees.process_path(trees.build)
+        await trees.process_path(trees.build)
     except Exception as err:
         if "DEBUG" in os.environ:
             logging.error(err, exc_info=True)
         else:
             die(f"{err}")
         sys.exit(1)
+
+
+def main(argv: list[str] = sys.argv[1:]) -> None:
+    asyncio.run(real_main(argv))
