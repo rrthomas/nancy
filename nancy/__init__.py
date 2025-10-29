@@ -154,6 +154,7 @@ class Trees:
     update_newer: bool
     extant_files: dict[Path, os.stat_result]
     output_files: set[Path]
+    work_queue: asyncio.Queue[Awaitable]
 
     def __init__(
         self,
@@ -183,6 +184,7 @@ class Trees:
         self.build = build
         self.extant_files = {}
         self.output_files = set()
+        self.work_queue = asyncio.Queue()
         if delete_ungenerated or update_newer:
             self.find_existing_files()
 
@@ -292,11 +294,24 @@ class Trees:
             os.makedirs(output_dir, exist_ok=True)
             for child in self.scandir(obj):
                 if child[0] != "." or self.process_hidden:
-                    await self.process_path(obj / child)
+                    self.work_queue.put_nowait(self.process_path(obj / child))
         elif (root / obj).is_file():
-            await self.process_file(root, obj, self.update_newer)
+            self.work_queue.put_nowait(self.process_file(root, obj, self.update_newer))
         else:
             raise ValueError(f"'{obj}' is not a file or directory")
+
+    async def process(self) -> None:
+        """Process `self.build` recursively."""
+        await self.process_path(self.build)
+
+        # Process the work queue
+        tasks = []
+        for i in range(os.cpu_count() or 1):
+            task = asyncio.create_task(worker(i, self.work_queue))
+            tasks.append(task)
+        await self.work_queue.join()
+        self.work_queue.shutdown()
+        await asyncio.gather(*tasks)
 
     def find_existing_files(self) -> None:
         for dirpath, _, filenames in os.walk(self.output):
@@ -536,7 +551,9 @@ class Expand:
                 expanded.append(stdout_data)
                 if cmd.process.returncode != 0:
                     print(stderr_data.decode("iso-8859-1"), file=sys.stderr)
-                    die(f"Error code {cmd.process.returncode} running: {cmd.command}")
+                    raise ValueError(
+                        f"Error code {cmd.process.returncode} running: {cmd.command}"
+                    )
             last_nextpos = nextpos
         expanded.append(text[last_nextpos:])
 
@@ -669,6 +686,19 @@ class RunMacros(Macros):
         return filter_bytes(expanded_input, exe_path, args[1:]), inputs + [exe_path]
 
 
+async def worker(i: int, queue: asyncio.Queue[Awaitable]):
+    while True:
+        try:
+            process = await queue.get()
+        except asyncio.queues.QueueShutDown:
+            return
+        debug(f"worker {i} got task {process}")
+        try:
+            await process
+        finally:
+            queue.task_done()
+
+
 async def real_main(argv: list[str] = sys.argv[1:]) -> None:
     if "DEBUG" in os.environ:
         logging.basicConfig(level=logging.DEBUG)
@@ -730,15 +760,15 @@ your option) any later version. There is no warranty.""",
             args.path = inputs[0]
             inputs[0] = Path.cwd()
 
-        trees = Trees(
+        await Trees(
             inputs,
             Path(args.output),
             args.process_hidden,
             Path(args.path) if args.path else None,
             args.delete,
             args.update,
-        )
-        await trees.process_path(trees.build)
+        ).process()
+
     except Exception as err:
         if "DEBUG" in os.environ:
             logging.error(err, exc_info=True)

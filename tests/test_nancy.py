@@ -497,7 +497,7 @@ async def test_running_with_a_single_file_as_INPUT_PATH_should_work(
     capsys: CaptureFixture[str],
 ) -> None:
     with chdir(tests_dir):
-        passing_cli_test(
+        await passing_cli_test(
             capsys,
             ["file-root-relative-include.nancy.txt"],
             "file-root-relative-include-expected.txt",
@@ -508,7 +508,7 @@ async def test_output_to_stdout_of_a_single_file_works(
     capsys: CaptureFixture[str],
 ) -> None:
     with chdir(tests_dir):
-        passing_cli_test(
+        await passing_cli_test(
             capsys,
             ["file-root-relative-include.nancy.txt"],
             "file-root-relative-include-expected.txt",
@@ -520,7 +520,7 @@ async def test_copy_to_stdout_of_a_single_file_works(
     capsys: CaptureFixture[str],
 ) -> None:
     with chdir(tests_dir):
-        passing_cli_test(
+        await passing_cli_test(
             capsys,
             ["random-text.txt"],
             "random-text.txt",
@@ -532,14 +532,16 @@ async def test_missing_command_line_argument_causes_an_error(
     capsys: CaptureFixture[str],
     caplog: LogCaptureFixture,
 ) -> None:
-    failing_cli_test(capsys, caplog, [], "the following arguments are required")
+    await failing_cli_test(capsys, caplog, [], "the following arguments are required")
 
 
 async def test_invalid_command_line_argument_causes_an_error(
     capsys: CaptureFixture[str],
     caplog: LogCaptureFixture,
 ) -> None:
-    failing_cli_test(capsys, caplog, ["--foo", "a"], "unrecognized arguments: --foo")
+    await failing_cli_test(
+        capsys, caplog, ["--foo", "a"], "unrecognized arguments: --foo"
+    )
 
 
 async def test_failing_executable_test(
@@ -547,7 +549,7 @@ async def test_failing_executable_test(
     caplog: LogCaptureFixture,
 ) -> None:
     with chdir(tests_dir):
-        failing_cli_test(capsys, caplog, ["false.nancy.txt"], "Error code 1")
+        await failing_cli_test(capsys, caplog, ["false.nancy.txt"], "Error code 1")
 
 
 async def test_failing_executable_error_message_test(
@@ -555,7 +557,7 @@ async def test_failing_executable_error_message_test(
     caplog: LogCaptureFixture,
 ) -> None:
     with chdir(tests_dir):
-        failing_cli_test(
+        await failing_cli_test(
             capsys,
             caplog,
             ["fail-with-error.nancy.txt"],
@@ -568,7 +570,7 @@ async def test_running_on_a_nonexistent_path_causes_an_error_DEBUG_coverage(
     caplog: LogCaptureFixture,
 ) -> None:
     with mock.patch.dict(os.environ, {"DEBUG": "yes"}):
-        failing_cli_test(capsys, caplog, ["a"], "input 'a' does not exist")
+        await failing_cli_test(capsys, caplog, ["a"], "input 'a' does not exist")
 
 
 async def test_running_on_something_not_a_file_or_directory_causes_an_error(
@@ -579,7 +581,7 @@ async def test_running_on_something_not_a_file_or_directory_causes_an_error(
         with TemporaryDirectory() as temp_dir:
             temp_file = os.path.join(temp_dir, "foo")
             server.bind(temp_file)
-            failing_cli_test(
+            await failing_cli_test(
                 capsys,
                 caplog,
                 [f"--path={os.path.basename(temp_file)}", temp_dir],
@@ -592,7 +594,7 @@ async def test_nonexistent_build_path_causes_an_error(
     caplog: LogCaptureFixture,
 ) -> None:
     with chdir(tests_dir):
-        failing_cli_test(
+        await failing_cli_test(
             capsys,
             caplog,
             ["--path", "nonexistent", "webpage-src"],
@@ -605,7 +607,7 @@ async def test_absolute_build_path_causes_an_error(
     caplog: LogCaptureFixture,
 ) -> None:
     with chdir(tests_dir):
-        failing_cli_test(
+        await failing_cli_test(
             capsys,
             caplog,
             ["--path", "/nonexistent", "webpage-src"],
@@ -617,4 +619,4 @@ async def test_empty_INPUT_PATH_causes_an_error(
     capsys: CaptureFixture[str],
     caplog: LogCaptureFixture,
 ) -> None:
-    failing_cli_test(capsys, caplog, [""], "input path must not be empty")
+    await failing_cli_test(capsys, caplog, [""], "input path must not be empty")

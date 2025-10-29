@@ -76,7 +76,7 @@ async def passing_test(
             delete_ungenerated,
             update_newer,
         )
-        await trees.process_path(trees.build)
+        await trees.process()
         trees.__del__()
         assert file_objects_equal(output_obj, expected)
 
