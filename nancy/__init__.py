@@ -338,7 +338,7 @@ class Trees:
 
 
 type Expansion = tuple[bytes, list[Path]]
-type AsyncExpansion = tuple[Awaitable[Command] | bytes, list[Path]]
+type CommandExpansion = tuple[Command | bytes, list[Path]]
 
 
 class Expand:
@@ -479,7 +479,7 @@ class Expand:
         name: bytes,
         args: list[bytes] | None,
         input: bytes | None,
-    ) -> AsyncExpansion:
+    ) -> CommandExpansion:
         debug(f"do_macro {command_to_str(name, args, input)}")
         name_str = name.decode("iso-8859-1")
         inputs = []
@@ -494,7 +494,7 @@ class Expand:
             input, input_inputs = await self.expand_arg(input)
             inputs += input_inputs
         macro: (
-            Callable[[list[bytes] | None, bytes | None], Awaitable[AsyncExpansion]]
+            Callable[[list[bytes] | None, bytes | None], Awaitable[CommandExpansion]]
             | None
         ) = getattr(self._macros, name_str, None)
         if macro is None:
@@ -516,7 +516,7 @@ class Expand:
 
         startpos = 0
         inputs = []
-        expansions: list[tuple[int, int, bytes | Awaitable[Command]]] = []
+        expansions: list[tuple[int, int, bytes | Command]] = []
         while True:
             res = MACRO_REGEX.search(text, startpos)
             if res is None:
@@ -549,14 +549,13 @@ class Expand:
             if isinstance(e, bytes):
                 expanded.append(e)
             else:
-                cmd: Command = await e
-                stdout_data, stderr_data = await cmd.process.communicate()
-                assert cmd.process.returncode is not None
+                stdout_data, stderr_data = await e.process.communicate()
+                assert e.process.returncode is not None
                 expanded.append(stdout_data)
-                if cmd.process.returncode != 0:
+                if e.process.returncode != 0:
                     print(stderr_data.decode("iso-8859-1"), file=sys.stderr)
                     raise ValueError(
-                        f"Error code {cmd.process.returncode} running: {cmd.command}"
+                        f"Error code {e.process.returncode} running: {e.command}"
                     )
             last_nextpos = nextpos
         expanded.append(text[last_nextpos:])
@@ -665,7 +664,7 @@ class Macros:
 
     async def run(
         self, args: list[bytes] | None, input: bytes | None
-    ) -> AsyncExpansion:
+    ) -> CommandExpansion:
         if args is None:
             raise ValueError("$run needs at least one argument")
         debug(command_to_str(b"run", args, input))
@@ -677,7 +676,7 @@ class Macros:
 class RunMacros(Macros):
     async def run(
         self, args: list[bytes] | None, input: bytes | None
-    ) -> AsyncExpansion:
+    ) -> CommandExpansion:
         if args is None:
             raise ValueError("$run needs at least one argument")
         debug(command_to_str(b"run", args, input))
@@ -687,7 +686,9 @@ class RunMacros(Macros):
             (None, []) if input is None else await self._expand.expand(input)
         )
         os.environ["NANCY_INPUT"] = str(self._expand.root)
-        return filter_bytes(expanded_input, exe_path, args[1:]), inputs + [exe_path]
+        return await filter_bytes(expanded_input, exe_path, args[1:]), inputs + [
+            exe_path
+        ]
 
 
 async def worker(i: int, queue: asyncio.Queue[Awaitable]):
