@@ -38,7 +38,7 @@ $ pip install nancy
 
 ```
 nancy [-h] [--path PATH] [--process-hidden] [--update] [--delete]
-             [--version]
+             [--jobs JOBS] [--version]
              INPUT-PATH OUTPUT
 
 A simple templating system.
@@ -55,6 +55,8 @@ options:
                     dependencies are newer than the current file
   --delete          delete files and directories in the output tree that are
                     not written
+  --jobs JOBS       number of parallel tasks to run at the same time [default
+                    is number of CPU cores, currently 4]
   --version         show program's version number and exit
 
 The INPUT-PATH is a ':'-separated list; the inputs are merged
@@ -128,6 +130,8 @@ commands.
 If the `--delete` option is given, Nancy deletes any files in the output
 directory that it did not write, and any directories that thereby become
 empty.
+
+Nancy runs background tasks in parallel. By default, it uses up to one task per available CPU core. You can set the number of tasks with the `--jobs` flag. In particular, if you rely on tasks not being run in parallel (usually a bad idea!) you can use `--jobs=1`.
 
 
 ### Special cases
@@ -280,6 +284,13 @@ Check out the git repository with:
 
 ```
 git clone https://github.com/rrthomas/nancy
+```
+
+Install the pre-commit hooks (needs `pre-commit`, which is installed
+automatically if you use a venv) with:
+
+```
+pre-commit install
 ```
 
 To run the tests:

@@ -262,6 +262,13 @@ Check out the git repository with:
 git clone https://github.com/rrthomas/nancy
 ```
 
+Install the pre-commit hooks (needs `pre-commit`, which is installed
+automatically if you use a venv) with:
+
+```
+pre-commit install
+```
+
 To run the tests:
 
 ```
