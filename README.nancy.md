@@ -107,6 +107,8 @@ If the `--delete` option is given, Nancy deletes any files in the output
 directory that it did not write, and any directories that thereby become
 empty.
 
+Nancy runs background tasks in parallel. By default, it uses up to one task per available CPU core. You can set the number of tasks with the `--jobs` flag. In particular, if you rely on tasks not being run in parallel (usually a bad idea!) you can use `--jobs=1`.
+
 
 ### Special cases
 

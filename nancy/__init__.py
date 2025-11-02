@@ -300,13 +300,17 @@ class Trees:
         else:
             raise ValueError(f"'{obj}' is not a file or directory")
 
-    async def process(self) -> None:
-        """Process `self.build` recursively."""
+    async def process(self, workers: int) -> None:
+        """Process `self.build` with parallel worker tasks.
+
+        Args:
+            workers (int): the number of tasks to use.
+        """
         await self.process_path(self.build)
 
         # Process the work queue
         tasks = []
-        for i in range(os.cpu_count() or 1):
+        for i in range(workers):
             task = asyncio.create_task(worker(i, self.work_queue))
             tasks.append(task)
         await self.work_queue.join()
@@ -737,6 +741,12 @@ async def real_main(argv: list[str] = sys.argv[1:]) -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--jobs",
+        help="number of parallel tasks to run at the same time [default is number of CPU cores, currently %(default)s]",
+        type=int,
+        default=os.cpu_count() or 1,
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"""%(prog)s {VERSION}
@@ -767,7 +777,7 @@ your option) any later version. There is no warranty.""",
             Path(args.path) if args.path else None,
             args.delete,
             args.update,
-        ).process()
+        ).process(args.jobs)
 
     except Exception as err:
         if "DEBUG" in os.environ:

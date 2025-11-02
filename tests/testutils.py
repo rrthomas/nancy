@@ -76,7 +76,7 @@ async def passing_test(
             delete_ungenerated,
             update_newer,
         )
-        await trees.process()
+        await trees.process(os.cpu_count() or 1)
         trees.__del__()
         assert file_objects_equal(output_obj, expected)
 
