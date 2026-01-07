@@ -711,8 +711,7 @@ async def real_main(argv: list[str] = sys.argv[1:]) -> None:
     # Read and process arguments
     parser = argparse.ArgumentParser(
         description="A simple templating system.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"The INPUT-PATH is a '{os.path.pathsep}'-separated list; the inputs are merged\n"
+        epilog=f"The INPUT-PATH is a '{os.path.pathsep}'-separated list; the inputs are merged "
         + "in left-to-right order.",
     )
     parser.add_argument(
