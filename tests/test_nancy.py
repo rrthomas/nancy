@@ -50,6 +50,13 @@ async def test_two_trees() -> None:
         check_links("mergetrees-expected", "index.html")
 
 
+async def test_override_symink() -> None:
+    with chdir(tests_dir):
+        await passing_test(
+            ["overriding-symlink", "override-symlink"], "override-symlink-expected"
+        )
+
+
 async def test_update_with_no_existing_output() -> None:
     with chdir(tests_dir):
         await passing_test(

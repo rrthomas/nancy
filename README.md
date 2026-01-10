@@ -2,8 +2,8 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-© 2002–2025 Reuben Thomas <rrt@sc3d.org>  
-https://github.com/rrthomas/nancy  
+https://github.com/rrthomas/nancy Distributed under the GNU General Public  
+License version 3, or (at your option) any later version. There is no  
 
 Nancy is a simple templating system that copies a file or directory, filling
 in templates as it goes. Two simple mechanisms, context-dependent file
@@ -37,9 +37,9 @@ $ pip install nancy
 ## Invocation
 
 ```
-nancy [-h] [--path PATH] [--process-hidden] [--update] [--delete]
-             [--jobs JOBS] [--version]
-             INPUT-PATH OUTPUT
+usage: python -m nancy [-h] [--path PATH] [--process-hidden] [--update]
+                       [--delete] [--jobs JOBS] [--version]
+                       INPUT-PATH OUTPUT
 
 A simple templating system.
 
@@ -56,11 +56,11 @@ options:
   --delete          delete files and directories in the output tree that are
                     not written
   --jobs JOBS       number of parallel tasks to run at the same time [default
-                    is number of CPU cores, currently 4]
+                    is number of CPU cores, currently 16]
   --version         show program's version number and exit
 
-The INPUT-PATH is a ':'-separated list; the inputs are merged
-in left-to-right order.
+The INPUT-PATH is a ':'-separated list; the inputs are merged in left-to-right
+order.
 ```
 
 ## Operation <a name="operation"></a>
@@ -244,9 +244,7 @@ a program, the program will be given the actual path, rather than the string
 
 When Nancy `$run`s a program, it sets the following environment variables:
 
-- NANCY_INPUT - the root of whichever of the input trees contains the file
-  that is being expanded. The file's name, relative to `NANCY_INPUT`, is
-  `$path`.
+- NANCY_INPUT - the input file name.
 
 ### Escaping
 

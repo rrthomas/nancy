@@ -220,9 +220,7 @@ a program, the program will be given the actual path, rather than the string
 
 When Nancy `\$run`s a program, it sets the following environment variables:
 
-- NANCY_INPUT - the root of whichever of the input trees contains the file
-  that is being expanded. The file's name, relative to `NANCY_INPUT`, is
-  `\$path`.
+- NANCY_INPUT - the input file name.
 
 ### Escaping
 
