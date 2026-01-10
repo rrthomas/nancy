@@ -194,8 +194,12 @@ class Trees:
             # Prevent the destructor running again
             self.delete_ungenerated = False
 
-    def find_root(self, obj: Path) -> Path | None:
-        """Find the leftmost of `inputs` that contains `obj`. Follow symlinks."""
+    def find_object(self, obj: Path) -> Path | None:
+        """Find the leftmost of `self.inputs` that contains `obj` and return its real `Path`.
+
+        Follow symlinks.
+        """
+        debug(f"find_object {obj} {self.inputs}")
         for root in self.inputs:
             path = root / obj
             if path.exists():
@@ -203,22 +207,17 @@ class Trees:
                 # in the input tree, try to find its target. If it points
                 # outside the input tree, return it directly.
                 if path.is_symlink():
-                    # print(f"found symlink {path}")
+                    print(f"found symlink {path}")
                     target = path.resolve()
-                    # print(f"resolved is {target}")
-                    # print(
-                    #     f"relative to {root} is {target.is_relative_to(root.resolve())} {target.relative_to(root.resolve())}"
-                    # )
+                    print(f"resolved is {target}")
+                    print(
+                        f"relative to {root} is {target.is_relative_to(root.resolve())} {target.relative_to(root.resolve())}"
+                    )
                     if target.is_relative_to(root.resolve()):
-                        return self.find_root(target.relative_to(root.resolve()))
-                return root
+                        return self.find_object(target.relative_to(root.resolve()))
+                print(f"returning {path}")
+                return path
         return None
-
-    def find_object(self, obj: Path) -> Path | None:
-        """Returns `find_root(obj) / obj` or `None`."""
-        debug(f"find_object {obj} {self.inputs}")
-        root = self.find_root(obj)
-        return None if root is None else root / obj
 
     def scandir(self, obj: Path) -> list[str]:
         """Returns the child names of overlaid input directory `obj`."""
