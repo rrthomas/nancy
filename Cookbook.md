@@ -227,14 +227,14 @@ The following script will produce a Zip file of a directory, excluding `.nancy` 
 
 ```
 #!/bin/sh
-cd $(dirname "${NANCY_INPUT}/$1")
+cd $(dirname "${NANCY_INPUT}")
 zip -r archive.zip . --exclude *.nancy.*
 ```
 
 Assuming it is called `make-zip.in.in.sh`, it can be used thus, from a file called `archive.nancy.zip`:
 
 ```
-$run(make-zip.in.sh,\$path)
+$run(make-zip.in.sh)
 ```
 
 ## Updating an existing copy of a project

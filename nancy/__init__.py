@@ -195,9 +195,22 @@ class Trees:
             self.delete_ungenerated = False
 
     def find_root(self, obj: Path) -> Path | None:
-        """Find the leftmost of `inputs` that contains `obj`."""
+        """Find the leftmost of `inputs` that contains `obj`. Follow symlinks."""
         for root in self.inputs:
-            if (root / obj).exists():
+            path = root / obj
+            if path.exists():
+                # If path is a symlink, and it resolves to a path that is also
+                # in the input tree, try to find its target. If it points
+                # outside the input tree, return it directly.
+                if path.is_symlink():
+                    # print(f"found symlink {path}")
+                    target = path.resolve()
+                    # print(f"resolved is {target}")
+                    # print(
+                    #     f"relative to {root} is {target.is_relative_to(root.resolve())} {target.relative_to(root.resolve())}"
+                    # )
+                    if target.is_relative_to(root.resolve()):
+                        return self.find_root(target.relative_to(root.resolve()))
                 return root
         return None
 
@@ -224,47 +237,46 @@ class Trees:
         output_mtime = output.stat().st_mtime
         return all(i.stat().st_mtime <= output_mtime for i in inputs)
 
-    async def process_file(self, root: Path, obj: Path, only_newer: bool) -> None:
+    async def process_file(self, real_path: Path, obj: Path, only_newer: bool) -> None:
         """Expand, copy or ignore a file.
 
         Args:
-            root (Optional[Path]): one of `trees.inputs`
-            obj (Path): the `root`-relative `Path`
+            real_path (Path): the real `Path` of the file to process
+            obj (Path): the inputs-relative `Path`
             only_newer (bool): `True` means only update the file if a
                 dependency is newer than any current output file.
         """
-        expand = Expand(RunMacros, self, root, obj)
+        expand = Expand(RunMacros, self, real_path, obj)
         await expand.set_output_path()
-        if not re.search(COPY_REGEX, expand.input_file().name) and re.search(
-            INPUT_REGEX, expand.input_file().name
+        assert expand.real_path is not None
+        if not re.search(COPY_REGEX, expand.real_path.name) and re.search(
+            INPUT_REGEX, expand.real_path.name
         ):
             return
-        debug(f"Processing file '{expand.input_file()}'")
+        debug(f"Processing file '{expand.real_path}'")
         self.output_files.add(expand.output_file())
         if only_newer:
             inputs: list[Path] = []
-            if re.search(COPY_REGEX, expand.input_file().name):
-                inputs.append(expand.input_file())
-            elif re.search(TEMPLATE_REGEX, expand.input_file().name):
-                check_expand = Expand(Macros, self, root, obj)
+            if re.search(COPY_REGEX, expand.real_path.name):
+                inputs.append(expand.real_path)
+            elif re.search(TEMPLATE_REGEX, expand.real_path.name):
+                check_expand = Expand(Macros, self, real_path, obj)
                 await check_expand.set_output_path()
-                _, include_inputs = await check_expand.include(
-                    check_expand.input_file()
-                )
+                _, include_inputs = await check_expand.include(check_expand.real_path)
                 inputs += include_inputs
             else:
-                inputs.append(expand.input_file())
+                inputs.append(expand.real_path)
             debug(f"Checking inputs {inputs} against output {expand.output_file()}")
             if self._check_output_newer(inputs, expand.output_file()):
                 debug("Not updating")
                 return
             debug("Updating")
         os.makedirs(expand.output_file().parent, exist_ok=True)
-        if re.search(COPY_REGEX, expand.input_file().name):
+        if re.search(COPY_REGEX, expand.real_path.name):
             expand.copy_file()
-        elif re.search(TEMPLATE_REGEX, expand.input_file().name):
+        elif re.search(TEMPLATE_REGEX, expand.real_path.name):
             debug(f"Expanding '{expand.path}' to '{expand.output_file()}'")
-            output, _ = await expand.include(expand.input_file())
+            output, _ = await expand.include(expand.real_path)
             if expand.trees.output == Path("-"):
                 sys.stdout.buffer.write(output)
             else:
@@ -281,10 +293,10 @@ class Trees:
         Args:
             obj (Path): the `inputs`-relative `Path` to scan.
         """
-        root = self.find_root(obj)
-        if root is None:
+        real_obj = self.find_object(obj)
+        if real_obj is None:
             raise ValueError(f"'{obj}' matches no path in the inputs")
-        if (root / obj).is_dir():
+        if real_obj.is_dir():
             if self.output == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
             debug(f"Entering directory '{obj}'")
@@ -295,8 +307,10 @@ class Trees:
             for child in self.scandir(obj):
                 if child[0] != "." or self.process_hidden:
                     self.work_queue.put_nowait(self.process_path(obj / child))
-        elif (root / obj).is_file():
-            self.work_queue.put_nowait(self.process_file(root, obj, self.update_newer))
+        elif real_obj.is_file():
+            self.work_queue.put_nowait(
+                self.process_file(real_obj, obj, self.update_newer)
+            )
         else:
             raise ValueError(f"'{obj}' is not a file or directory")
 
@@ -345,13 +359,13 @@ class Expand:
     """`Path`s related to the file being expanded.
 
     Fields:
-        trees (Trees):
-        root (Optional[Path]): one of `trees.inputs`
-        path (Path): the `root`-relative `Path`
+        trees (Trees): the inputs
+        real_path (Optional[Path]): the real path corresponding to `path`, if any
+        path (Path): the inputs-relative `Path`
     """
 
     trees: Trees
-    root: Path | None
+    real_obj: Path | None
     path: Path
 
     # The output file relative to `trees.output`.
@@ -366,13 +380,16 @@ class Expand:
         self,
         macrosClass: "type[Macros]",  # TODO: remove quotes with 3.14.
         trees: Trees,
-        root: Path | None,
+        real_path: Path | None,
         path: Path,
     ):
-        if root is not None:
-            assert root in trees.inputs, (root, trees)
+        if real_path is not None:
+            assert any(real_path.is_relative_to(root) for root in trees.inputs), (
+                real_path,
+                trees,
+            )
         self.trees = trees
-        self.root = root
+        self.real_path = real_path
         self.path = path
         self._output_path = None
         self._stack = []
@@ -394,11 +411,6 @@ class Expand:
             output, _ = await self.expand(bytes(output_path))
             output_path = os.fsdecode(output)
         self._output_path = Path(output_path)
-
-    def input_file(self):
-        """Returns the filesystem input `Path`."""
-        assert self.root is not None
-        return self.root / self.path
 
     def output_path(self):
         """Returns the relative output `Path` for the current file.
@@ -580,7 +592,8 @@ class Expand:
 
     def get_new_execution_perms(self):
         """Get the execution permissions for a new file."""
-        stats = os.stat(self.input_file())
+        assert self.real_path is not None
+        stats = os.stat(self.real_path)
         return (
             stat.S_IMODE(stats.st_mode)
             & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -596,11 +609,13 @@ class Expand:
     def copy_file(self) -> None:
         """Copy the input file to the output file."""
         if self.trees.output == Path("-"):
-            file_contents = self.input_file().read_bytes()
+            assert self.real_path is not None
+            file_contents = self.real_path.read_bytes()
             sys.stdout.buffer.write(file_contents)
         else:
             exe_perms = self.get_new_execution_perms()
-            shutil.copyfile(self.input_file(), self.output_file())
+            assert self.real_path is not None
+            shutil.copyfile(self.real_path, self.output_file())
             self.set_output_execution_perms(exe_perms)
 
 
@@ -685,7 +700,7 @@ class RunMacros(Macros):
         expanded_input, inputs = (
             (None, []) if input is None else await self._expand.expand(input)
         )
-        os.environ["NANCY_INPUT"] = str(self._expand.root)
+        os.environ["NANCY_INPUT"] = str(self._expand.real_path)
         return await filter_bytes(expanded_input, exe_path, args[1:]), inputs + [
             exe_path
         ]
