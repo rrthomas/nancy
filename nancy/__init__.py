@@ -1,4 +1,4 @@
-# © Reuben Thomas <rrt@sc3d.org> 2024-2025
+# © Reuben Thomas <rrt@sc3d.org> 2024-2026
 # Released under the GPL version 3, or (at your option) any later version.
 
 import argparse
@@ -755,7 +755,7 @@ async def real_main(argv: list[str] = sys.argv[1:]) -> None:
         "--version",
         action="version",
         version=f"""%(prog)s {VERSION}
-© 2002–2025 Reuben Thomas <rrt@sc3d.org>
+© 2002–2026 Reuben Thomas <rrt@sc3d.org>
 https://github.com/rrthomas/nancy
 Distributed under the GNU General Public License version 3, or (at
 your option) any later version. There is no warranty.""",
