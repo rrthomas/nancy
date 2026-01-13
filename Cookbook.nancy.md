@@ -143,3 +143,8 @@ The `OUTPUT` argument to Nancy can be an existing directory. If you want to upda
 If you have a project that you frequently update, but that takes a long time to process, usually because some `\$run` commands are long-running, you may want to avoid regenerating files whose contents would be identical. In general, this is not possible, as Nancy cannot tell what output a `\$run` command will produce. However, it can assume that they make no difference. If you use the `--update` flag, Nancy will find all the files mentioned in `\$include`, `\$paste` and `\$run` commands, and will only expand a template file if at least one of those has a timestamp newer than the corresponding output file. Input files and plain files are similarly only copied if they are newer than the corresponding output.
 
 This can also be useful for other programs that rely on the timestamps of files in Nancy’s output; for example, a program that uploads a web site from a copy produced by Nancy might upload only those files whose timestamp is newer than the version already online. For a large web site, this could save a lot of time to update it.
+
+
+## Overriding parts of a project
+
+Sometimes it’s desirable to override parts of a project, for example to have settings for a web site that are useful in development, but not production. This can be achieved by using UnionFS (on operating systems that support it) to combine two directory trees.
