@@ -24,7 +24,7 @@ test = ["pytest", "pytest-asyncio"]
 requires = [
     "build",
     "pre-commit",
-    "setuptools >= 60",
+    "setuptools",
 ]
 
 [tool.setuptools]
