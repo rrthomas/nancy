@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from logging import debug
 from pathlib import Path
 
+from .raw_version import RawVersionAction
 from .warnings_util import die, simple_warning
 
 
@@ -716,10 +717,9 @@ async def real_main(argv: list[str] = sys.argv[1:]) -> None:
     # Read and process arguments
     parser = argparse.ArgumentParser(
         description="A simple templating system.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"The INPUT-PATH is a '{os.path.pathsep}'-separated list; the inputs are merged\n"
-        + "in left-to-right order.",
+        epilog=f"The INPUT-PATH is a '{os.path.pathsep}'-separated list; the inputs are merged in left-to-right order.",
     )
+    parser.register("action", "raw_version", RawVersionAction)
     parser.add_argument(
         "input",
         metavar="INPUT-PATH",
@@ -754,7 +754,7 @@ async def real_main(argv: list[str] = sys.argv[1:]) -> None:
     )
     parser.add_argument(
         "--version",
-        action="version",
+        action="raw_version",
         version=f"""%(prog)s {VERSION}
 © 2002–2026 Reuben Thomas <rrt@sc3d.org>
 https://github.com/rrthomas/nancy

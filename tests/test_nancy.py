@@ -500,6 +500,14 @@ def test_help_option_should_produce_output(capsys: CaptureFixture[str]) -> None:
     assert capsys.readouterr().out.find("A simple templating system.") != -1
 
 
+def test_version_option_should_produce_output(capsys: CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as e:
+        main(["--version"])
+    assert e.type is SystemExit
+    assert e.value.code == 0
+    assert capsys.readouterr().out.find("There is no warranty.") != -1
+
+
 async def test_running_with_a_single_file_as_INPUT_PATH_should_work(
     capsys: CaptureFixture[str],
 ) -> None:
