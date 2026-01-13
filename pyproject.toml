@@ -33,6 +33,8 @@ packages = ["nancy"]
 [tool.pytest.ini_options]
 addopts = "-p no:warnings"
 asyncio_mode = "auto"
+filterwarnings = "ignore::UserWarning"
+xfail_strict = true
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "I", "UP"]
