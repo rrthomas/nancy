@@ -2,8 +2,8 @@
 
 ![logo](logo/nancy-small.png) _logo by Silvia Polverini_
 
-https://github.com/rrthomas/nancy Distributed under the GNU General Public  
-License version 3, or (at your option) any later version. There is no  
+© 2002–2026 Reuben Thomas <rrt@sc3d.org>  
+https://github.com/rrthomas/nancy  
 
 Nancy is a simple templating system that copies a file or directory, filling
 in templates as it goes. Two simple mechanisms, context-dependent file
@@ -37,15 +37,9 @@ $ pip install nancy
 ## Invocation
 
 ```
-<<<<<<< HEAD
 usage: python -m nancy [-h] [--path PATH] [--process-hidden] [--update]
                        [--delete] [--jobs JOBS] [--version]
-                       INPUT-PATH OUTPUT
-=======
-nancy [-h] [--path PATH] [--process-hidden] [--update] [--delete]
-             [--version]
-             INPUT OUTPUT
->>>>>>> c378d13 (Remove multi-input tree operation)
+                       INPUT OUTPUT
 
 A simple templating system.
 
@@ -64,12 +58,9 @@ options:
   --jobs JOBS       number of parallel tasks to run at the same time [default
                     is number of CPU cores, currently 16]
   --version         show program's version number and exit
-<<<<<<< HEAD
 
 The INPUT-PATH is a ':'-separated list; the inputs are merged in left-to-right
 order.
-=======
->>>>>>> c378d13 (Remove multi-input tree operation)
 ```
 
 ## Operation <a name="operation"></a>
@@ -248,13 +239,8 @@ a program, the program will be given the actual path, rather than the string
 
 When Nancy `$run`s a program, it sets the following environment variables:
 
-<<<<<<< HEAD
-- NANCY_INPUT - the input file name.
-=======
-- NANCY_INPUT - the root of whichever of the input trees contains the file
-  that is being expanded. The file’s name, relative to `NANCY_INPUT`, is
-  `$path`.
->>>>>>> c378d13 (Remove multi-input tree operation)
+- NANCY_INPUT - the root of the input tree contains the file that is being
+  expanded. The file’s name, relative to `NANCY_INPUT`, is `$path`.
 
 ### Escaping
 
