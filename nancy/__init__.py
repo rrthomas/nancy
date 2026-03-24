@@ -347,7 +347,7 @@ class Expand:
         self._macros = macrosClass(self)
 
     async def set_output_path(self):
-        # Recompute `_output_path` by expanding `path`.
+        """Recompute `_output_path` by expanding `path`."""
         output_path = self.path.relative_to(self.tree.build)
         if output_path.name != "":
             if re.search(COPY_REGEX, output_path.name):
