@@ -323,7 +323,7 @@ class Expand:
         path (Path): the input-relative `Path`
     """
 
-    trees: Tree
+    tree: Tree
     path: Path
 
     # The output file relative to `tree.output`.
