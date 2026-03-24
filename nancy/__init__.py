@@ -360,8 +360,8 @@ class Expand:
                 )
             # Discard computed inputs when expanding filenames.
             output, _ = await self.expand(bytes(output_path))
-            output_path = os.fsdecode(output)
-        self._output_path = Path(output_path)
+            output_path = Path(os.fsdecode(output))
+        self._output_path = output_path
 
     def input_file(self):
         """Returns the input `Path`."""
