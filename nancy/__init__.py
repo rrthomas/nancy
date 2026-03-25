@@ -348,19 +348,29 @@ class Expand:
 
     async def set_output_path(self):
         """Recompute `_output_path` by expanding `path`."""
-        output_path = self.path.relative_to(self.tree.build)
-        if output_path.name != "":
-            if re.search(COPY_REGEX, output_path.name):
-                output_path = output_path.with_name(
-                    output_path.name.replace(".copy", "", 1)
-                )
+        # Compute expanded filename
+        if self.path.name != "":
+            if re.search(COPY_REGEX, self.path.name):
+                final_path = self.path.with_name(self.path.name.replace(".copy", "", 1))
             else:
-                output_path = output_path.with_name(
-                    re.sub(TEMPLATE_REGEX, "", output_path.name)
+                final_path = self.path.with_name(
+                    re.sub(TEMPLATE_REGEX, "", self.path.name)
                 )
             # Discard computed inputs when expanding filenames.
-            output, _ = await self.expand(bytes(output_path))
-            output_path = Path(os.fsdecode(output))
+            expanded_final_path, _ = await self.expand(bytes(final_path))
+            expanded_final_path = Path(os.fsdecode(expanded_final_path))
+        else:
+            expanded_final_path = Path("")
+
+        output_path = self.path.relative_to(self.tree.build)
+        if output_path.name != "":
+            output_path = output_path.with_name(expanded_final_path.name)
+        elif (
+            self.tree.output.exists()
+            and self.tree.output.is_dir()
+            and self.input_file().is_file()
+        ):
+            output_path = Path(expanded_final_path.name)
         self._output_path = output_path
 
     def input_file(self):

@@ -75,6 +75,9 @@ Nancy then processes each file:
   or directory in the output, the name in the input tree is expanded, and
   any `.nancy` suffix is removed. There is one exception: the root directory
   (or file) is called `OUTPUT` (that is, the `OUTPUT` argument to Nancy).
+  However, if `OUTPUT` already exists and is a directory, and the root is a
+  file, then the output is written with its expanded file name to the
+  directory `OUTPUT`.
 
 Input files, which are not copied to the output in any form, can be used by
 commands in other files. They can also be used for documentation or other

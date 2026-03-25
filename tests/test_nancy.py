@@ -401,6 +401,17 @@ async def test_expanding_macros_in_file_names() -> None:
         )
 
 
+async def test_expanding_macro_in_single_file_argument_with_directory_output() -> None:
+    with TemporaryDirectory() as tmp_dir:
+        with chdir(tests_dir):
+            await passing_test(
+                "expanding-macros-in-file-names-src",
+                "expanding-macros-in-file-names-expected",
+                "$include(name.in.txt).nancy.txt",
+                tmp_dir,
+            )
+
+
 async def test_run_with_input() -> None:
     with chdir(tests_dir):
         await passing_test(
