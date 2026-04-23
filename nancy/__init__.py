@@ -364,7 +364,7 @@ class Expand:
 
         output_path = self.path.relative_to(self.tree.build)
         if output_path.name != "":
-            output_path = output_path.with_name(expanded_final_path.name)
+            output_path = expanded_final_path.relative_to(self.tree.build)
         elif (
             self.tree.output.exists()
             and self.tree.output.is_dir()
