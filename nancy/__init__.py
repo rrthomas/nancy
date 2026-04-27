@@ -418,27 +418,36 @@ class Expand:
                 return obj
         return None
 
-    def file_arg(self, arg: bytes, exe=False) -> Path:
-        """Find a file with the given name, or raise an error.
-
-        The input tree is searched first. If no file is found there, and `exe`,
-        the system `PATH` is searched for an executable file.
+    def file_arg(self, arg: bytes) -> Path:
+        """Find a file in the input tree, or raise an error.
 
         Args:
             arg (bytes): the name to search for.
-            exe (bool): `True` to search the system `PATH`. Default `False`
 
         Returns:
-            Path: The filename found
+            Path: the filename found
+        """
+        filename = Path(os.fsdecode(arg))
+        file_path = self.find_on_path(self.path.parent, filename)
+        if file_path is None:
+            raise ValueError(
+                f"cannot find '{filename}' while expanding '{self.path.parent}'"
+            )
+        return file_path
+
+    def exe_arg(self, arg: bytes) -> Path:
+        """Find a file to execute in the input tree or on PATH, or raise an error.
+
+        Args:
+            arg (bytes): the name to search for.
+
+        Returns:
+            Path: the filename found
         """
         filename = Path(os.fsdecode(arg))
         file_path = self.find_on_path(self.path.parent, filename)
         if file_path is not None:
             return file_path
-        if not exe:
-            raise ValueError(
-                f"cannot find '{filename}' while expanding '{self.path.parent}'"
-            )
         exe_path_str = shutil.which(filename)
         if exe_path_str is not None:
             return Path(exe_path_str)
@@ -649,7 +658,7 @@ class Macros:
             raise ValueError("$run needs at least one argument")
         debug(command_to_str(b"run", args, input))
 
-        exe_path = self._expand.file_arg(args[0], exe=True)
+        exe_path = self._expand.exe_arg(args[0])
         return b"", set((exe_path,))
 
 
@@ -661,7 +670,7 @@ class RunMacros(Macros):
             raise ValueError("$run needs at least one argument")
         debug(command_to_str(b"run", args, input))
 
-        exe_path = self._expand.file_arg(args[0], exe=True)
+        exe_path = self._expand.exe_arg(args[0])
         expanded_input, inputs = (
             (None, set()) if input is None else await self._expand.expand(input)
         )
