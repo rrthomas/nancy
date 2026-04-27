@@ -414,8 +414,8 @@ class Expand:
             if self.tree.object_exists(obj):
                 path = self.tree.input / obj
                 if path.is_file() and path not in self._stack:
-                    debug(f"Found '{path}'")
-                    return path
+                    debug(f"Found '{obj}'")
+                    return obj
         return None
 
     def file_arg(self, arg: bytes) -> Path:
@@ -425,7 +425,7 @@ class Expand:
             arg (bytes): the name to search for.
 
         Returns:
-            Path: the filename found
+            Path: the input-relative path found
         """
         filename = Path(os.fsdecode(arg))
         file_path = self.find_on_path(self.path.parent, filename)
@@ -447,7 +447,7 @@ class Expand:
         filename = Path(os.fsdecode(arg))
         file_path = self.find_on_path(self.path.parent, filename)
         if file_path is not None:
-            return file_path
+            return self.tree.input / file_path
         exe_path_str = shutil.which(filename)
         if exe_path_str is not None:
             return Path(exe_path_str)
@@ -637,7 +637,7 @@ class Macros:
             raise ValueError("$paste does not take an input")
         debug(command_to_str(b"paste", args, input))
 
-        file_path = self._expand.file_arg(args[0])
+        file_path = self._expand.tree.input / self._expand.file_arg(args[0])
         return file_path.read_bytes(), set((file_path,))
 
     async def include(self, args: list[bytes] | None, input: bytes | None) -> Expansion:
@@ -647,7 +647,7 @@ class Macros:
             raise ValueError("$include does not take an input")
         debug(command_to_str(b"include", args, input))
 
-        file_path = self._expand.file_arg(args[0])
+        file_path = self._expand.tree.input / self._expand.file_arg(args[0])
         output, inputs = await self._expand.include(file_path)
         return strip_final_newline(output), inputs
 
