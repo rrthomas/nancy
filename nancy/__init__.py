@@ -191,12 +191,10 @@ class Tree:
             # Prevent the destructor running again
             self.delete_ungenerated = False
 
-    def find_object(self, obj: Path) -> Path | None:
-        """Returns `self.input / obj` or `None`."""
+    def object_exists(self, obj: Path) -> bool:
+        """Check if `obj` exists in the input tree."""
         debug(f"find_object {obj} {self.input}")
-        if (self.input / obj).exists():
-            return self.input / obj
-        return None
+        return (self.input / obj).exists()
 
     def _check_output_newer(self, inputs: list[Path], output: Path) -> bool:
         if not output.exists():
@@ -256,7 +254,7 @@ class Tree:
         Args:
             obj (Path): the `input`-relative `Path` to scan.
         """
-        if self.find_object(obj) is None:
+        if not self.object_exists(obj):
             raise ValueError(f"'{obj}' matches no path in the inputs")
         if (self.input / obj).is_dir():
             if self.output == Path("-"):
@@ -412,10 +410,12 @@ class Expand:
         debug(f"Searching for '{file}' on {start_path}")
         norm_file = Path(os.path.normpath(file))
         for parent in (start_path / "_").parents:
-            obj = self.tree.find_object(parent / norm_file)
-            if obj is not None and obj.is_file() and obj not in self._stack:
-                debug(f"Found '{obj}'")
-                return obj
+            obj = parent / norm_file
+            if self.tree.object_exists(obj):
+                path = self.tree.input / obj
+                if path.is_file() and path not in self._stack:
+                    debug(f"Found '{path}'")
+                    return path
         return None
 
     def file_arg(self, arg: bytes) -> Path:
@@ -442,7 +442,7 @@ class Expand:
             arg (bytes): the name to search for.
 
         Returns:
-            Path: the filename found
+            Path: the filesystem path of the file found
         """
         filename = Path(os.fsdecode(arg))
         file_path = self.find_on_path(self.path.parent, filename)
