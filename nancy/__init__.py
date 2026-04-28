@@ -223,7 +223,7 @@ class Tree:
             elif re.search(TEMPLATE_REGEX, obj.name):
                 check_expand = Expand(Macros, self, obj)
                 await check_expand.set_output_path()
-                _, include_inputs = await check_expand.include(expand.input_file())
+                _, include_inputs = await check_expand.include(expand.path)
                 inputs += include_inputs
             else:
                 inputs.append(expand.input_file())
@@ -237,7 +237,7 @@ class Tree:
             expand.copy_file()
         elif re.search(TEMPLATE_REGEX, obj.name):
             debug(f"Expanding '{obj}' to '{expand.output_file()}'")
-            output, _ = await expand.include(expand.input_file())
+            output, _ = await expand.include(expand.path)
             if expand.tree.output == Path("-"):
                 sys.stdout.buffer.write(output)
             else:
@@ -416,8 +416,7 @@ class Expand:
         for parent in (start_path / "_").parents:
             obj = parent / norm_file
             if self.tree.object_exists(obj):
-                path = self.tree.input / obj
-                if path.is_file() and path not in self._stack:
+                if (self.tree.input / obj).is_file() and obj not in self._stack:
                     debug(f"Found '{obj}'")
                     return obj
         return None
@@ -555,16 +554,17 @@ class Expand:
         debug(f"expand found inputs {inputs}")
         return b"".join(expanded), inputs
 
-    async def include(self, file_path) -> Expansion:
-        """Expand the contents of `file_path`.
+    async def include(self, path) -> Expansion:
+        """Expand the contents of `path`.
 
         Args:
-            file_path (Path): the filesystem path to include
+            path (Path): the input-relative path to include
 
         Returns:
             Expansion
         """
-        self._stack.append(file_path)
+        self._stack.append(path)
+        file_path = self.tree.input / path
         output = await self.expand(file_path.read_bytes())
         self._stack.pop()
         output[1].add(file_path)
@@ -651,7 +651,7 @@ class Macros:
             raise ValueError("$include does not take an input")
         debug(command_to_str(b"include", args, input))
 
-        file_path = self._expand.tree.input / self._expand.file_arg(args[0])
+        file_path = self._expand.file_arg(args[0])
         output, inputs = await self._expand.include(file_path)
         return strip_final_newline(output), inputs
 
