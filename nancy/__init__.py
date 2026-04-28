@@ -281,13 +281,17 @@ class Tree:
         await self.process_path(self.build)
 
         # Process the work queue
-        tasks = []
-        for i in range(workers):
-            task = asyncio.create_task(worker(i, self.work_queue))
-            tasks.append(task)
-        await self.work_queue.join()
-        self.work_queue.shutdown()
-        await asyncio.gather(*tasks)
+        background_tasks = set()
+        try:
+            async with asyncio.TaskGroup() as tg:
+                for i in range(workers):
+                    task = tg.create_task(worker(i, self.work_queue))
+                    background_tasks.add(task)
+                    task.add_done_callback(background_tasks.discard)
+                await self.work_queue.join()
+                self.work_queue.shutdown()
+        except BaseExceptionGroup as e:
+            raise e.exceptions[0]
 
     def find_existing_files(self) -> None:
         for dirpath, _, filenames in os.walk(self.output):
