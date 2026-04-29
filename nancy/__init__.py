@@ -413,9 +413,10 @@ class Expand:
                 otherwise `None`.
         """
         debug(f"Searching for '{file}' on {start_path}")
-        norm_file = Path(os.path.normpath(file))
         for parent in (start_path / "_").parents:
-            obj = parent / norm_file
+            # Use os.path.normpath to remove .. segments
+            obj = Path(os.path.normpath(parent / file))
+            debug(f"checking '{obj}'")
             if self.tree.object_exists(obj):
                 if (self.tree.input / obj).is_file() and obj not in self.stack:
                     debug(f"Found '{obj}'")

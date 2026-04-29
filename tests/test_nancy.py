@@ -132,6 +132,11 @@ async def test_expansion_while_including_from_subdirs() -> None:
         await passing_test("combine-subincludes-src", "combine-subincludes-expected")
 
 
+async def test_expansion_of_symlinked_directories() -> None:
+    with chdir(tests_dir):
+        await passing_test("symlink-directory-src", "symlink-directory-expected")
+
+
 async def test_expand_of_run_output() -> None:
     with chdir(tests_dir):
         await passing_test("expand-run-src", "expand-run-expected")
