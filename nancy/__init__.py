@@ -434,9 +434,7 @@ class Expand:
         filename = Path(os.fsdecode(arg))
         file_path = self.find_on_path(self.path.parent, filename)
         if file_path is None:
-            raise ValueError(
-                f"cannot find '{filename}' while expanding '{self.path.parent}'"
-            )
+            raise ValueError(f"cannot find '{filename}' while expanding '{self.path}'")
         return file_path
 
     def exe_arg(self, arg: bytes) -> Path:
