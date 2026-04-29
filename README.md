@@ -56,7 +56,7 @@ options:
   --delete          delete files and directories in the output tree that are
                     not written
   --jobs JOBS       number of parallel tasks to run at the same time [default
-                    is number of CPU cores, currently 16]
+                    is number of CPU cores, currently 4]
   --version         show program's version number and exit
 
 The INPUT-PATH is a ':'-separated list; the inputs are merged in left-to-right
@@ -168,10 +168,10 @@ Nancy recognises these commands:
 
 + *`$include(FILE)`* Look up the given source file in the input tree (see
   below); read its contents, then expand them (that is, execute any commands
-  it contains) and return the result. Note that the value of `$path` does
-  not change during the expansion of an included file’s content. If the
-  result ends in a newline, it is removed. (This almost always does what you
-  want, and makes `$include` behave better in various contexts.)
+  it contains) and return the result. While the contents are being expanded,
+  `README.nancy.md` has its basename replaced by `FILE`. If the result ends in a
+  newline, it is removed. (This almost always does what you want, and makes
+  `$include` behave better in various contexts.)
 + *`$paste(FILE)`* Look up the given source file like `$include`, and
   return its contents.
 + *`$run(PROGRAM,ARGUMENT…){INPUT}`* Run the given program with the given
@@ -183,8 +183,7 @@ Nancy recognises these commands:
   trailing newline removed. This can be used to expand the output of a
   program run with `$run`.
 + *`$path`* Expands to the file currently being expanded, relative to the
-  input. This is always a template file, unless the current input path is a
-  single file.
+  input.
 + *`$outputpath`* Returns the output-tree relative path for the file
   currently being expanded.
 

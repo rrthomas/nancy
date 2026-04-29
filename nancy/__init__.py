@@ -328,24 +328,25 @@ class Expand:
     tree: Tree
     path: Path
 
+    # stack is a list of filesystem `Path`s which are currently being
+    # `$include`d. This is used to avoid infinite loops.
+    stack: list[Path]
+
     # The output file relative to `tree.output`.
     # `None` while the filename is being expanded.
     _output_path: Path | None
-
-    # _stack is a list of filesystem `Path`s which are currently being
-    # `$include`d. This is used to avoid infinite loops.
-    _stack: list[Path]
 
     def __init__(
         self,
         macrosClass: "type[Macros]",  # TODO: remove quotes with 3.14.
         tree: Tree,
         path: Path,
+        stack: list[Path] = [],
     ):
         self.tree = tree
         self.path = path
+        self.stack = stack
         self._output_path = None
-        self._stack = []
         self._macros = macrosClass(self)
 
     async def set_output_path(self):
@@ -408,7 +409,7 @@ class Expand:
             Optional[Path]: `ancestor/file` where `ancestor` is the longest
                 possible prefix of `start_path` satisfying:
                 - `ancestor/file` exists and is a file
-                - not in `self._stack`
+                - not in `self.stack`
                 otherwise `None`.
         """
         debug(f"Searching for '{file}' on {start_path}")
@@ -416,7 +417,7 @@ class Expand:
         for parent in (start_path / "_").parents:
             obj = parent / norm_file
             if self.tree.object_exists(obj):
-                if (self.tree.input / obj).is_file() and obj not in self._stack:
+                if (self.tree.input / obj).is_file() and obj not in self.stack:
                     debug(f"Found '{obj}'")
                     return obj
         return None
@@ -502,7 +503,7 @@ class Expand:
         Returns:
             Expansion
         """
-        debug(f"expand {text} {self._stack}")
+        debug(f"expand {text} {self.stack}")
 
         startpos = 0
         inputs = set()
@@ -554,19 +555,25 @@ class Expand:
         debug(f"expand found inputs {inputs}")
         return b"".join(expanded), inputs
 
-    async def include(self, path) -> Expansion:
+    async def include(self, path: Path, context: Path | None = None) -> Expansion:
         """Expand the contents of `path`.
 
         Args:
             path (Path): the input-relative path to include
+            context (Path | None): the path relative to `Expand.input`; uses
+                `self.path` if `None` given.
 
         Returns:
             Expansion
         """
-        self._stack.append(path)
+        if context is None:
+            context = self.path
+        self.stack.append(path)
         file_path = self.tree.input / path
-        output = await self.expand(file_path.read_bytes())
-        self._stack.pop()
+        output = await Expand(
+            type(self._macros), self.tree, context, self.stack.copy()
+        ).expand(file_path.read_bytes())
+        self.stack.pop()
         output[1].add(file_path)
         return output
 
@@ -652,7 +659,9 @@ class Macros:
         debug(command_to_str(b"include", args, input))
 
         file_path = self._expand.file_arg(args[0])
-        output, inputs = await self._expand.include(file_path)
+        output, inputs = await self._expand.include(
+            file_path, self._expand.path.parent / Path(os.fsdecode(args[0]))
+        )
         return strip_final_newline(output), inputs
 
     async def run(
