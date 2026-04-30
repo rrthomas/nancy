@@ -9,7 +9,7 @@ import os
 import shutil
 import socket
 import stat
-from contextlib import chdir  # pyright: ignore
+from contextlib import chdir
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
