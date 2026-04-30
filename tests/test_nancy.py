@@ -142,6 +142,13 @@ async def test_expand_of_run_output() -> None:
         await passing_test("expand-run-src", "expand-run-expected")
 
 
+async def test_expanding_directory_name() -> None:
+    with chdir(tests_dir):
+        await passing_test(
+            "expand-directory-name-src", "expand-directory-name-expected"
+        )
+
+
 async def test_nonexistent_executable_test() -> None:
     with chdir(tests_dir):
         await failing_test(os.getcwd(), "cannot find program 'foo'", "foo.nancy.txt")
