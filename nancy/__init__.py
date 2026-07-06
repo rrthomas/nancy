@@ -259,6 +259,8 @@ class Tree:
         if (self.input / obj).is_dir():
             if self.output == Path("-"):
                 raise ValueError("cannot output multiple files to stdout ('-')")
+            if re.search(INPUT_REGEX, obj.name):
+                return
             debug(f"Entering directory '{obj}'")
             expand = Expand(RunMacros, self, obj)
             await expand.set_output_path()

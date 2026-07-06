@@ -45,8 +45,9 @@ Nancy first traverses the input tree, or the tree given by the `--path`
 argument, if any, which is a relative path denoting a subtree of the
 input tree.
 
-For each directory in the input tree, Nancy creates a corresponding
-directory, if it does not already exist.
+For each directory in the input tree whose name does not contain the suffix
+`.in`, Nancy creates a corresponding directory, if it does not already
+exist.
 
 Each file is one of four types:
 
