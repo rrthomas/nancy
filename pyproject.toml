@@ -18,7 +18,7 @@ classifiers = [
 nancy = "nancy:main"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-asyncio"]
+test = ["pytest", "pytest-asyncio", "pytest-chdir"]
 
 [build-system]
 requires = [
