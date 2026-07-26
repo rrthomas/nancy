@@ -37,9 +37,9 @@ $ pip install nancy
 ## Invocation
 
 ```
-usage: python -m nancy [-h] [--path PATH] [--process-hidden] [--update]
-                       [--delete] [--jobs JOBS] [--version]
-                       INPUT OUTPUT
+nancy [-h] [--path PATH] [--process-hidden] [--update] [--delete]
+             [--jobs JOBS] [--version]
+             INPUT OUTPUT
 
 A simple templating system.
 
@@ -69,8 +69,9 @@ Nancy first traverses the input tree, or the tree given by the `--path`
 argument, if any, which is a relative path denoting a subtree of the
 input tree.
 
-For each directory in the input tree, Nancy creates a corresponding
-directory, if it does not already exist.
+For each directory in the input tree whose name does not contain the suffix
+`.in`, Nancy creates a corresponding directory, if it does not already
+exist.
 
 Each file is one of four types:
 
@@ -189,8 +190,7 @@ Nancy recognises these commands:
 
 The last two commands are mostly useful in arguments to `$run`.
 
-To find the file specified by a `$include(FILE)` command, Nancy proceeds
-thus:
+To find the file specified by a `FILE` argument, Nancy proceeds thus:
 
 1. Set `path` to the value of `$path`.
 2. See whether `path/FILE` is a file (or a symbolic link to a file). If so,
@@ -199,7 +199,9 @@ thus:
 3. If `path` is empty, stop. Otherwise, remove the last directory from
    `path` and go to step 2.
 
-If no file is found, Nancy stops with an error message.
+If no file is found, Nancy stops with an error message. In `FILE` paths, the
+notation `..` means simply “go up one level in the input tree”, regardless
+of whether the current path involves symbolic links.
 
 For example, if Nancy is trying to find `file.html`, starting in the
 subdirectory `foo/bar/baz`, it will try the following files, in order:
