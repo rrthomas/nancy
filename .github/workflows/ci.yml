@@ -15,7 +15,9 @@ jobs:
         python-version: '3.13'
     - name: Install dependencies (Ubuntu)
       if: ${{ matrix.os == 'ubuntu-latest' }}
-      run: sudo apt-get -y install tox tree
+      run: |
+        sudo apt-get -y install tree pipx
+        pipx install tox
     - name: Install dependencies (macOS)
       if: ${{ matrix.os == 'macos-latest' }}
       run: |
