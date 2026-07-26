@@ -297,22 +297,26 @@ class Tree:
             raise e.exceptions[0]
 
     def find_existing_files(self) -> None:
-        for dirpath, _, filenames in os.walk(self.output):
+        for dirpath, dirnames, filenames in os.walk(self.output):
             parent = Path(dirpath)
+            if not self.process_hidden:
+                dirnames[:] = [d for d in dirnames if d[0] != "."]
             for f in filenames:
-                child = parent / f
-                self.extant_files[child] = child.stat()
+                if self.process_hidden or f[0] != ".":
+                    child = parent / f
+                    self.extant_files[child] = child.stat()
 
     def delete_ungenerated_files(self) -> None:
         for path in set(self.extant_files) - self.output_files:
-            if path.name[0] != "." or self.process_hidden:
-                os.remove(path)
+            debug(f"removed ungenerated file {path}")
+            os.remove(path)
 
         # Now remove empty directories
         for dirpath, _, filenames in os.walk(self.output, topdown=False):
             if len(filenames) == 0:
                 try:
                     os.rmdir(dirpath)
+                    debug(f"removed empty directory {dirpath}")
                 except OSError:
                     pass  # The directory contained other (non-empty) directories.
 
