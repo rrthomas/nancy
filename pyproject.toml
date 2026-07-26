@@ -18,7 +18,17 @@ classifiers = [
 nancy = "nancy:main"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-asyncio", "pytest-chdir"]
+test = [
+     "coverage",
+     "LinkChecker",
+     "pyright",
+     "pytest",
+     "pytest-asyncio",
+     "pytest-chdir",
+     "ruff",
+     "tox",
+     "types-setuptools",
+]
 
 [build-system]
 requires = [
@@ -45,3 +55,17 @@ lines-after-imports = 2
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.tox]
+env_list = ["3.13", "3.14"]
+
+[tool.tox.env_run_base]
+description = "Run tests under {base_python}"
+commands = [
+    ["pyright", "nancy", "tests/*.py"],
+    ["ruff", "check", "nancy", "tests"],
+    ["ruff", "format", "--exit-non-zero-on-format"],
+    ["coverage", "run", "-m", "pytest", "{posargs}"],
+    ["coverage", "report", "--show-missing", "--skip-covered", "--fail-under=100"],
+]
+extras = ["test"]
