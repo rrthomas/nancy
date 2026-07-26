@@ -136,7 +136,8 @@ class Tree:
             tree.
         process_hidden (bool): `True` to process hidden files (those whose
             names begin with ".")
-        delete_ungenerated (bool): `True` to delete files we do not generate
+        delete_ungenerated (bool): `True` to delete files we do not generate,
+            respecting `process_hidden`
         update_newer (bool): Used when updating an existing output tree;
             files will only be updated if their macro arguments are newer than
             any current output file. Note this does not take into account macro
@@ -304,7 +305,8 @@ class Tree:
 
     def delete_ungenerated_files(self) -> None:
         for path in set(self.extant_files) - self.output_files:
-            os.remove(path)
+            if path.name[0] != "." or self.process_hidden:
+                os.remove(path)
 
         # Now remove empty directories
         for dirpath, _, filenames in os.walk(self.output, topdown=False):
