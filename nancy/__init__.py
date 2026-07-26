@@ -313,7 +313,9 @@ class Tree:
 
         # Now remove empty directories
         for dirpath, _, filenames in os.walk(self.output, topdown=False):
-            if len(filenames) == 0:
+            if len(filenames) == 0 and (
+                self.process_hidden or all(p[0] != "." for p in Path(dirpath).parts)
+            ):
                 try:
                     os.rmdir(dirpath)
                     debug(f"removed empty directory {dirpath}")
