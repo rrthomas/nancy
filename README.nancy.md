@@ -59,8 +59,12 @@ Each file is one of four types:
 + *Plain files* are the rest.
 
 Hidden files and directories (files whose names starts with `.`) are ignored
-unless the option `--process-hidden` is given, except for those mentioned in
-command line arguments.
+by default. The files that are ignored or processed can be changed using the
+options `--include` and `--exclude`, which specify glob patterns that are
+matched against the basename of each file and directory. The patterns are
+matched from left to right, starting with the default exclusion of `.*`.
+Each subsequent rule can override an earlier one. Files and directories
+mentioned on the command line are always processed.
 
 The special suffixes need not end the file name; they can be used as infixes
 before the file type suffix.

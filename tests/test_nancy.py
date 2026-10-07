@@ -25,7 +25,7 @@ from testutils import (
     tree_mtimes,
 )
 
-from nancy import main
+from nancy import Pattern, main
 
 
 tests_dir = Path(__file__).parent.resolve() / "test-files"
@@ -49,7 +49,7 @@ async def test_update_with_no_existing_output(chtestdir) -> None:
         "cookbook-example-website-expected",
         None,
         None,
-        False,
+        [],
         False,
         True,
     )
@@ -71,7 +71,7 @@ async def test_update_with_existing_input(chtestdir) -> None:
             "webpage-expected",
             None,
             tmp_dir,
-            False,
+            [],
             False,
             True,
         )
@@ -99,7 +99,7 @@ async def test_update_overwriting_some_input(chtestdir) -> None:
             "webpage-expected",
             None,
             tmp_dir,
-            False,
+            [],
             False,
             True,
         )
@@ -170,7 +170,7 @@ async def test_hidden_files_can_be_processed(chtestdir) -> None:
         "hidden-files",
         None,
         None,
-        True,
+        [Pattern(True, ".*")],
     )
 
 
@@ -199,7 +199,7 @@ async def test_copy_suffix(chtestdir) -> None:
 
 
 async def test_update_copy_suffix(chtestdir) -> None:
-    await passing_test("copy-src", "copy-expected", None, None, False, False, True)
+    await passing_test("copy-src", "copy-expected", None, None, [], False, True)
 
 
 async def test_delete_ungenerated(chtestdir) -> None:
@@ -211,7 +211,7 @@ async def test_delete_ungenerated(chtestdir) -> None:
             "delete-ungenerated-expected",
             None,
             tmp_dir,
-            False,
+            [],
             True,
         )
 
@@ -330,7 +330,7 @@ async def test_update_run_with_no_arguments_gives_an_error(chtestdir) -> None:
         "$run needs at least one argument",
         "run-no-arg.nancy.txt",
         None,
-        False,
+        [],
         False,
         True,
     )
@@ -448,7 +448,7 @@ async def test_trying_to_output_multiple_files_to_stdout_causes_an_error(
 # CLI tests
 def test_help_option_should_produce_output(capsys: CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as e:
-        main(["--help"])
+        main(["--include", "foo", "--exclude", "bar", "--help"])
     assert e.type is SystemExit
     assert e.value.code == 0
     assert capsys.readouterr().out.find("A simple templating system.") != -1

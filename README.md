@@ -37,27 +37,28 @@ $ pip install nancy
 ## Invocation
 
 ```
-nancy [-h] [--path PATH] [--process-hidden] [--update] [--delete]
-             [--jobs JOBS] [--version]
+nancy [-h] [--path PATH] [--include GLOB] [--exclude GLOB] [--update]
+             [--delete] [--jobs JOBS] [--version]
              INPUT OUTPUT
 
 A simple templating system.
 
 positional arguments:
-  INPUT             input directory, or file
-  OUTPUT            output directory, or file ('-' for stdout)
+  INPUT           input directory, or file
+  OUTPUT          output directory, or file ('-' for stdout)
 
 options:
-  -h, --help        show this help message and exit
-  --path PATH       path to build relative to input tree [default: '']
-  --process-hidden  do not ignore hidden files and directories
-  --update          only overwrite files in the output tree if their
-                    dependencies are newer than the current file
-  --delete          delete files and directories in the output tree that are
-                    not written
-  --jobs JOBS       number of parallel tasks to run at the same time [default
-                    is number of CPU cores, currently 4]
-  --version         show program's version number and exit
+  -h, --help      show this help message and exit
+  --path PATH     path to build relative to input tree [default: '']
+  --include GLOB  process files and directories matching GLOB
+  --exclude GLOB  do not process files and directories matching GLOB
+  --update        only overwrite files in the output tree if their
+                  dependencies are newer than the current file
+  --delete        delete files and directories in the output tree that are not
+                  written
+  --jobs JOBS     number of parallel tasks to run at the same time [default is
+                  number of CPU cores, currently 16]
+  --version       show program's version number and exit
 
 The INPUT-PATH is a ':'-separated list; the inputs are merged in left-to-right
 order.
@@ -83,8 +84,12 @@ Each file is one of four types:
 + *Plain files* are the rest.
 
 Hidden files and directories (files whose names starts with `.`) are ignored
-unless the option `--process-hidden` is given, except for those mentioned in
-command line arguments.
+by default. The files that are ignored or processed can be changed using the
+options `--include` and `--exclude`, which specify glob patterns that are
+matched against the basename of each file and directory. The patterns are
+matched from left to right, starting with the default exclusion of `.*`.
+Each subsequent rule can override an earlier one. Files and directories
+mentioned on the command line are always processed.
 
 The special suffixes need not end the file name; they can be used as infixes
 before the file type suffix.
@@ -130,7 +135,10 @@ If the `--delete` option is given, Nancy deletes any files in the output
 directory that it did not write, and any directories that thereby become
 empty.
 
-Nancy runs background tasks in parallel. By default, it uses up to one task per available CPU core. You can set the number of tasks with the `--jobs` flag. In particular, if you rely on tasks not being run in parallel (usually a bad idea!) you can use `--jobs=1`.
+Nancy runs background tasks in parallel. By default, it uses up to one task
+per available CPU core. You can set the number of tasks with the `--jobs`
+flag. In particular, if you rely on tasks not being run in parallel (usually
+a bad idea!) you can use `--jobs=1`.
 
 
 ### Special cases

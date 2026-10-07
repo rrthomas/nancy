@@ -14,6 +14,7 @@ import warnings
 from asyncio.subprocess import Process
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from fnmatch import fnmatch
 from logging import debug
 from pathlib import Path
 
@@ -31,6 +32,28 @@ MACRO_REGEX = re.compile(rb"(\\?)\$([^\W\d_]\w*)")
 
 umask = os.umask(0)
 os.umask(umask)
+
+
+@dataclass
+class Pattern:
+    include: bool
+    glob: str
+
+
+class PatternAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        assert nargs is None
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        assert option_string is not None
+        assert type(values) is str
+        assert option_string in ("--include", "--exclude")
+        match option_string:
+            case "--include":
+                namespace.patterns.append(Pattern(True, option_string))
+            case "--exclude":
+                namespace.patterns.append(Pattern(False, option_string))
 
 
 def strip_final_newline(s: bytes) -> bytes:
@@ -134,10 +157,9 @@ class Tree:
         output (Path): the filesystem `Path` of the output directory
         build (Path): the subtree of `input` to process. Defaults to the whole
             tree.
-        process_hidden (bool): `True` to process hidden files (those whose
-            names begin with ".")
+        patterns (list[Pattern]): glob patterns to include or exclude
         delete_ungenerated (bool): `True` to delete files we do not generate,
-            respecting `process_hidden`
+            respecting `patterns`
         update_newer (bool): Used when updating an existing output tree;
             files will only be updated if their macro arguments are newer than
             any current output file. Note this does not take into account macro
@@ -150,7 +172,7 @@ class Tree:
     input: Path
     output: Path
     build: Path
-    process_hidden: bool
+    patterns: list[Pattern]
     delete_ungenerated: bool
     update_newer: bool
     extant_files: dict[Path, os.stat_result]
@@ -161,13 +183,13 @@ class Tree:
         self,
         input: Path,
         output: Path,
-        process_hidden: bool,
+        patterns: list[Pattern],
         build: Path | None = None,
         delete_ungenerated: bool = False,
         update_newer: bool = False,
     ):
         self.delete_ungenerated = delete_ungenerated
-        self.process_hidden = process_hidden
+        self.patterns = patterns
         self.update_newer = update_newer
         if not input.exists():
             raise ValueError(f"input '{input}' does not exist")
@@ -196,6 +218,14 @@ class Tree:
         """Check if `obj` exists in the input tree."""
         debug(f"find_object {obj} {self.input}")
         return (self.input / obj).exists()
+
+    def match_patterns(self, basename: str) -> bool:
+        """Check if `basename` is allowed by the include/exclude patterns."""
+        ok = True
+        for p in self.patterns:
+            if fnmatch(basename, p.glob):
+                ok = p.include
+        return ok
 
     def _check_output_newer(self, inputs: list[Path], output: Path) -> bool:
         if not output.exists():
@@ -268,7 +298,7 @@ class Tree:
             output_dir = expand.output_file()
             os.makedirs(output_dir, exist_ok=True)
             for child in os.listdir(self.input / obj):
-                if child[0] != "." or self.process_hidden:
+                if self.match_patterns(child):
                     self.work_queue.put_nowait(self.process_path(obj / child))
         elif (self.input / obj).is_file():
             self.work_queue.put_nowait(self.process_file(obj, self.update_newer))
@@ -299,10 +329,9 @@ class Tree:
     def find_existing_files(self) -> None:
         for dirpath, dirnames, filenames in os.walk(self.output):
             parent = Path(dirpath)
-            if not self.process_hidden:
-                dirnames[:] = [d for d in dirnames if d[0] != "."]
+            dirnames[:] = [d for d in dirnames if self.match_patterns(d)]
             for f in filenames:
-                if self.process_hidden or f[0] != ".":
+                if self.match_patterns(f):
                     child = parent / f
                     self.extant_files[child] = child.stat()
 
@@ -314,7 +343,7 @@ class Tree:
         # Now remove empty directories
         for dirpath, _, filenames in os.walk(self.output, topdown=False):
             if len(filenames) == 0 and (
-                self.process_hidden or all(p[0] != "." for p in Path(dirpath).parts)
+                all(self.match_patterns(p) for p in Path(dirpath).parts)
             ):
                 try:
                     os.rmdir(dirpath)
@@ -736,9 +765,16 @@ async def real_main(argv: list[str] = sys.argv[1:]) -> None:
         "--path", help="path to build relative to input tree [default: '']"
     )
     parser.add_argument(
-        "--process-hidden",
-        help="do not ignore hidden files and directories",
-        action="store_true",
+        "--include",
+        metavar="GLOB",
+        help="process files and directories matching GLOB",
+        action=PatternAction,
+    )
+    parser.add_argument(
+        "--exclude",
+        metavar="GLOB",
+        help="do not process files and directories matching GLOB",
+        action=PatternAction,
     )
     parser.add_argument(
         "--update",
@@ -766,7 +802,7 @@ Distributed under the GNU General Public License version 3, or (at
 your option) any later version. There is no warranty.""",
     )
     warnings.showwarning = simple_warning(parser.prog)
-    args = parser.parse_args(argv)
+    args = parser.parse_args(argv, argparse.Namespace(patterns=[Pattern(False, ".*")]))
 
     # Expand input
     try:
@@ -783,7 +819,7 @@ your option) any later version. There is no warranty.""",
         await Tree(
             input,
             Path(args.output),
-            args.process_hidden,
+            args.patterns,
             Path(args.path) if args.path else None,
             args.delete,
             args.update,

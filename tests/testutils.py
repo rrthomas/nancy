@@ -21,7 +21,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from pytest import CaptureFixture, LogCaptureFixture
 
-from nancy import Tree
+from nancy import Pattern, Tree
 from nancy import real_main as main
 
 
@@ -55,10 +55,11 @@ async def passing_test(
     expected: str,
     build_path: str | None = None,
     output_dir: str | None = None,
-    process_hidden: bool = False,
+    patterns: list[Pattern] = [],
     delete_ungenerated: bool = False,
     update_newer: bool = False,
 ) -> None:
+    patterns.insert(0, Pattern(False, ".*"))
     input_dir_path = Path(input_dir)
     ctx_mgr: AbstractContextManager[None] | TemporaryDirectory[str]
     if output_dir is None:
@@ -71,7 +72,7 @@ async def passing_test(
         trees = Tree(
             input_dir_path,
             Path(output_obj),
-            process_hidden,
+            patterns,
             None if build_path is None else Path(build_path),
             delete_ungenerated,
             update_newer,
@@ -86,10 +87,11 @@ async def failing_test(
     expected: str,
     build_path: str | None = None,
     output_dir: str | None = None,
-    process_hidden: bool = False,
+    patterns: list[Pattern] = [],
     delete_ungenerated: bool = False,
     update_newer: bool = False,
 ) -> None:
+    patterns.insert(0, Pattern(False, ".*"))
     with TemporaryDirectory() as expected_dir:
         try:
             await passing_test(
@@ -97,7 +99,7 @@ async def failing_test(
                 expected_dir,
                 build_path,
                 output_dir,
-                process_hidden,
+                patterns,
                 delete_ungenerated,
                 update_newer,
             )
