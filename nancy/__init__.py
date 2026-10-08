@@ -51,9 +51,9 @@ class PatternAction(argparse.Action):
         assert option_string in ("--include", "--exclude")
         match option_string:
             case "--include":
-                namespace.patterns.append(Pattern(True, option_string))
+                namespace.patterns.append(Pattern(True, values))
             case "--exclude":
-                namespace.patterns.append(Pattern(False, option_string))
+                namespace.patterns.append(Pattern(False, values))
 
 
 def strip_final_newline(s: bytes) -> bytes:

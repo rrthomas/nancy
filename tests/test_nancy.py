@@ -497,6 +497,17 @@ async def test_copy_to_stdout_of_a_single_file_works(
     )
 
 
+async def test_include_exclude_options(
+    capsys: CaptureFixture[str],
+    chtestdir,
+) -> None:
+    await passing_cli_test(
+        capsys,
+        ["--include", ".dummy-dotfile", "--exclude", "eve", "webpage-src"],
+        "include-exclude-expected",
+    )
+
+
 async def test_missing_command_line_argument_causes_an_error(
     capsys: CaptureFixture[str],
     caplog: LogCaptureFixture,
