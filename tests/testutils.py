@@ -124,7 +124,7 @@ async def passing_cli_test(
     try:
         await main(args + [output_obj])
         if tmp_dir is not None:
-            assert filecmp.cmp(output_obj, expected)
+            assert file_objects_equal(output_obj, expected)
         else:
             with open(expected, encoding="utf-8") as fh:
                 expected_text = fh.read()
