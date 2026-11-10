@@ -35,6 +35,7 @@ requires = [
     "build",
     "pre-commit",
     "setuptools",
+    "twine",
 ]
 
 [tool.setuptools]
